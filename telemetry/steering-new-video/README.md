@@ -1,5 +1,7 @@
 # Sterzo stimato dal nuovo video
 
+**Aggiornamento:** disponibile una [versione con controllo del bordo centrale e verifica più ampia](refined/README.md), con [ZIP interattivo](refined/sterzo-interattivo.zip) e [grafico di confronto](refined/sterzo-stimato.png). Questa cartella conserva la versione precedente.
+
 **[Guarda il grafico](sterzo-stimato.png)** · **[Scarica la versione interattiva](sterzo-interattivo.zip)** · [Video con linea sovrapposta](verifica-sterzo.mp4) · [Dati CSV](steering.csv)
 
 Scarica lo ZIP con il pulsante di download di GitHub, aprilo sul Mac e apri `sterzo-interattivo.html` con Safari o Chrome. Il grafico e il video sono già inclusi: non occorre scegliere punti, tracciare linee o installare software.

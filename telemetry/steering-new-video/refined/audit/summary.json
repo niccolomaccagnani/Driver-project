@@ -1,0 +1,67 @@
+{
+  "reference_note": "Coarse human visual annotations of apparent rim orientation, usually \u00b15\u00b0, sometimes \u00b17\u00b0; not sensor ground truth. Development references were used during iteration. Holdout references were annotated before evaluating the final method on them; no parameters changed after that evaluation.",
+  "video": {
+    "previous": {
+      "frames": 2835,
+      "returned": 2766,
+      "observed": 2585,
+      "reconstructed": 181,
+      "unreadable": 69
+    },
+    "refined": {
+      "frames": 2835,
+      "returned": 2396,
+      "observed": 2045,
+      "reconstructed": 351,
+      "unreadable": 439
+    }
+  },
+  "audits": {
+    "development": {
+      "total_frames": 32,
+      "visually_readable": 22,
+      "paired_count": 20,
+      "previous": {
+        "returned_on_readable": 22,
+        "mae_all_returned_apparent_deg": 7.6931658927817805,
+        "paired_mae_apparent_deg": 6.367566069537785,
+        "paired_median_apparent_deg": 2.739369382838177,
+        "paired_max_apparent_deg": 20.772067525979786,
+        "paired_active_sign_errors": 0,
+        "paired_active_signed_references": 16
+      },
+      "refined": {
+        "returned_on_readable": 20,
+        "mae_all_returned_apparent_deg": 2.58226439776451,
+        "paired_mae_apparent_deg": 2.58226439776451,
+        "paired_median_apparent_deg": 1.725201676141653,
+        "paired_max_apparent_deg": 9.83084608587236,
+        "paired_active_sign_errors": 0,
+        "paired_active_signed_references": 16
+      }
+    },
+    "holdout": {
+      "total_frames": 16,
+      "visually_readable": 14,
+      "paired_count": 14,
+      "previous": {
+        "returned_on_readable": 14,
+        "mae_all_returned_apparent_deg": 3.578491198659198,
+        "paired_mae_apparent_deg": 3.578491198659198,
+        "paired_median_apparent_deg": 3.278083958067986,
+        "paired_max_apparent_deg": 7.967540601060023,
+        "paired_active_sign_errors": 0,
+        "paired_active_signed_references": 6
+      },
+      "refined": {
+        "returned_on_readable": 14,
+        "mae_all_returned_apparent_deg": 2.092219507428546,
+        "paired_mae_apparent_deg": 2.092219507428546,
+        "paired_median_apparent_deg": 2.0611658131402026,
+        "paired_max_apparent_deg": 4.555195620186904,
+        "paired_active_sign_errors": 0,
+        "paired_active_signed_references": 6
+      }
+    }
+  }
+}

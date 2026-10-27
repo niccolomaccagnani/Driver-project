@@ -1,0 +1,23 @@
+{
+  "zero_offset_deg": -0.7330176030841268,
+  "frames": 2835,
+  "observed": 2045,
+  "reconstructed": 351,
+  "unreadable": 439,
+  "returned": 2396,
+  "temporal_outliers_rejected": 36,
+  "quantity": "apparent 2D rim orientation; not calibrated mechanical steering",
+  "sign": "clockwise positive (right), counterclockwise negative (left) in this recording",
+  "zero_video_interval_s": [
+    1,
+    4
+  ],
+  "max_reconstructed_gap_s": 0.25,
+  "smoothing_penalty": 3,
+  "temporal_rejection_window_frames": 7,
+  "method": "grey-ridge contrast, central-bar geometry, geometric LED corroboration; local outlier rejection; robust smoothing within valid segments only",
+  "source_file": "ScreenRecording_10-08-2026 14-15-49_1.mov",
+  "source_sha256": "ca36168ed18eaa93cbdf5ec996b47f54d838ae31151f85d373f54e10c5fff790",
+  "geometry_specific": true,
+  "algorithm_version": "ridge-central-v1"
+}

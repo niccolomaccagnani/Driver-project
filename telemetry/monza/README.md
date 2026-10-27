@@ -8,7 +8,7 @@ Scarica lo ZIP con il pulsante di download di GitHub, estrailo sul Mac e apri `c
 
 ## Un solo grafico, cinque canali
 
-Velocità, giri motore, marcia, acceleratore e freno condividono lo stesso grafico e lo stesso asse del tempo. **Il colore identifica il canale; linea continua = giro 4, linea tratteggiata = giro 6.** Il cursore mostra i valori originali dei due giri nella lista dei canali.
+Velocità, giri motore, marcia, acceleratore e freno condividono lo stesso grafico e lo stesso asse del tempo. **Tutti i canali del giro 4 sono blu, tutti quelli del giro 6 arancioni, con linee continue.** Il cursore mostra i valori originali dei due giri nella lista dei canali.
 
 La pagina consegnata non include canali o strumenti di sterzo.
 
@@ -25,8 +25,9 @@ Le scale verticali sono indipendenti: spostamento e ampiezza cambiano soltanto i
 
 ### Tempo, allineamento ed esportazioni
 
-- **Zoom sul tempo:** rotella nell'area del grafico, pulsanti oppure trascinamento per selezionare un intervallo. Maiusc + trascinamento scorre nel tempo; doppio clic nell'area ripristina il giro intero.
-- **Riallineamento:** imposta lo spostamento del giro 6 in secondi oppure apri i due originali, fermali sullo stesso riferimento fisico e premi «Allinea questi fotogrammi». Sono disponibili anche riferimenti temporali numerici. Un valore positivo sposta il giro 6 verso destra, conservando entrambe le durate.
+- **Zoom sul tempo:** trascina sul grafico per selezionare e ingrandire un intervallo. Maiusc + trascinamento scorre nel tempo; doppio clic nell'area ripristina il giro intero.
+- **Spostamento del dataset:** premi **Alt+S** (Opzione+S sul Mac), poi trascina orizzontalmente nell’area del grafico per spostare tutti i canali del giro 6 insieme. La vista temporale e i canali del giro 4 restano fermi durante il gesto. Alt+S o Esc torna alla selezione; è disponibile anche il pulsante «Sposta giro 6».
+- **Allineamento visivo:** premi **Allineamento**, apri i due originali, fermali sullo stesso riferimento fisico (linea, cartello o passaggio) e premi «Allinea questi fotogrammi». «Torna al grafico» chiude il pannello. «Azzera allineamento» ripristina il riferimento iniziale. Entrambe le durate restano invariate.
 - **PNG:** esporta il grafico unico con la disposizione, lo zoom, la visibilità e lo spostamento correnti.
 - **CSV:** esporta sempre tutti i campioni dei cinque canali, anche se nascosti, con timestamp originali e tempo riallineato. Le letture mancanti restano vuote.
 

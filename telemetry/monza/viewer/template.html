@@ -16,62 +16,35 @@
         <p class="subtitle">Un solo grafico. Ogni canale, alla tua altezza.</p>
       </div>
       <div class="lap-legend">
-        <label
-          ><input id="lapA" type="checkbox" checked /><i class="line solid"></i>
-          Giro 4 <strong>1:33.07</strong></label
-        ><label
-          ><input id="lapB" type="checkbox" checked /><i
-            class="line dashed"
-          ></i>
-          Giro 6 <strong>1:32.49</strong></label
+        <label class="lap-a"
+          ><input id="lapA" type="checkbox" checked /><i class="line"></i>Giro 4
+          <strong>1:33.07</strong></label
+        >
+        <label class="lap-b"
+          ><input id="lapB" type="checkbox" checked /><i class="line"></i>Giro 6
+          <strong>1:32.49</strong></label
         >
       </div>
     </header>
     <main>
       <section class="toolbar" aria-label="Vista e allineamento">
         <div class="row">
-          <div class="button-group">
-            <button id="zoomIn" title="Ingrandisci l’intervallo di tempo">
-              Zoom +</button
-            ><button id="zoomOut">Zoom −</button
-            ><button id="resetView">Giro intero</button>
-          </div>
-          <label
-            >Da
-            <input id="rangeStart" type="number" step="0.1" value="0" />
-            s</label
-          ><label
-            >a
-            <input id="rangeEnd" type="number" step="0.1" value="93.07" />
-            s</label
-          ><button id="applyRange">Mostra</button>
+          <button id="resetView">Giro intero</button>
+          <button
+            id="openAlignment"
+            class="primary"
+            aria-controls="videoDetails"
+            aria-expanded="false"
+          >
+            Allineamento
+          </button>
+          <button id="resetOffset">Azzera allineamento</button>
+          <span id="alignmentStatus" class="help" aria-live="polite"
+            >Partenze allineate dal cronometro HUD.</span
+          >
           <div class="spacer"></div>
           <button id="exportView">Esporta PNG</button
           ><button id="exportData">Esporta CSV</button>
-        </div>
-        <div class="row alignment">
-          <strong>Allinea giro 6</strong
-          ><label
-            ><input
-              id="offset"
-              type="number"
-              value="0"
-              step="0.01"
-              aria-label="Spostamento giro 6 in secondi"
-            />
-            s</label
-          ><input
-            id="offsetSlider"
-            type="range"
-            min="-5"
-            max="5"
-            step="0.01"
-            value="0"
-            aria-label="Spostamento giro 6"
-          /><button id="resetOffset">Azzera</button
-          ><span id="alignmentStatus" class="help" aria-live="polite"
-            >Partenze allineate dal cronometro HUD.</span
-          >
         </div>
         <div id="message" role="status" aria-live="polite"></div>
       </section>
@@ -139,7 +112,14 @@
             <div class="mode-switch">
               <button id="modeZoom" aria-pressed="true">
                 Seleziona intervallo</button
-              ><button id="modeMove" aria-pressed="false">Sposta canale</button>
+              ><button id="modeMove" aria-pressed="false">Sposta canale</button
+              ><button
+                id="modeDataset"
+                aria-pressed="false"
+                aria-keyshortcuts="Alt+S"
+              >
+                Sposta giro 6 · Alt+S
+              </button>
             </div>
             <span id="cursorReadout" class="time-readout">0,000 s</span>
           </div>
@@ -149,9 +129,9 @@
             aria-label="Grafico unico di velocità, giri motore, marcia, acceleratore e freno. Scale indipendenti a sinistra."
           ></canvas>
           <div class="plot-footer">
-            <span class="help"
-              >Rotella: zoom sul tempo · Trascina: ingrandisci · Maiusc +
-              trascina: scorri · Doppio clic: giro intero</span
+            <span class="help" id="interactionHint" aria-live="polite"
+              >Trascina sul grafico per ingrandire · Maiusc + trascina: scorri ·
+              Doppio clic: giro intero</span
             ><span class="help">Scale verticali indipendenti</span>
           </div>
         </div>
@@ -164,9 +144,10 @@
       <details class="card" id="videoDetails">
         <summary>Riallinea con un riferimento visivo dei video</summary>
         <p>
-          Apri i due originali dal Mac, fermali sullo stesso passaggio e premi
-          «Allinea questi fotogrammi». I file restano sul dispositivo. Lo
-          spostamento conserva la durata dei giri.
+          Apri i due originali dal Mac, fermali sullo stesso passaggio visivo
+          (per esempio una linea o un cartello) e premi «Allinea questi
+          fotogrammi». I file restano sul dispositivo. Lo spostamento conserva
+          la durata dei giri.
         </p>
         <div class="videoGrid">
           <div>
@@ -224,18 +205,13 @@
           copia MP4 H.264.
         </p>
         <div class="row">
-          <label
-            >Riferimento giro 4
-            <input id="anchorA" type="number" step="0.001" value="0" /> s</label
-          ><label
-            >Riferimento giro 6
-            <input id="anchorB" type="number" step="0.001" value="0" /> s</label
-          ><button id="alignAnchors">Allinea questi tempi</button>
+          <button id="closeAlignment">Torna al grafico</button
+          ><span
+            id="videoAlignmentStatus"
+            class="help"
+            aria-live="polite"
+          ></span>
         </div>
-        <p class="help">
-          Riferimenti in secondi dall’inizio stimato del giro. Spostamento =
-          riferimento giro 4 − riferimento giro 6.
-        </p>
       </details>
     </main>
     <footer>

@@ -466,4 +466,42 @@ footer {
   }
 }
 
-#message:empty { display: none; }
+#message:empty {
+  display: none;
+}
+
+:root {
+  --lap-a: #216bce;
+  --lap-b: #e07825;
+}
+.lap-a,
+.channel-values .g4 {
+  color: var(--lap-a);
+}
+.lap-b,
+.channel-values .g6 {
+  color: var(--lap-b);
+}
+.lap-legend .line {
+  border-color: currentColor;
+}
+.channel-values .g4 i {
+  border-color: var(--lap-a);
+}
+.channel-values .g6 i {
+  border-color: var(--lap-b);
+  border-top-style: solid;
+}
+.mode-switch {
+  flex-wrap: wrap;
+}
+#videoDetails {
+  scroll-margin-top: 18px;
+}
+
+.lap-a input {
+  accent-color: var(--lap-a);
+}
+.lap-b input {
+  accent-color: var(--lap-b);
+}

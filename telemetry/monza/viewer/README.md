@@ -12,7 +12,7 @@ Serve Python standard. La sorgente `telemetry-data.json` mantiene i 5.716 campio
 
 ## Scale e interazioni
 
-Tutti i canali sono disegnati in un solo canvas. Ogni canale ha colore, visibilità e trasformazione verticale indipendenti, applicati a entrambi i giri:
+Tutti i canali sono disegnati in un solo canvas. Ogni canale ha visibilità e trasformazione verticale indipendenti, applicati a entrambi i giri:
 
 - `center`: posizione del centro della scala, in frazioni dell'altezza utile del grafico;
 - `span`: altezza della scala completa rispetto all'area utile;
@@ -20,7 +20,11 @@ Tutti i canali sono disegnati in un solo canvas. Ogni canale ha colore, visibili
 
 Le trasformazioni sono solo di presentazione: non cambiano i campioni. La scala del canale selezionato fornisce la griglia orizzontale. Le maniglie ridimensionano la scala mantenendo fermo l'altro estremo; la rotella sulla scala ingrandisce intorno al valore sotto il puntatore. Le scale sono trascinabili e i canali possono sovrapporsi liberamente. Nei layout stretti è mostrata solo la scala del canale selezionato; tutti i controlli restano disponibili anche tramite input e pulsanti.
 
-Lo zoom temporale, il pan e l'allineamento operano su un unico stato condiviso. La marcia viene disegnata a gradini; `null` interrompe la traccia. Anche un intervallo fra campioni maggiore di 0,15 s interrompe la linea, senza interpolazioni nascoste. Il CSV usa sempre tutti i dati originali e aggiunge il tempo riallineato, indipendentemente dalla visibilità dei canali. Il PNG usa lo stesso renderer del canvas e la disposizione corrente.
+I cinque canali di ogni giro usano il medesimo colore, blu per il giro 4 e arancione per il giro 6, sempre con linee continue. Le scale e le etichette dei canali sono neutre.
+
+Lo zoom temporale usa esclusivamente una selezione trascinata; non sono presenti campi di intervallo, pulsanti di ingrandimento o zoom temporale tramite rotella. Maiusc + trascinamento conserva il pan. Alt+S, riconosciuto tramite `KeyboardEvent.code` anche quando Opzione+S produce «ß» sul Mac, attiva lo spostamento orizzontale dell’intero giro 6. Durante il gesto il rapporto secondi/pixel viene fissato e la vista non cambia estensione.
+
+Il pulsante Allineamento apre il pannello dei video, nel quale lo spostamento viene ricavato dai timestamp dei due riferimenti visivi, sottraendo gli inizi stimati dei rispettivi giri. Non vengono modificati o dilatati i timestamp originali. La marcia viene disegnata a gradini; `null` interrompe la traccia. Anche un intervallo fra campioni maggiore di 0,15 s interrompe la linea, senza interpolazioni nascoste. Il CSV usa sempre tutti i dati originali e aggiunge il tempo riallineato, indipendentemente dalla visibilità dei canali. Il PNG usa lo stesso renderer del canvas e la disposizione corrente.
 
 La chiave locale `monza-single-chart-v1` salva soltanto selezione e disposizione dei canali. Un browser che blocca l'archiviazione locale continua a funzionare senza persistenza. Gli errori di accesso allo storage sono gestiti.
 
@@ -32,6 +36,6 @@ Con Python, Playwright e Chromium:
 python telemetry/monza/viewer/tests/browser_check.py
 ```
 
-Il test usa un server HTTP temporaneo locale, senza servizi esterni. Esercita il canvas unico, assenza degli strumenti di sterzo, spostamento e ridimensionamento effettivi delle scale, zoom verticale con rotella, indipendenza fra canali e tempo, spostamento nell'area del grafico, persistenza dopo ricaricamento, visibilità dei canali e dei giri, zoom temporale/selezione/pan, allineamento numerico e da due file video realmente caricati, PNG e layout mobile.
+Il test usa un server HTTP temporaneo locale, senza servizi esterni. Esercita il canvas unico, assenza degli strumenti di sterzo, spostamento e ridimensionamento effettivi delle scale, zoom verticale con rotella, indipendenza fra canali e tempo, spostamento nell'area del grafico, persistenza dopo ricaricamento, visibilità dei canali e dei giri, colori e tratti effettivamente disegnati dal canvas, zoom temporale solo da selezione, pan, Alt+S (compreso il carattere Mac), spostamento del dataset senza variare la vista, e allineamento da due file video realmente caricati, PNG e layout mobile.
 
 Verifica inoltre tutti i valori e i timestamp delle 5.716 righe esportate contro il JSON sorgente, inclusi i valori mancanti: le trasformazioni non alterano il CSV. Le anteprime vengono prodotte dopo aver ripristinato tutti i canali e azzerato l'allineamento.

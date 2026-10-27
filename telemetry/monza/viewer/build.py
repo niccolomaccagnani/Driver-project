@@ -11,12 +11,13 @@ output=root.parent/'confronto-interattivo.html';output.write_text(page)
 instructions='''MONZA — CONFRONTO TELEMETRIA
 
 Apri confronto-interattivo.html con Safari o Chrome sul Mac. Non servono installazioni o connessione.
-Tutti e cinque i canali sono in un unico grafico. Il colore identifica il canale; la linea continua è il giro 4, quella tratteggiata è il giro 6.
+Tutti e cinque i canali sono in un unico grafico. Tutti i canali del giro 4 sono blu, tutti quelli del giro 6 sono arancioni. Le linee sono continue.
 Trascina una scala a sinistra per spostare verticalmente il suo canale. La rotella sulla scala cambia l’ampiezza. Le maniglie alle estremità della scala selezionata permettono di ridimensionarla.
 Puoi usare anche i cursori Ampiezza e Posizione verticale o il comando Sposta canale. Ripristina riporta alla disposizione iniziale.
 Le disposizioni vengono ricordate nel browser quando l’archiviazione locale è disponibile.
-Sul grafico, la rotella ingrandisce il tempo; trascina per selezionare un intervallo, Maiusc + trascina per scorrere. Doppio clic sul grafico: giro intero; su una scala: ripristina quel canale.
-Riallinea il giro 6 con lo spostamento in secondi oppure aprendo i due video originali e scegliendo lo stesso riferimento fisico. I video restano sul Mac e non sono inclusi nel pacchetto.
+Sul grafico trascina per ingrandire un intervallo, Maiusc + trascina per scorrere. Lo zoom temporale non usa campi numerici o la rotella. Doppio clic sul grafico: giro intero; su una scala: ripristina quel canale.
+Alt+S (Opzione+S sul Mac) attiva o disattiva lo spostamento del giro 6: trascina orizzontalmente nell’area del grafico. Puoi usare anche il pulsante Sposta giro 6. Esc torna alla selezione.
+Il pulsante Allineamento apre i due video originali: fermali sullo stesso riferimento fisico e premi Allinea questi fotogrammi. I video restano sul Mac e non sono inclusi nel pacchetto.
 Il CSV conserva tutti i 5.716 campioni originali e aggiunge il tempo riallineato. Posizione e ampiezza dei canali cambiano soltanto il disegno. Il PNG include la disposizione e il confronto correnti.
 L’asse X è il tempo, non la distanza. Acceleratore e freno sono stime dalle barre dei video; le letture incerte restano vuote.
 '''

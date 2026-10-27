@@ -2,6 +2,7 @@
 const DATA = JSON.parse(document.getElementById("telemetry").textContent);
 const $ = (id) => document.getElementById(id);
 const laps = DATA.laps;
+const LAP_COLORS = ["#216bce", "#e07825"];
 const channels = [
   {
     id: "speed",
@@ -12,7 +13,7 @@ const channels = [
     min: 0,
     max: 350,
     ticks: [0, 50, 100, 150, 200, 250, 300, 350],
-    color: "#216bce",
+    color: "#61758d",
     center: 0.34,
     span: 0.58,
   },
@@ -25,7 +26,7 @@ const channels = [
     min: 0,
     max: 10000,
     ticks: [0, 2500, 5000, 7500, 10000],
-    color: "#8055bd",
+    color: "#61758d",
     center: 0.48,
     span: 0.42,
   },
@@ -38,7 +39,7 @@ const channels = [
     min: 0,
     max: 6,
     ticks: [0, 1, 2, 3, 4, 5, 6],
-    color: "#bf7714",
+    color: "#61758d",
     center: 0.65,
     span: 0.3,
     step: true,
@@ -52,7 +53,7 @@ const channels = [
     min: 0,
     max: 100,
     ticks: [0, 25, 50, 75, 100],
-    color: "#168476",
+    color: "#61758d",
     center: 0.82,
     span: 0.26,
     estimated: true,
@@ -66,7 +67,7 @@ const channels = [
     min: 0,
     max: 100,
     ticks: [0, 25, 50, 75, 100],
-    color: "#cc4b69",
+    color: "#61758d",
     center: 0.82,
     span: 0.26,
     estimated: true,
@@ -215,8 +216,6 @@ function setRange(a, b) {
   state.min = clamp(a, lo, hi - width);
   state.max = state.min + width;
   state.cursor = clamp(state.cursor, state.min, state.max);
-  $("rangeStart").value = state.min.toFixed(3);
-  $("rangeEnd").value = state.max.toFixed(3);
   message("");
   schedule();
   return true;
@@ -224,7 +223,7 @@ function setRange(a, b) {
 function fullView() {
   setRange(...bounds());
 }
-function setOffset(value) {
+function setOffset(value, { preserveRange = false } = {}) {
   if (!Number.isFinite(value) || Math.abs(value) > 120) {
     message("Usa uno spostamento fra −120 e +120 secondi.");
     return false;
@@ -234,14 +233,15 @@ function setOffset(value) {
       Math.abs(state.min - old[0]) < 0.02 &&
       Math.abs(state.max - old[1]) < 0.02;
   state.offset = value;
-  $("offset").value = value.toFixed(3);
-  $("offsetSlider").value = clamp(value, -5, 5);
   $("alignmentStatus").textContent =
     value === 0
       ? "Partenze allineate dal cronometro HUD."
       : `Giro 6: ${value > 0 ? "+" : ""}${value.toFixed(3)} s, verso ${value > 0 ? "destra" : "sinistra"}. Durate invariate.`;
-  if (wasFull) fullView();
-  else setRange(state.min, state.max);
+  if (!preserveRange) {
+    if (wasFull) fullView();
+    else setRange(state.min, state.max);
+  }
+  schedule();
   return true;
 }
 function nearest(rows, time, index = 2) {
@@ -387,10 +387,10 @@ function drawScene(c, w, h, exporting = false) {
   for (const ch of ordered)
     for (let lap = 0; lap < 2; lap++) {
       if (!state.lapVisible[lap]) continue;
-      c.strokeStyle = ch.color;
+      c.strokeStyle = LAP_COLORS[lap];
       c.lineWidth = ch === selected ? 2 : 1.45;
-      c.globalAlpha = ch === selected ? 1 : 0.83;
-      c.setLineDash(lap ? [6, 4] : []);
+      c.globalAlpha = 1;
+      c.setLineDash([]);
       c.beginPath();
       let previous = null;
       for (const r of laps[lap].rows) {
@@ -426,8 +426,8 @@ function drawScene(c, w, h, exporting = false) {
         if (!state.lapVisible[lap]) continue;
         const value = nearestValue(lap, ch, state.cursor);
         if (value === null) continue;
-        c.fillStyle = lap ? "white" : ch.color;
-        c.strokeStyle = ch.color;
+        c.fillStyle = LAP_COLORS[lap];
+        c.strokeStyle = LAP_COLORS[lap];
         c.lineWidth = 1.4;
         c.beginPath();
         c.arc(
@@ -502,11 +502,11 @@ function rulerAt(x) {
 cv.addEventListener(
   "wheel",
   (e) => {
-    e.preventDefault();
     const p = pointer(e),
       ruler = rulerAt(p.x),
       g = cv._g;
     if (ruler) {
+      e.preventDefault();
       selectChannel(ruler.ch);
       const factor = Math.exp(clamp(-e.deltaY * 0.002, -0.7, 0.7)),
         anchor = (p.y - g.top) / (g.bottom - g.top),
@@ -516,10 +516,6 @@ cv.addEventListener(
         span,
         center: anchor + (ruler.ch.center - anchor) * actual,
       });
-    } else if (p.x >= g.left) {
-      const t = pointerTime(p.x),
-        factor = Math.exp(clamp(e.deltaY * 0.002, -0.8, 0.8));
-      setRange(t - (t - state.min) * factor, t + (state.max - t) * factor);
     }
   },
   { passive: false },
@@ -549,22 +545,29 @@ cv.addEventListener("pointerdown", (e) => {
     const t = pointerTime(p.x);
     state.cursor = clamp(t, state.min, state.max);
     state.drag =
-      state.mode === "move" || e.altKey
+      state.mode === "dataset"
         ? {
-            mode: "channelMove",
-            ch: activeChannel(),
-            y: p.y,
-            center: activeChannel().center,
-            span: activeChannel().span,
-          }
-        : {
-            mode: e.shiftKey ? "pan" : "zoom",
-            start: t,
-            end: t,
+            mode: "dataset",
             startX: p.x,
-            min: state.min,
-            max: state.max,
-          };
+            offset: state.offset,
+            secondsPerPixel: (state.max - state.min) / (g.right - g.left),
+          }
+        : state.mode === "move"
+          ? {
+              mode: "channelMove",
+              ch: activeChannel(),
+              y: p.y,
+              center: activeChannel().center,
+              span: activeChannel().span,
+            }
+          : {
+              mode: e.shiftKey ? "pan" : "zoom",
+              start: t,
+              end: t,
+              startX: p.x,
+              min: state.min,
+              max: state.max,
+            };
   }
   schedule();
 });
@@ -574,7 +577,12 @@ cv.addEventListener("pointermove", (e) => {
     d = state.drag;
   if (d) {
     const dy = (p.y - d.y) / (g.bottom - g.top);
-    if (d.mode === "channelMove") setChannel(d.ch, { center: d.center + dy });
+    if (d.mode === "dataset")
+      setOffset(d.offset + (p.x - d.startX) * d.secondsPerPixel, {
+        preserveRange: true,
+      });
+    else if (d.mode === "channelMove")
+      setChannel(d.ch, { center: d.center + dy });
     else if (d.mode === "resizeTop") {
       const bottom = d.center + d.span / 2,
         top = Math.min(bottom - 0.05, d.center - d.span / 2 + dy);
@@ -593,9 +601,11 @@ cv.addEventListener("pointermove", (e) => {
   const ruler = rulerAt(p.x);
   cv.style.cursor = ruler
     ? "grab"
-    : state.mode === "move"
-      ? "ns-resize"
-      : "crosshair";
+    : state.mode === "dataset"
+      ? "ew-resize"
+      : state.mode === "move"
+        ? "ns-resize"
+        : "crosshair";
   if (!ruler && p.x >= g.left && p.x <= g.right) {
     state.cursor = clamp(pointerTime(p.x), state.min, state.max);
     schedule();
@@ -639,36 +649,73 @@ cv.addEventListener("keydown", (e) => {
   } else if (e.key === "-") {
     e.preventDefault();
     setChannel(ch, { span: ch.span / 1.15 });
-  } else if (e.key === "Escape") {
+  } else if (e.key === "Escape" && state.mode !== "dataset") {
     state.drag = null;
     schedule();
   }
 });
+function setMode(mode) {
+  state.drag = null;
+  state.mode = mode;
+  for (const [id, name] of [
+    ["modeZoom", "zoom"],
+    ["modeMove", "move"],
+    ["modeDataset", "dataset"],
+  ])
+    $(id).setAttribute("aria-pressed", String(mode === name));
+  $("interactionHint").textContent =
+    mode === "dataset"
+      ? "Trascina orizzontalmente il giro 6 arancione · Alt+S o Esc per tornare alla selezione"
+      : mode === "move"
+        ? "Trascina verticalmente il canale selezionato · Le scale a sinistra regolano la sua ampiezza"
+        : "Trascina sul grafico per ingrandire · Maiusc + trascina: scorri · Doppio clic: giro intero";
+  cv.style.cursor =
+    mode === "dataset"
+      ? "ew-resize"
+      : mode === "move"
+        ? "ns-resize"
+        : "crosshair";
+  schedule();
+}
 for (const [id, mode] of [
   ["modeZoom", "zoom"],
   ["modeMove", "move"],
+  ["modeDataset", "dataset"],
 ])
-  $(id).onclick = () => {
-    state.mode = mode;
-    $("modeZoom").setAttribute("aria-pressed", String(mode === "zoom"));
-    $("modeMove").setAttribute("aria-pressed", String(mode === "move"));
-  };
-$("zoomIn").onclick = () => {
-  const m = (state.min + state.max) / 2,
-    w = (state.max - state.min) / 4;
-  setRange(m - w, m + w);
-};
-$("zoomOut").onclick = () => {
-  const m = (state.min + state.max) / 2,
-    w = state.max - state.min;
-  setRange(m - w, m + w);
-};
+  $(id).onclick = () => setMode(mode);
+document.addEventListener("keydown", (e) => {
+  const editing = e.target.closest?.(
+    "textarea,select,[contenteditable=true],input:not([type=range]):not([type=checkbox]):not([type=file])",
+  );
+  if (!editing && e.altKey && !e.ctrlKey && !e.metaKey && e.code === "KeyS") {
+    e.preventDefault();
+    if (!e.repeat) setMode(state.mode === "dataset" ? "zoom" : "dataset");
+  } else if (e.key === "Escape" && state.mode === "dataset") {
+    e.preventDefault();
+    if (state.drag?.mode === "dataset")
+      setOffset(state.drag.offset, { preserveRange: true });
+    setMode("zoom");
+  }
+});
 $("resetView").onclick = fullView;
-$("applyRange").onclick = () =>
-  setRange(Number($("rangeStart").value), Number($("rangeEnd").value));
-$("offset").onchange = (e) => setOffset(Number(e.target.value));
-$("offsetSlider").oninput = (e) => setOffset(Number(e.target.value));
 $("resetOffset").onclick = () => setOffset(0);
+$("openAlignment").onclick = () => {
+  const panel = $("videoDetails");
+  panel.open = true;
+  $("openAlignment").setAttribute("aria-expanded", "true");
+  panel.scrollIntoView({ block: "start", behavior: "smooth" });
+};
+$("closeAlignment").onclick = () => {
+  $("videoDetails").open = false;
+  $("openAlignment").setAttribute("aria-expanded", "false");
+  $("openAlignment").focus();
+};
+$("videoDetails").addEventListener("toggle", () =>
+  $("openAlignment").setAttribute(
+    "aria-expanded",
+    String($("videoDetails").open),
+  ),
+);
 $("lapA").onchange = (e) => {
   state.lapVisible[0] = e.target.checked;
   schedule();
@@ -740,7 +787,7 @@ $("exportView").onclick = () => {
   c.fillText("Monza · confronto telemetria", 22, 32);
   c.font = "12px system-ui";
   c.fillText(
-    `Giro 4: linea continua · Giro 6: tratteggiata · Spostamento giro 6: ${state.offset.toFixed(3)} s`,
+    `Giro 4: blu · Giro 6: arancione · Spostamento giro 6: ${state.offset.toFixed(3)} s`,
     22,
     58,
   );
@@ -779,9 +826,6 @@ for (const [key, i] of [
   video.addEventListener("timeupdate", () => {
     $("time" + key).textContent =
       `Video ${video.currentTime.toFixed(3)} s · nel giro ${(video.currentTime - laps[i].sourceStart).toFixed(3)} s`;
-    $("anchor" + key).value = (video.currentTime - laps[i].sourceStart).toFixed(
-      3,
-    );
   });
 }
 document.querySelectorAll("[data-step-video]").forEach(
@@ -816,12 +860,10 @@ $("alignVideos").onclick = () => {
   }
   const ta = a.currentTime - laps[0].sourceStart,
     tb = b.currentTime - laps[1].sourceStart;
-  $("anchorA").value = ta.toFixed(3);
-  $("anchorB").value = tb.toFixed(3);
   setOffset(ta - tb);
+  $("videoAlignmentStatus").textContent =
+    "Riferimenti allineati. Torna al grafico per confrontare i giri.";
 };
-$("alignAnchors").onclick = () =>
-  setOffset(Number($("anchorA").value) - Number($("anchorB").value));
 $("syncVideos").onclick = () => {
   [$("videoA"), $("videoB")].forEach((video, i) => {
     if (video.videoWidth) {
@@ -845,6 +887,8 @@ window.monzaViewer = {
   nearestValue,
   drawAll,
   setChannel,
+  setMode,
+  lapColors: LAP_COLORS,
   selectChannel,
   channelY,
 };

@@ -1,0 +1,37 @@
+{
+  "quantity": "apparent 2D orientation of the upper wheel rim, NOT calibrated mechanical steering",
+  "sign": "clockwise positive, counterclockwise negative in the image; source checked for right/left convention",
+  "zero_video_interval_s": [
+    1,
+    4
+  ],
+  "zero_offset_deg": -1.0909157813612744,
+  "led_to_rim_slope": 0.9825611909943434,
+  "led_to_rim_intercept": 0.0264254087722198,
+  "mapping_pairs": 167,
+  "max_reconstructed_gap_s": 0.4,
+  "smoothing_penalty": 600,
+  "frames": 2835,
+  "returned": 2766,
+  "reconstructed": 181,
+  "unreadable": 69,
+  "filter": "global edge/LED candidate association then robust offline second-difference smoothing; no angle integration",
+  "range_deg": [
+    -55.36527495390911,
+    69.17730007922121
+  ],
+  "source_filename": "ScreenRecording_10-08-2026 14-15-49_1.mov",
+  "source_sha256": "ca36168ed18eaa93cbdf5ec996b47f54d838ae31151f85d373f54e10c5fff790",
+  "source_duration_s": 94.35,
+  "visual_support_weak_samples": 1334,
+  "visual_spot_checks": 7,
+  "spot_check_max_abs_difference_deg": 6.064646792482093,
+  "spot_check_note": "Seven selected visible 2D rim segments, approximate annotation \u00b15 deg; not full-video or mechanical-angle validation.",
+  "search_range_apparent_deg": [
+    -75,
+    75
+  ],
+  "original_timestamps_verified_with_ffprobe": true,
+  "preview_fps": 15,
+  "preview_duration_s": 94.333333
+}

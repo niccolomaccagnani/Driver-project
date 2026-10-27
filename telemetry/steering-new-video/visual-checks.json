@@ -1,0 +1,114 @@
+[
+  {
+    "requested_video_time_s": 2,
+    "frame_index": 66,
+    "p1": [
+      1180,
+      1121
+    ],
+    "p2": [
+      1360,
+      1122
+    ],
+    "reference_apparent_angle_deg": 0.31830661145136596,
+    "estimate_deg": 1.02,
+    "abs_difference_deg": 0.7016933885486341,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 10,
+    "frame_index": 306,
+    "p1": [
+      1120,
+      1134
+    ],
+    "p2": [
+      1320,
+      1108
+    ],
+    "reference_apparent_angle_deg": -7.406912128495229,
+    "estimate_deg": -2.599,
+    "abs_difference_deg": 4.807912128495229,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 20,
+    "frame_index": 606,
+    "p1": [
+      1100,
+      1163
+    ],
+    "p2": [
+      1300,
+      1090
+    ],
+    "reference_apparent_angle_deg": -20.05208214609854,
+    "estimate_deg": -21.036,
+    "abs_difference_deg": 0.9839178539014597,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 30,
+    "frame_index": 906,
+    "p1": [
+      1110,
+      1083
+    ],
+    "p2": [
+      1380,
+      1160
+    ],
+    "reference_apparent_angle_deg": 15.917364699875016,
+    "estimate_deg": 18.223,
+    "abs_difference_deg": 2.305635300124983,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 60,
+    "frame_index": 1805,
+    "p1": [
+      1090,
+      1100
+    ],
+    "p2": [
+      1320,
+      1152
+    ],
+    "reference_apparent_angle_deg": 12.739646792482093,
+    "estimate_deg": 6.675,
+    "abs_difference_deg": 6.064646792482093,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 25,
+    "frame_index": 756,
+    "p1": [
+      1130,
+      1123
+    ],
+    "p2": [
+      1390,
+      1125
+    ],
+    "reference_apparent_angle_deg": 0.44072807276101417,
+    "estimate_deg": 0.285,
+    "abs_difference_deg": 0.1557280727610142,
+    "annotation_uncertainty_deg": 5
+  },
+  {
+    "requested_video_time_s": 90,
+    "frame_index": 2705,
+    "p1": [
+      1140,
+      1122
+    ],
+    "p2": [
+      1380,
+      1124
+    ],
+    "reference_apparent_angle_deg": 0.4774537773095774,
+    "estimate_deg": -1.116,
+    "abs_difference_deg": 1.5934537773095774,
+    "annotation_uncertainty_deg": 5
+  }
+]

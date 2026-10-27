@@ -1,0 +1,57 @@
+[
+  {
+    "method": "Color_NCC_consensus",
+    "visible_samples": 5,
+    "returned_visible": 4,
+    "visible_coverage_pct": 80.0,
+    "median_error_px": 1.14,
+    "p95_error_px": 2.85,
+    "errors_over_10px": 0,
+    "occluded_samples": 8,
+    "false_detections_when_occluded": 0
+  },
+  {
+    "method": "Color_circle",
+    "visible_samples": 5,
+    "returned_visible": 4,
+    "visible_coverage_pct": 80.0,
+    "median_error_px": 1.12,
+    "p95_error_px": 2.46,
+    "errors_over_10px": 0,
+    "occluded_samples": 8,
+    "false_detections_when_occluded": 0
+  },
+  {
+    "method": "LK_direct_reference",
+    "visible_samples": 5,
+    "returned_visible": 0,
+    "visible_coverage_pct": 0.0,
+    "median_error_px": null,
+    "p95_error_px": null,
+    "errors_over_10px": 0,
+    "occluded_samples": 8,
+    "false_detections_when_occluded": 0
+  },
+  {
+    "method": "NCC_marker",
+    "visible_samples": 5,
+    "returned_visible": 5,
+    "visible_coverage_pct": 100.0,
+    "median_error_px": 1.41,
+    "p95_error_px": 4.8,
+    "errors_over_10px": 0,
+    "occluded_samples": 8,
+    "false_detections_when_occluded": 6
+  },
+  {
+    "method": "SIFT_affine",
+    "visible_samples": 5,
+    "returned_visible": 0,
+    "visible_coverage_pct": 0.0,
+    "median_error_px": null,
+    "p95_error_px": null,
+    "errors_over_10px": 0,
+    "occluded_samples": 8,
+    "false_detections_when_occluded": 0
+  }
+]

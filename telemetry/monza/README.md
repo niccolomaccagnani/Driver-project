@@ -1,5 +1,7 @@
 # Confronto dei due giri a Monza
 
+**Nuovo: [prove dei metodi per lo sterzo con segno](steering/benchmark/README.md)** — confronto quantitativo di errore, copertura e falsi agganci. I test con gradi noti sono simulazioni 2D; sui video sono misurati scarti di tracciamento in pixel, non la precisione dei gradi meccanici.
+
 ## Aprire la versione interattiva sul Mac
 
 Scarica **[confronto-interattivo.zip](confronto-interattivo.zip)** usando il pulsante di download di GitHub, apri lo ZIP e poi apri `confronto-interattivo.html` con Safari o Chrome. Non servono installazioni. Lo ZIP contiene la pagina completa: dati e video di esempio sono già inclusi.

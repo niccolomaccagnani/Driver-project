@@ -1,98 +1,204 @@
 "use strict";
 const DATA = JSON.parse(document.getElementById("telemetry").textContent);
-const $ = (id) => document.getElementById(id),
-  COLORS = ["#1865dc", "#d86719"];
-// Rows: original frame, source video timestamp, lap time, speed, rpm, gear, gas, brake.
+const $ = (id) => document.getElementById(id);
 const laps = DATA.laps;
-const state = { min: 0, max: 94, offset: 0, cursor: 0, drag: null };
-const measured = [[], []],
-  calibrations = [null, null],
-  bodyReferences = [null, null];
-let drawing = null,
-  pending = [],
-  activeLine = null,
-  demo = true,
-  steerOrigin = 6,
-  sourceURLs = {},
-  measureId = 0;
 const channels = [
   {
+    id: "speed",
     name: "Velocità",
+    short: "Vel.",
     unit: "km/h",
     col: 3,
-    min: 40,
-    max: 340,
-    ticks: [50, 100, 150, 200, 250, 300],
-    className: "speed",
+    min: 0,
+    max: 350,
+    ticks: [0, 50, 100, 150, 200, 250, 300, 350],
+    color: "#216bce",
+    center: 0.34,
+    span: 0.58,
   },
   {
-    name: "Motore",
-    unit: "RPM",
+    id: "rpm",
+    name: "Giri motore",
+    short: "RPM",
+    unit: "giri/min",
     col: 4,
-    min: 3500,
-    max: 9500,
-    ticks: [4000, 6000, 8000],
+    min: 0,
+    max: 10000,
+    ticks: [0, 2500, 5000, 7500, 10000],
+    color: "#8055bd",
+    center: 0.48,
+    span: 0.42,
   },
   {
+    id: "gear",
     name: "Marcia",
+    short: "Marcia",
     unit: "",
     col: 5,
-    min: 0.5,
-    max: 6.5,
-    ticks: [1, 2, 3, 4, 5, 6],
+    min: 0,
+    max: 6,
+    ticks: [0, 1, 2, 3, 4, 5, 6],
+    color: "#bf7714",
+    center: 0.65,
+    span: 0.3,
     step: true,
   },
   {
-    name: "Acceleratore · stima",
+    id: "throttle",
+    name: "Acceleratore",
+    short: "Accel.",
     unit: "%",
     col: 6,
-    min: -5,
-    max: 105,
-    ticks: [0, 50, 100],
-  },
-  {
-    name: "Freno · stima",
-    unit: "%",
-    col: 7,
-    min: -5,
-    max: 105,
-    ticks: [0, 50, 100],
-  },
-  {
-    name: "Movimento zona volante · automatico",
-    unit: "indice 0–100",
-    activity: true,
-    col: 3,
     min: 0,
     max: 100,
     ticks: [0, 25, 50, 75, 100],
-    className: "steerPlot",
+    color: "#168476",
+    center: 0.82,
+    span: 0.26,
+    estimated: true,
   },
   {
-    name: "Sterzo · angolo apparente",
-    unit: "°",
-    steering: true,
-    min: -180,
-    max: 180,
-    ticks: [-180, -90, 0, 90, 180],
-    className: "steerPlot",
+    id: "brake",
+    name: "Freno",
+    short: "Freno",
+    unit: "%",
+    col: 7,
+    min: 0,
+    max: 100,
+    ticks: [0, 25, 50, 75, 100],
+    color: "#cc4b69",
+    center: 0.82,
+    span: 0.26,
+    estimated: true,
   },
 ];
-function createPanel(ch) {
-  const el = document.createElement("div");
-  el.className = "chart " + (ch.className || "");
-  el.innerHTML = `<div class="chartTop"><strong>${ch.name}${ch.unit ? " · " + ch.unit : ""}</strong><div class="values"><span class="blue">Blu: <b>—</b></span><span class="orange">Arancione: <b>—</b></span></div></div><canvas class="plot" aria-label="${ch.name}. Trascina per zoommare." tabindex="0"></canvas>`;
-  (ch.activity
-    ? $("activityChart")
-    : ch.steering
-      ? $("steerChart")
-      : $("charts")
-  ).append(el);
-  ch.canvas = el.querySelector("canvas");
-  ch.values = el.querySelectorAll("b");
-  bindPlot(ch);
+channels.forEach((ch) => {
+  ch.defaults = { center: ch.center, span: ch.span };
+  ch.visible = true;
+});
+const state = {
+  min: 0,
+  max: 93.07,
+  offset: 0,
+  cursor: 0,
+  active: "speed",
+  mode: "zoom",
+  lapVisible: [true, true],
+  drag: null,
+};
+const cv = $("plot"),
+  sourceURLs = {};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+let scheduled = false,
+  saveTimer;
+function message(text) {
+  $("message").textContent = text;
 }
-channels.forEach(createPanel);
+function remember() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(
+        "monza-single-chart-v1",
+        JSON.stringify({
+          active: state.active,
+          channels: channels.map(({ id, center, span, visible }) => ({
+            id,
+            center,
+            span,
+            visible,
+          })),
+        }),
+      );
+    } catch {}
+  }, 150);
+}
+try {
+  const saved = JSON.parse(localStorage.getItem("monza-single-chart-v1"));
+  for (const item of saved?.channels || []) {
+    const ch = channels.find((c) => c.id === item.id);
+    if (ch && Number.isFinite(item.center) && Number.isFinite(item.span)) {
+      ch.center = clamp(item.center, -1, 2);
+      ch.span = clamp(item.span, 0.05, 2.8);
+      ch.visible = item.visible !== false;
+    }
+  }
+  if (channels.some((c) => c.id === saved?.active)) state.active = saved.active;
+} catch {}
+function activeChannel() {
+  return channels.find((c) => c.id === state.active);
+}
+function selectChannel(ch) {
+  state.active = ch.id;
+  updateControls();
+  schedule();
+  remember();
+}
+function setChannel(ch, changes) {
+  if (Number.isFinite(changes.center)) ch.center = clamp(changes.center, -1, 2);
+  if (Number.isFinite(changes.span)) ch.span = clamp(changes.span, 0.05, 2.8);
+  if (typeof changes.visible === "boolean") ch.visible = changes.visible;
+  updateControls();
+  schedule();
+  remember();
+}
+for (const ch of channels) {
+  const card = document.createElement("div");
+  card.className = "channel-card";
+  card.style.setProperty("--channel", ch.color);
+  card.dataset.channel = ch.id;
+  card.innerHTML = `<div class="channel-title"><input type="checkbox" checked aria-label="Mostra ${ch.name}"><button type="button">${ch.name}</button></div><div class="channel-values"><span class="g4"><i></i><b>—</b></span><span class="g6"><i></i><b>—</b><small>${ch.unit}</small></span></div>`;
+  ch.card = card;
+  ch.checkbox = card.querySelector("input");
+  ch.values = card.querySelectorAll("b");
+  ch.checkbox.onchange = () => setChannel(ch, { visible: ch.checkbox.checked });
+  card.querySelector("button").onclick = () => selectChannel(ch);
+  card.addEventListener("click", (e) => {
+    if (e.target.tagName !== "INPUT") selectChannel(ch);
+  });
+  $("channelList").append(card);
+}
+function updateControls() {
+  const selected = activeChannel();
+  for (const ch of channels) {
+    ch.card.classList.toggle("active", ch === selected);
+    ch.card.classList.toggle("hidden", !ch.visible);
+    ch.checkbox.checked = ch.visible;
+    ch.card
+      .querySelector("button")
+      .setAttribute("aria-pressed", String(ch === selected));
+  }
+  $("activeName").textContent = selected.name;
+  $("activeName").style.color = selected.color;
+  $("channelScale").value = Math.round(selected.span * 100);
+  $("scaleValue").value = Math.round(selected.span * 100) + "%";
+  $("channelPosition").value = Math.round(selected.center * 100);
+  $("positionValue").value = Math.round(selected.center * 100) + "%";
+  $("channelScale").setAttribute(
+    "aria-label",
+    "Ampiezza verticale: " + selected.name,
+  );
+  $("channelPosition").setAttribute(
+    "aria-label",
+    "Posizione verticale: " + selected.name,
+  );
+}
+$("channelScale").oninput = (e) =>
+  setChannel(activeChannel(), { span: Number(e.target.value) / 100 });
+$("channelPosition").oninput = (e) =>
+  setChannel(activeChannel(), { center: Number(e.target.value) / 100 });
+$("channelSmaller").onclick = () =>
+  setChannel(activeChannel(), { span: activeChannel().span / 1.2 });
+$("channelLarger").onclick = () =>
+  setChannel(activeChannel(), { span: activeChannel().span * 1.2 });
+$("resetChannel").onclick = () =>
+  setChannel(activeChannel(), activeChannel().defaults);
+$("resetLayout").onclick = () => {
+  channels.forEach((ch) => Object.assign(ch, ch.defaults, { visible: true }));
+  updateControls();
+  schedule();
+  remember();
+};
 function bounds() {
   return [
     Math.min(0, state.offset),
@@ -101,31 +207,25 @@ function bounds() {
 }
 function setRange(a, b) {
   if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
-    message(
-      "Inserisci un intervallo valido: la fine deve essere maggiore dell’inizio.",
-    );
+    message("Inserisci un intervallo valido, con la fine dopo l’inizio.");
     return false;
   }
   const [lo, hi] = bounds(),
-    width = Math.min(hi - lo, Math.max(0.15, b - a));
-  let low = Math.max(lo, Math.min(a, hi - width));
-  state.min = low;
-  state.max = low + width;
-  state.cursor = Math.max(state.min, Math.min(state.max, state.cursor));
-  updateRangeInputs();
+    width = clamp(b - a, 0.15, hi - lo);
+  state.min = clamp(a, lo, hi - width);
+  state.max = state.min + width;
+  state.cursor = clamp(state.cursor, state.min, state.max);
+  $("rangeStart").value = state.min.toFixed(3);
+  $("rangeEnd").value = state.max.toFixed(3);
+  message("");
   schedule();
   return true;
 }
-function updateRangeInputs() {
-  $("rangeStart").value = state.min.toFixed(3);
-  $("rangeEnd").value = state.max.toFixed(3);
-}
 function fullView() {
-  const [a, b] = bounds();
-  setRange(a, b);
+  setRange(...bounds());
 }
-function setOffset(v) {
-  if (!Number.isFinite(v) || Math.abs(v) > 120) {
+function setOffset(value) {
+  if (!Number.isFinite(value) || Math.abs(value) > 120) {
     message("Usa uno spostamento fra −120 e +120 secondi.");
     return false;
   }
@@ -133,14 +233,15 @@ function setOffset(v) {
     wasFull =
       Math.abs(state.min - old[0]) < 0.02 &&
       Math.abs(state.max - old[1]) < 0.02;
-  state.offset = v;
-  $("offset").value = v.toFixed(3);
-  $("offsetSlider").value = Math.max(-5, Math.min(5, v));
+  state.offset = value;
+  $("offset").value = value.toFixed(3);
+  $("offsetSlider").value = clamp(value, -5, 5);
   $("alignmentStatus").textContent =
-    `Giro arancione: ${v >= 0 ? "+" : ""}${v.toFixed(3)} s. ${v === 0 ? "Partenze allineate dal cronometro HUD." : v > 0 ? "Spostato verso destra." : "Spostato verso sinistra."} Le durate dei giri restano invariate.`;
+    value === 0
+      ? "Partenze allineate dal cronometro HUD."
+      : `Giro 6: ${value > 0 ? "+" : ""}${value.toFixed(3)} s, verso ${value > 0 ? "destra" : "sinistra"}. Durate invariate.`;
   if (wasFull) fullView();
   else setRange(state.min, state.max);
-  schedule();
   return true;
 }
 function nearest(rows, time, index = 2) {
@@ -151,7 +252,7 @@ function nearest(rows, time, index = 2) {
     if (rows[m][index] < time) a = m + 1;
     else b = m;
   }
-  if (a === 0) return rows[0];
+  if (!a) return rows[0];
   if (a === rows.length) return rows.at(-1);
   return Math.abs(rows[a][index] - time) < Math.abs(rows[a - 1][index] - time)
     ? rows[a]
@@ -159,19 +260,10 @@ function nearest(rows, time, index = 2) {
 }
 function nearestValue(lap, ch, x) {
   const t = x - (lap ? state.offset : 0);
-  if (ch.steering) {
-    const rows = measured[lap];
-    if (!rows.length) return null;
-    let closest = rows.reduce((a, b) =>
-      Math.abs(a.lapTime - t) < Math.abs(b.lapTime - t) ? a : b,
-    );
-    return Math.abs(closest.lapTime - t) < 0.1 ? closest.angle : null;
-  }
   if (t < 0 || t > laps[lap].duration) return null;
-  const r = nearest(ch.activity ? DATA.wheelActivity[lap] : laps[lap].rows, t);
-  return r && Math.abs(r[2] - t) < 0.12 ? r[ch.col] : null;
+  const row = nearest(laps[lap].rows, t);
+  return row && Math.abs(row[2] - t) < 0.12 ? row[ch.col] : null;
 }
-let scheduled = false;
 function schedule() {
   if (scheduled) return;
   scheduled = true;
@@ -180,232 +272,411 @@ function schedule() {
     drawAll();
   });
 }
-function drawAll() {
-  channels.forEach(draw);
-  $("cursorReadout").textContent =
-    `Cursore ${state.cursor.toFixed(3)} s · intervallo ${(state.max - state.min).toFixed(2)} s`;
+function geometry(w, h) {
+  const visible = channels.filter((c) => c.visible),
+    compact = w < 700;
+  const rulers = compact
+    ? visible.includes(activeChannel())
+      ? [activeChannel()]
+      : visible.slice(0, 1)
+    : visible;
+  return {
+    left: 12 + rulers.length * (compact ? 52 : 54),
+    right: w - 16,
+    top: 58,
+    bottom: h - 34,
+    rulers,
+    rulerWidth: compact ? 52 : 54,
+  };
 }
-function draw(ch) {
-  if (ch.canvas.getBoundingClientRect().height < 1) return;
-  const cv = ch.canvas,
-    w = Math.max(300, cv.getBoundingClientRect().width),
-    h = cv.getBoundingClientRect().height,
-    dpr = window.devicePixelRatio || 1;
-  cv.width = Math.round(w * dpr);
-  cv.height = Math.round(h * dpr);
-  const c = cv.getContext("2d");
-  c.scale(dpr, dpr);
-  c.clearRect(0, 0, w, h);
-  c.fillStyle = "white";
-  c.fillRect(0, 0, w, h);
-  const g = { left: 49, right: w - 16, top: 15, bottom: h - 30 };
-  cv._g = g;
+function channelY(ch, value, g) {
+  return (
+    g.top +
+    (ch.center - ((value - ch.min) / (ch.max - ch.min) - 0.5) * ch.span) *
+      (g.bottom - g.top)
+  );
+}
+function drawScene(c, w, h, exporting = false) {
+  const g = geometry(w, h),
+    height = g.bottom - g.top,
+    selected = activeChannel();
   const X = (t) =>
-      g.left + ((t - state.min) / (state.max - state.min)) * (g.right - g.left),
-    Y = (v) =>
-      g.bottom - ((v - ch.min) / (ch.max - ch.min)) * (g.bottom - g.top);
-  c.font = "11px system-ui";
+    g.left + ((t - state.min) / (state.max - state.min)) * (g.right - g.left);
+  c.fillStyle = "#fff";
+  c.fillRect(0, 0, w, h);
+  c.font = "10px system-ui";
   c.textBaseline = "middle";
-  c.lineWidth = 1;
-  for (const v of ch.ticks) {
-    c.strokeStyle = "#e7edf5";
+  const rulers = [];
+  g.rulers.forEach((ch, i) => {
+    const x = 12 + i * g.rulerWidth,
+      axis = x + g.rulerWidth - 6;
+    if (ch === selected) {
+      c.fillStyle = ch.color + "0c";
+      c.fillRect(x, 0, g.rulerWidth - 2, h - 28);
+    }
+    c.fillStyle = ch.color;
+    c.textAlign = "center";
+    c.font = "600 10px system-ui";
+    c.fillText(ch.short, x + g.rulerWidth / 2, 17);
+    c.font = "9px system-ui";
+    c.fillStyle = "#7a899b";
+    c.fillText(ch.unit, x + g.rulerWidth / 2, 33);
+    c.strokeStyle = ch.color + "55";
+    c.lineWidth = 1;
     c.beginPath();
-    c.moveTo(g.left, Y(v));
-    c.lineTo(g.right, Y(v));
+    c.moveTo(axis, g.top);
+    c.lineTo(axis, g.bottom);
     c.stroke();
-    c.fillStyle = "#6c7e96";
-    c.textAlign = "right";
-    c.fillText(v, g.left - 9, Y(v));
+    let last = -Infinity;
+    for (const tick of [...ch.ticks].reverse()) {
+      const y = channelY(ch, tick, g);
+      if (y < g.top || y > g.bottom || y - last < 18) continue;
+      last = y;
+      c.textAlign = "right";
+      c.fillStyle = ch.color;
+      c.font = "10px system-ui";
+      c.fillText(tick, axis - 5, y);
+      c.strokeStyle = ch.color;
+      c.beginPath();
+      c.moveTo(axis - 3, y);
+      c.lineTo(axis + 2, y);
+      c.stroke();
+    }
+    const upper = channelY(ch, ch.max, g),
+      lower = channelY(ch, ch.min, g);
+    if (ch === selected)
+      for (const y of [upper, lower])
+        if (y >= g.top && y <= g.bottom) {
+          c.fillStyle = ch.color;
+          c.fillRect(axis - 6, y - 3, 12, 6);
+        }
+    rulers.push({ ch, x, width: g.rulerWidth, axis, upper, lower });
+  });
+  c.save();
+  c.beginPath();
+  c.rect(g.left, g.top, g.right - g.left, height);
+  c.clip();
+  c.lineWidth = 1;
+  for (const tick of selected.ticks) {
+    const y = channelY(selected, tick, g);
+    if (y < g.top || y > g.bottom) continue;
+    c.strokeStyle = "#eaf0f5";
+    c.beginPath();
+    c.moveTo(g.left, y);
+    c.lineTo(g.right, y);
+    c.stroke();
   }
-  const span = state.max - state.min,
-    rough = span / (w < 600 ? 5 : 9),
-    pow = 10 ** Math.floor(Math.log10(rough)),
-    tick =
-      [1, 2, 5, 10].map((x) => x * pow).find((x) => x >= rough) || pow * 10;
-  c.textAlign = "center";
+  const rough = (state.max - state.min) / (w < 650 ? 5 : 10),
+    power = 10 ** Math.floor(Math.log10(rough)),
+    step = [1, 2, 5, 10].map((n) => n * power).find((n) => n >= rough);
   for (
-    let t = Math.ceil(state.min / tick) * tick;
-    t <= state.max + tick * 0.0001;
-    t += tick
+    let t = Math.ceil(state.min / step) * step;
+    t <= state.max + step * 0.001;
+    t += step
   ) {
-    c.strokeStyle = "#e7edf5";
+    c.strokeStyle = "#eaf0f5";
     c.beginPath();
     c.moveTo(X(t), g.top);
     c.lineTo(X(t), g.bottom);
     c.stroke();
-    c.fillStyle = "#6c7e96";
-    c.fillText(t.toFixed(tick < 1 ? 2 : tick < 5 ? 1 : 0) + " s", X(t), h - 12);
   }
-  c.save();
-  c.beginPath();
-  c.rect(g.left, g.top, g.right - g.left, g.bottom - g.top);
-  c.clip();
-  for (let lap = 0; lap < 2; lap++) {
-    const off = lap ? state.offset : 0;
-    c.strokeStyle = COLORS[lap];
-    c.fillStyle = COLORS[lap];
-    c.lineWidth = 1.6;
-    if (ch.steering) {
-      for (const r of measured[lap]) {
-        if (r.angle === null) continue;
-        c.beginPath();
-        c.arc(X(r.lapTime + off), Y(r.angle), 4, 0, Math.PI * 2);
-        c.fill();
-      }
-    } else {
+  const ordered = [
+    ...channels.filter((ch) => ch !== selected),
+    selected,
+  ].filter((ch) => ch.visible);
+  for (const ch of ordered)
+    for (let lap = 0; lap < 2; lap++) {
+      if (!state.lapVisible[lap]) continue;
+      c.strokeStyle = ch.color;
+      c.lineWidth = ch === selected ? 2 : 1.45;
+      c.globalAlpha = ch === selected ? 1 : 0.83;
+      c.setLineDash(lap ? [6, 4] : []);
       c.beginPath();
       let previous = null;
-      for (const r of ch.activity ? DATA.wheelActivity[lap] : laps[lap].rows) {
-        const t = r[2] + off,
+      for (const r of laps[lap].rows) {
+        const t = r[2] + (lap ? state.offset : 0),
           value = r[ch.col];
-        if (t < state.min - 0.2 || t > state.max + 0.2 || value === null) {
+        if (value === null || t < state.min - 0.2 || t > state.max + 0.2) {
           previous = null;
           continue;
         }
-        if (!previous) c.moveTo(X(t), Y(value));
+        if (!previous || r[2] - previous.time > 0.15)
+          c.moveTo(X(t), channelY(ch, value, g));
         else if (ch.step) {
-          c.lineTo(X(t), Y(previous[1]));
-          c.lineTo(X(t), Y(value));
-        } else c.lineTo(X(t), Y(value));
-        previous = [t, value];
+          c.lineTo(X(t), channelY(ch, previous.value, g));
+          c.lineTo(X(t), channelY(ch, value, g));
+        } else c.lineTo(X(t), channelY(ch, value, g));
+        previous = { time: r[2], value };
       }
       c.stroke();
+      c.globalAlpha = 1;
+      c.setLineDash([]);
     }
-    const end = laps[lap].duration + off;
-    c.setLineDash([3, 4]);
-    c.lineWidth = 0.8;
-    c.beginPath();
-    c.moveTo(X(end), g.top);
-    c.lineTo(X(end), g.bottom);
-    c.stroke();
-    c.setLineDash([]);
-  }
   if (state.cursor >= state.min && state.cursor <= state.max) {
-    c.strokeStyle = "#536b89";
+    c.strokeStyle = "#70849c";
     c.lineWidth = 1;
-    c.setLineDash([3, 3]);
+    c.setLineDash([3, 4]);
     c.beginPath();
     c.moveTo(X(state.cursor), g.top);
     c.lineTo(X(state.cursor), g.bottom);
     c.stroke();
     c.setLineDash([]);
+    for (const ch of ordered)
+      for (let lap = 0; lap < 2; lap++) {
+        if (!state.lapVisible[lap]) continue;
+        const value = nearestValue(lap, ch, state.cursor);
+        if (value === null) continue;
+        c.fillStyle = lap ? "white" : ch.color;
+        c.strokeStyle = ch.color;
+        c.lineWidth = 1.4;
+        c.beginPath();
+        c.arc(
+          X(state.cursor),
+          channelY(ch, value, g),
+          lap ? 3.5 : 2.8,
+          0,
+          Math.PI * 2,
+        );
+        c.fill();
+        c.stroke();
+      }
   }
-  if (state.drag && state.drag.mode === "zoom") {
+  if (!exporting && state.drag?.mode === "zoom") {
+    c.fillStyle = "#246bdb16";
     const a = X(state.drag.start),
       b = X(state.drag.end);
-    c.fillStyle = "#1865dc22";
-    c.fillRect(Math.min(a, b), g.top, Math.abs(a - b), g.bottom - g.top);
+    c.fillRect(Math.min(a, b), g.top, Math.abs(a - b), height);
   }
   c.restore();
-  if (ch.steering && !measured.some((a) => a.some((v) => v.angle !== null))) {
-    c.fillStyle = "#7a899e";
-    c.textAlign = "center";
+  c.fillStyle = "#78899d";
+  c.textAlign = "center";
+  c.font = "10px system-ui";
+  for (
+    let t = Math.ceil(state.min / step) * step;
+    t <= state.max + step * 0.001;
+    t += step
+  )
+    c.fillText(t.toFixed(step < 1 ? 2 : step < 5 ? 1 : 0) + " s", X(t), h - 13);
+  if (!ordered.length) {
+    c.fillStyle = "#72849a";
     c.fillText(
-      "Nessuna misura di sterzo: usa la linea sul video qui sopra.",
+      "Attiva un canale dalla lista a sinistra.",
       (g.left + g.right) / 2,
       (g.top + g.bottom) / 2,
     );
   }
-  for (let i = 0; i < 2; i++) {
-    const v = nearestValue(i, ch, state.cursor);
-    ch.values[i].textContent =
-      v === null
-        ? "—"
-        : Number.isInteger(v)
-          ? v
-          : v.toFixed(ch.steering ? 1 : ch.col >= 6 ? 1 : 0);
-  }
+  return { ...g, rulerRects: rulers };
 }
-function pointerTime(cv, e) {
-  const r = cv.getBoundingClientRect(),
-    g = cv._g;
-  return (
-    state.min +
-    ((e.clientX - r.left - g.left) / (g.right - g.left)) *
-      (state.max - state.min)
-  );
-}
-function bindPlot(ch) {
-  const cv = ch.canvas;
-  cv.addEventListener(
-    "wheel",
-    (e) => {
-      e.preventDefault();
-      const a = state.min,
-        b = state.max,
-        t = pointerTime(cv, e),
-        factor = Math.exp(Math.max(-1, Math.min(1, e.deltaY * 0.002)));
-      setRange(t - (t - a) * factor, t + (b - t) * factor);
-    },
-    { passive: false },
-  );
-  cv.addEventListener("dblclick", fullView);
-  cv.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    cv.setPointerCapture(e.pointerId);
-    const t = pointerTime(cv, e);
-    state.cursor = Math.max(state.min, Math.min(state.max, t));
-    state.drag = {
-      mode: e.shiftKey ? "pan" : "zoom",
-      start: t,
-      end: t,
-      x: e.clientX,
-      min: state.min,
-      max: state.max,
-    };
-    schedule();
-  });
-  cv.addEventListener("pointermove", (e) => {
-    const t = pointerTime(cv, e);
-    if (state.drag) {
-      if (state.drag.mode === "pan") {
-        const dx =
-          ((e.clientX - state.drag.x) / (cv._g.right - cv._g.left)) *
-          (state.drag.max - state.drag.min);
-        setRange(state.drag.min - dx, state.drag.max - dx);
-      } else state.drag.end = t;
-    } else state.cursor = Math.max(state.min, Math.min(state.max, t));
-    schedule();
-  });
-  cv.addEventListener("pointerup", (e) => {
-    const d = state.drag;
-    state.drag = null;
-    if (d && d.mode === "zoom" && Math.abs(e.clientX - d.x) > 7)
-      setRange(Math.min(d.start, d.end), Math.max(d.start, d.end));
-    schedule();
-  });
-  cv.addEventListener("pointercancel", () => {
-    state.drag = null;
-    schedule();
-  });
-  cv.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") fullView();
-    else if (e.key === "+" || e.key === "=") zoom(0.5);
-    else if (e.key === "-") zoom(2);
-    else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      e.preventDefault();
-      const dx =
-        (state.max - state.min) * 0.2 * (e.key === "ArrowRight" ? 1 : -1);
-      setRange(state.min + dx, state.max + dx);
+function drawAll() {
+  const rect = cv.getBoundingClientRect(),
+    dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(rect.width * dpr);
+  cv.height = Math.round(rect.height * dpr);
+  const c = cv.getContext("2d");
+  c.scale(dpr, dpr);
+  cv._g = drawScene(c, rect.width, rect.height);
+  $("cursorReadout").textContent = state.cursor.toFixed(3) + " s";
+  for (const ch of channels)
+    for (let lap = 0; lap < 2; lap++) {
+      const value = nearestValue(lap, ch, state.cursor);
+      ch.values[lap].textContent = !state.lapVisible[lap]
+        ? "nascosto"
+        : value === null
+          ? "—"
+          : value.toFixed(ch.col >= 6 ? 1 : 0);
     }
-  });
 }
-function zoom(f) {
+function pointer(e) {
+  const rect = cv.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function pointerTime(x) {
+  const g = cv._g;
+  return (
+    state.min + ((x - g.left) / (g.right - g.left)) * (state.max - state.min)
+  );
+}
+function rulerAt(x) {
+  return cv._g.rulerRects.find((r) => x >= r.x && x < r.x + r.width);
+}
+cv.addEventListener(
+  "wheel",
+  (e) => {
+    e.preventDefault();
+    const p = pointer(e),
+      ruler = rulerAt(p.x),
+      g = cv._g;
+    if (ruler) {
+      selectChannel(ruler.ch);
+      const factor = Math.exp(clamp(-e.deltaY * 0.002, -0.7, 0.7)),
+        anchor = (p.y - g.top) / (g.bottom - g.top),
+        span = clamp(ruler.ch.span * factor, 0.05, 2.8),
+        actual = span / ruler.ch.span;
+      setChannel(ruler.ch, {
+        span,
+        center: anchor + (ruler.ch.center - anchor) * actual,
+      });
+    } else if (p.x >= g.left) {
+      const t = pointerTime(p.x),
+        factor = Math.exp(clamp(e.deltaY * 0.002, -0.8, 0.8));
+      setRange(t - (t - state.min) * factor, t + (state.max - t) * factor);
+    }
+  },
+  { passive: false },
+);
+cv.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  const p = pointer(e),
+    g = cv._g,
+    ruler = rulerAt(p.x);
+  cv.setPointerCapture(e.pointerId);
+  if (ruler) {
+    selectChannel(ruler.ch);
+    if (p.y < g.top) return;
+    let mode = "channelMove";
+    if (ruler.ch === activeChannel() && Math.abs(p.x - ruler.axis) < 13) {
+      if (Math.abs(p.y - ruler.upper) < 9) mode = "resizeTop";
+      else if (Math.abs(p.y - ruler.lower) < 9) mode = "resizeBottom";
+    }
+    state.drag = {
+      mode,
+      ch: ruler.ch,
+      y: p.y,
+      center: ruler.ch.center,
+      span: ruler.ch.span,
+    };
+  } else if (p.x >= g.left && p.y >= g.top && p.y <= g.bottom) {
+    const t = pointerTime(p.x);
+    state.cursor = clamp(t, state.min, state.max);
+    state.drag =
+      state.mode === "move" || e.altKey
+        ? {
+            mode: "channelMove",
+            ch: activeChannel(),
+            y: p.y,
+            center: activeChannel().center,
+            span: activeChannel().span,
+          }
+        : {
+            mode: e.shiftKey ? "pan" : "zoom",
+            start: t,
+            end: t,
+            startX: p.x,
+            min: state.min,
+            max: state.max,
+          };
+  }
+  schedule();
+});
+cv.addEventListener("pointermove", (e) => {
+  const p = pointer(e),
+    g = cv._g,
+    d = state.drag;
+  if (d) {
+    const dy = (p.y - d.y) / (g.bottom - g.top);
+    if (d.mode === "channelMove") setChannel(d.ch, { center: d.center + dy });
+    else if (d.mode === "resizeTop") {
+      const bottom = d.center + d.span / 2,
+        top = Math.min(bottom - 0.05, d.center - d.span / 2 + dy);
+      setChannel(d.ch, { span: bottom - top, center: (top + bottom) / 2 });
+    } else if (d.mode === "resizeBottom") {
+      const top = d.center - d.span / 2,
+        bottom = Math.max(top + 0.05, d.center + d.span / 2 + dy);
+      setChannel(d.ch, { span: bottom - top, center: (top + bottom) / 2 });
+    } else if (d.mode === "pan") {
+      const dt = ((p.x - d.startX) / (g.right - g.left)) * (d.max - d.min);
+      setRange(d.min - dt, d.max - dt);
+    } else d.end = pointerTime(p.x);
+    schedule();
+    return;
+  }
+  const ruler = rulerAt(p.x);
+  cv.style.cursor = ruler
+    ? "grab"
+    : state.mode === "move"
+      ? "ns-resize"
+      : "crosshair";
+  if (!ruler && p.x >= g.left && p.x <= g.right) {
+    state.cursor = clamp(pointerTime(p.x), state.min, state.max);
+    schedule();
+  }
+});
+function endPointer(e) {
+  const d = state.drag;
+  if (!d) return;
+  state.drag = null;
+  if (d.mode === "zoom" && Math.abs(pointer(e).x - d.startX) > 7)
+    setRange(Math.min(d.start, d.end), Math.max(d.start, d.end));
+  schedule();
+}
+cv.addEventListener("pointerup", endPointer);
+cv.addEventListener("pointercancel", () => {
+  state.drag = null;
+  schedule();
+});
+cv.addEventListener("lostpointercapture", () => {
+  if (state.drag) {
+    state.drag = null;
+    schedule();
+  }
+});
+cv.addEventListener("dblclick", (e) => {
+  const ruler = rulerAt(pointer(e).x);
+  if (ruler) setChannel(ruler.ch, ruler.ch.defaults);
+  else fullView();
+});
+cv.addEventListener("keydown", (e) => {
+  const ch = activeChannel();
+  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+    e.preventDefault();
+    setChannel(ch, {
+      center:
+        ch.center + (e.key === "ArrowUp" ? -1 : 1) * (e.shiftKey ? 0.05 : 0.01),
+    });
+  } else if (e.key === "+" || e.key === "=") {
+    e.preventDefault();
+    setChannel(ch, { span: ch.span * 1.15 });
+  } else if (e.key === "-") {
+    e.preventDefault();
+    setChannel(ch, { span: ch.span / 1.15 });
+  } else if (e.key === "Escape") {
+    state.drag = null;
+    schedule();
+  }
+});
+for (const [id, mode] of [
+  ["modeZoom", "zoom"],
+  ["modeMove", "move"],
+])
+  $(id).onclick = () => {
+    state.mode = mode;
+    $("modeZoom").setAttribute("aria-pressed", String(mode === "zoom"));
+    $("modeMove").setAttribute("aria-pressed", String(mode === "move"));
+  };
+$("zoomIn").onclick = () => {
   const m = (state.min + state.max) / 2,
-    w = (state.max - state.min) * f;
-  setRange(m - w / 2, m + w / 2);
-}
-$("zoomIn").onclick = () => zoom(0.5);
-$("zoomOut").onclick = () => zoom(2);
+    w = (state.max - state.min) / 4;
+  setRange(m - w, m + w);
+};
+$("zoomOut").onclick = () => {
+  const m = (state.min + state.max) / 2,
+    w = state.max - state.min;
+  setRange(m - w, m + w);
+};
 $("resetView").onclick = fullView;
 $("applyRange").onclick = () =>
   setRange(Number($("rangeStart").value), Number($("rangeEnd").value));
 $("offset").onchange = (e) => setOffset(Number(e.target.value));
 $("offsetSlider").oninput = (e) => setOffset(Number(e.target.value));
 $("resetOffset").onclick = () => setOffset(0);
-function message(text) {
-  $("message").textContent = text;
-}
+$("lapA").onchange = (e) => {
+  state.lapVisible[0] = e.target.checked;
+  schedule();
+};
+$("lapB").onchange = (e) => {
+  state.lapVisible[1] = e.target.checked;
+  schedule();
+};
 function download(blob, name) {
   const url = URL.createObjectURL(blob),
     a = document.createElement("a");
@@ -414,20 +685,12 @@ function download(blob, name) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
-function csvCell(v) {
-  return v === null || v === undefined
+function csvCell(value) {
+  return value === null || value === undefined
     ? ""
-    : String(v).includes(",") || String(v).includes('"')
-      ? '"' + String(v).replaceAll('"', '""') + '"'
-      : String(v);
-}
-function csvDownload(rows, name) {
-  download(
-    new Blob([rows.map((r) => r.map(csvCell).join(",")).join("\r\n")], {
-      type: "text/csv;charset=utf-8",
-    }),
-    name,
-  );
+    : String(value).includes(",") || String(value).includes('"')
+      ? '"' + String(value).replaceAll('"', '""') + '"'
+      : String(value);
 }
 $("exportData").onclick = () => {
   const rows = [
@@ -456,83 +719,55 @@ $("exportData").onclick = () => {
       ]),
     ),
   );
-  csvDownload(rows, "monza-confronto.csv");
+  download(
+    new Blob([rows.map((row) => row.map(csvCell).join(",")).join("\r\n")], {
+      type: "text/csv;charset=utf-8",
+    }),
+    "monza-confronto.csv",
+  );
 };
 $("exportView").onclick = () => {
-  drawAll();
-  const visibleChannels = channels.filter(
-    (ch) => ch.canvas.getBoundingClientRect().height > 0,
-  );
-  const width = Math.max(
-      1000,
-      Math.round(channels[0].canvas.getBoundingClientRect().width),
-    ),
-    top = 100,
-    bottom = 70,
-    heights = visibleChannels.map(
-      (ch) => Math.round(ch.canvas.getBoundingClientRect().height) + 32,
-    ),
-    cv = document.createElement("canvas");
-  cv.width = width;
-  cv.height = top + bottom + heights.reduce((a, b) => a + b, 0);
-  const c = cv.getContext("2d");
-  c.fillStyle = "#f3f6fa";
-  c.fillRect(0, 0, cv.width, cv.height);
-  c.fillStyle = "#1b2d49";
-  c.font = "bold 25px system-ui";
-  c.fillText("Monza · confronto interattivo", 24, 36);
-  c.font = "13px system-ui";
-  c.fillStyle = COLORS[0];
-  c.fillText("Blu: giro 4 · 1:33.07", 24, 65);
-  c.fillStyle = COLORS[1];
-  c.fillText("Arancione: giro 6 · 1:32.49", 240, 65);
-  c.fillStyle = "#65768d";
-  c.fillText(
-    `Spostamento arancione: ${state.offset.toFixed(3)} s · asse X: tempo reale`,
-    24,
-    86,
-  );
-  let y = top;
-  visibleChannels.forEach((ch, i) => {
-    c.fillStyle = "#1b2d49";
-    c.font = "bold 13px system-ui";
-    c.fillText(ch.name + " " + ch.unit, 24, y + 21);
-    const h = heights[i] - 32;
-    c.drawImage(ch.canvas, 0, y + 32, width, h);
-    y += heights[i];
-  });
-  c.fillStyle = "#65768d";
+  const out = document.createElement("canvas"),
+    w = Math.max(1200, Math.round(cv.getBoundingClientRect().width)),
+    h = 680;
+  out.width = w;
+  out.height = h + 145;
+  const c = out.getContext("2d");
+  c.fillStyle = "white";
+  c.fillRect(0, 0, w, out.height);
+  c.fillStyle = "#172b46";
+  c.font = "bold 24px system-ui";
+  c.fillText("Monza · confronto telemetria", 22, 32);
   c.font = "12px system-ui";
   c.fillText(
-    "Pedali stimati; attività visiva del volante: indice automatico, non gradi di sterzo. Letture incerte escluse.",
-    24,
-    y + 28,
+    `Giro 4: linea continua · Giro 6: tratteggiata · Spostamento giro 6: ${state.offset.toFixed(3)} s`,
+    22,
+    58,
   );
+  c.save();
+  c.translate(0, 76);
+  drawScene(c, w, h, true);
+  c.restore();
+  c.fillStyle = "#6f7f92";
+  c.font = "11px system-ui";
   c.fillText(
-    "Allo stesso secondo le auto possono trovarsi in punti diversi della pista.",
-    24,
-    y + 49,
+    "Scale verticali indipendenti · Pedali stimati · Asse X: tempo nel giro · Letture mancanti lasciate vuote",
+    22,
+    h + 126,
   );
-  cv.toBlob((b) => download(b, "monza-confronto.png"), "image/png");
+  out.toBlob((blob) => download(blob, "monza-confronto.png"), "image/png");
 };
-function loadVideo(input, video, key, callback, before) {
+function loadVideo(input, video, key) {
   input.onchange = () => {
     const file = input.files[0];
     if (!file) return;
-    if (before && !before()) {
-      input.value = "";
-      return;
-    }
     if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
     sourceURLs[key] = URL.createObjectURL(file);
     video.src = sourceURLs[key];
     video.load();
-    callback?.();
   };
   video.addEventListener("error", () =>
-    message(
-      "Il browser non riesce a leggere questo video. Prova Safari su Mac o una copia MP4 H.264.",
-    ),
+    message("Video non leggibile: prova Safari sul Mac o una copia MP4 H.264."),
   );
 }
 for (const [key, i] of [
@@ -549,37 +784,34 @@ for (const [key, i] of [
     );
   });
 }
-function stepVideo(video, lap, direction, origin = 0) {
-  if (!video.videoWidth) {
-    message("Apri prima un video leggibile.");
-    return;
-  }
-  video.pause();
-  const sourceTime = video.currentTime + origin,
-    rows = laps[lap].rows;
-  let r;
-  if (direction > 0) r = rows.find((r) => r[1] > sourceTime + 0.004);
-  else r = rows.findLast((r) => r[1] < sourceTime - 0.004);
-  let time = (r ? r[1] : sourceTime + direction / 30) - origin;
-  video.currentTime = Math.max(0, Math.min(video.duration || Infinity, time));
-}
-document
-  .querySelectorAll("[data-step-video]")
-  .forEach(
-    (b) =>
-      (b.onclick = () =>
-        stepVideo(
-          $("video" + b.dataset.stepVideo),
-          b.dataset.stepVideo === "A" ? 0 : 1,
-          Number(b.dataset.direction),
-        )),
-  );
+document.querySelectorAll("[data-step-video]").forEach(
+  (button) =>
+    (button.onclick = () => {
+      const key = button.dataset.stepVideo,
+        video = $("video" + key),
+        lap = key === "A" ? 0 : 1,
+        direction = Number(button.dataset.direction);
+      if (!video.videoWidth) {
+        message("Apri prima un video leggibile.");
+        return;
+      }
+      video.pause();
+      const row =
+        direction > 0
+          ? laps[lap].rows.find((r) => r[1] > video.currentTime + 0.004)
+          : laps[lap].rows.findLast((r) => r[1] < video.currentTime - 0.004);
+      video.currentTime = clamp(
+        row ? row[1] : video.currentTime + direction / 30,
+        0,
+        video.duration,
+      );
+    }),
+);
 $("alignVideos").onclick = () => {
   const a = $("videoA"),
     b = $("videoB");
   if (!a.videoWidth || !b.videoWidth) {
-    message("Apri entrambi i video prima di allineare i fotogrammi.");
-    $("message").scrollIntoView({ block: "nearest" });
+    message("Apri entrambi i video per allineare i fotogrammi.");
     return;
   }
   const ta = a.currentTime - laps[0].sourceStart,
@@ -591,434 +823,30 @@ $("alignVideos").onclick = () => {
 $("alignAnchors").onclick = () =>
   setOffset(Number($("anchorA").value) - Number($("anchorB").value));
 $("syncVideos").onclick = () => {
-  [$("videoA"), $("videoB")].forEach((v, i) => {
-    if (v.videoWidth) {
-      v.pause();
-      v.currentTime = Math.max(
+  [$("videoA"), $("videoB")].forEach((video, i) => {
+    if (video.videoWidth) {
+      video.pause();
+      video.currentTime = clamp(
+        state.cursor - (i ? state.offset : 0) + laps[i].sourceStart,
         0,
-        Math.min(
-          v.duration,
-          state.cursor - (i ? state.offset : 0) + laps[i].sourceStart,
-        ),
+        video.duration,
       );
     }
   });
 };
-// Steering measurements: each point is explicit, with its original timestamp and baseline.
-const sv = $("steerVideo"),
-  overlay = $("steerOverlay");
-function selectedLap() {
-  return Number($("steerLap").value);
-}
-function sourceSteerTime() {
-  return sv.currentTime + steerOrigin;
-}
-function angleOf(points) {
-  return (
-    (Math.atan2(
-      (points[1].y - points[0].y) * sv.videoHeight,
-      (points[1].x - points[0].x) * sv.videoWidth,
-    ) *
-      180) /
-    Math.PI
-  );
-}
-function wrap(a) {
-  return ((((a + 180) % 360) + 360) % 360) - 180;
-}
-function bodyAxis(angle) {
-  return ((((angle + 90) % 180) + 180) % 180) - 90;
-}
-function bodySnapshot(points, method = "manual_body_line") {
-  return {
-    angle: bodyAxis(angleOf(points)),
-    points: points.map((p) => ({ ...p })),
-    videoTime: sourceSteerTime(),
-    width: sv.videoWidth,
-    height: sv.videoHeight,
-    method,
-  };
-}
-function recordMeasure(angle, status, line = null) {
-  const lap = selectedLap(),
-    t = sourceSteerTime(),
-    r = nearest(laps[lap].rows, t, 1);
-  if (
-    t < laps[lap].sourceStart ||
-    t > laps[lap].sourceStart + laps[lap].duration
-  ) {
-    message("Questo fotogramma è fuori dal giro selezionato.");
-    return false;
-  }
-  const item = {
-    id: ++measureId,
-    lap,
-    videoTime: +t.toFixed(6),
-    lapTime: +(t - laps[lap].sourceStart).toFixed(6),
-    frameIndex: Math.abs(r[1] - t) < 0.02 ? r[0] : null,
-    angle: angle === null ? null : +angle.toFixed(3),
-    status,
-    points: line,
-    baseline: calibrations[lap],
-    bodyReference: bodyReferences[lap],
-    bodyReferenceStatus: !bodyReferences[lap]
-      ? "missing"
-      : Math.abs(bodyReferences[lap].videoTime - t) < 0.025
-        ? "same_frame"
-        : "saved_reference_reused",
-    frameIndexEstimated: Math.abs(r[1] - t) >= 0.02,
-  };
-  measured[lap].push(item);
-  measured[lap].sort((a, b) => a.lapTime - b.lapTime);
-  $("pointCount").textContent = measured.flat().length + " misure registrate.";
-  schedule();
-  return true;
-}
-function startDraw(mode) {
-  if (demo && selectedLap() !== 0) {
-    message(
-      "L’esempio è del giro 4: per misurare il giro 6 apri il secondo originale.",
-    );
-    return;
-  }
-  if (!sv.videoWidth) {
-    message("Attendi che il video sia pronto.");
-    return;
-  }
-  if (mode !== "body" && !bodyReferences[selectedLap()]) {
-    message("Traccia prima il riferimento fisso sui due lati della scocca.");
-    return;
-  }
-  if (mode === "measure" && !calibrations[selectedLap()]) {
-    message("Imposta prima lo zero sul rettilineo.");
-    return;
-  }
-  sv.pause();
-  drawing = mode;
-  pending = [];
-  activeLine = null;
-  overlay.parentElement.classList.add("drawing");
-  $("steerStatus").textContent =
-    mode === "body"
-      ? "Scocca: collega i due lati fissi come nella foto. Non stai ancora misurando lo sterzo."
-      : (mode === "zero" ? "Volante dritto: " : "Misura volante: ") +
-        "indica i due riferimenti mobili del volante nello stesso ordine. La misura usa la linea scocca come riferimento.";
-  message("");
-  drawOverlay();
-}
-$("setBody").onclick = () => startDraw("body");
-$("setZero").onclick = () => startDraw("zero");
-$("measureAngle").onclick = () => startDraw("measure");
-overlay.addEventListener("pointerdown", (e) => {
-  if (!drawing) return;
-  e.preventDefault();
-  const b = overlay.getBoundingClientRect();
-  pending.push({
-    x: Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)),
-    y: Math.max(0, Math.min(1, (e.clientY - b.top) / b.height)),
-  });
-  if (pending.length === 2) {
-    const dx = (pending[1].x - pending[0].x) * sv.videoWidth,
-      dy = (pending[1].y - pending[0].y) * sv.videoHeight;
-    if (Math.hypot(dx, dy) < 15) {
-      pending = [];
-      message("Scegli due punti più distanti per ridurre l’errore di misura.");
-      drawOverlay();
-      return;
-    }
-    const lap = selectedLap();
-    const wasBody = drawing === "body";
-    if (wasBody) {
-      bodyReferences[lap] = bodySnapshot(pending);
-      $("steerStatus").textContent =
-        "Riferimento scocca aggiornato. La scocca non genera misure di sterzo. Ora imposta lo zero del volante sul dritto, oppure misura il volante in questo fotogramma.";
-    } else if (drawing === "zero") {
-      if (measured[lap].some((p) => p.angle !== null)) {
-        pending = [];
-        drawing = null;
-        overlay.parentElement.classList.remove("drawing");
-        message(
-          "Per cambiare lo zero cancella prima le misure di questo giro, così non mescoli calibrazioni diverse.",
-        );
-        return;
-      }
-      calibrations[lap] = {
-        angle: wrap(angleOf(pending) - bodyReferences[lap].angle),
-        wheelImageAngle: angleOf(pending),
-        bodyReference: bodyReferences[lap],
-        points: pending.map((p) => ({ ...p })),
-        videoTime: sourceSteerTime(),
-        width: sv.videoWidth,
-        height: sv.videoHeight,
-      };
-      recordMeasure(
-        0,
-        "manual_zero",
-        pending.map((p) => ({ ...p })),
-      );
-      $("steerStatus").textContent =
-        "Zero impostato. Avanza nel video e misura gli stessi due riferimenti nello stesso ordine.";
-    } else {
-      const angle = wrap(
-        angleOf(pending) - bodyReferences[lap].angle - calibrations[lap].angle,
-      );
-      recordMeasure(
-        angle,
-        "manual_line",
-        pending.map((p) => ({ ...p })),
-      );
-      $("steerStatus").textContent =
-        `Angolo apparente ${angle >= 0 ? "+" : ""}${angle.toFixed(1)}° · video ${sourceSteerTime().toFixed(3)} s. Misura confermata manualmente.`;
-    }
-    activeLine = {
-      points: pending.map((p) => ({ ...p })),
-      time: sv.currentTime,
-      type: wasBody ? "body" : "wheel",
-    };
-    drawing = null;
-    pending = [];
-    overlay.parentElement.classList.remove("drawing");
-  }
-  drawOverlay();
-});
-function drawOverlay() {
-  const w = sv.videoWidth || 900,
-    h = sv.videoHeight || 426;
-  overlay.width = w;
-  overlay.height = h;
-  const c = overlay.getContext("2d");
-  function line(pts, color, dashed = false) {
-    if (!pts?.length) return;
-    c.strokeStyle = color;
-    c.fillStyle = color;
-    c.lineWidth = Math.max(2, w / 300);
-    c.setLineDash(dashed ? [10, 8] : []);
-    c.beginPath();
-    c.moveTo(pts[0].x * w, pts[0].y * h);
-    if (pts.length > 1) c.lineTo(pts[1].x * w, pts[1].y * h);
-    c.stroke();
-    c.setLineDash([]);
-    pts.forEach((p, i) => {
-      c.beginPath();
-      c.arc(p.x * w, p.y * h, 6, 0, Math.PI * 2);
-      c.fill();
-      c.font = "bold 16px system-ui";
-      c.fillText(String(i + 1), p.x * w + 9, p.y * h - 7);
-    });
-  }
-  const body = bodyReferences[selectedLap()];
-  line(body?.points, "#ffc65c", true);
-  $("bodyStatus").textContent = !body
-    ? "Nessuna linea scocca. Collega i due lati fissi come nella foto."
-    : `${body.method === "photo_example_approx" ? "Linea scocca proposta dalla foto: verificala. " : "Scocca impostata. "}${Math.abs(body.videoTime - sourceSteerTime()) < 0.025 ? "Riferimento di questo fotogramma." : "Riferimento salvato riutilizzato: se la camera ruota, aggiornalo sul fotogramma corrente prima di misurare il volante."}`;
-  line(calibrations[selectedLap()]?.points, "#94a3b8", true);
-  if (activeLine && Math.abs(activeLine.time - sv.currentTime) < 0.025)
-    line(activeLine.points, activeLine.type === "body" ? "#ffc65c" : "#39e6b0");
-  line(pending, "#ffdd55");
-}
-sv.addEventListener("loadedmetadata", () => {
-  if (demo && !bodyReferences[0]) {
-    bodyReferences[0] = bodySnapshot(
-      [
-        { x: 0.16, y: 0.692 },
-        { x: 0.907, y: 0.728 },
-      ],
-      "photo_example_approx",
-    );
-  }
-  drawOverlay();
-});
-sv.addEventListener("timeupdate", () => {
-  $("steerClock").textContent =
-    "Video originale " + sourceSteerTime().toFixed(3) + " s";
-  if (drawing) {
-    drawing = null;
-    pending = [];
-    overlay.parentElement.classList.remove("drawing");
-    $("steerStatus").textContent =
-      "Fotogramma cambiato: premi di nuovo il comando di misura.";
-  }
-  drawOverlay();
-});
-sv.addEventListener("seeked", drawOverlay);
-sv.addEventListener("error", () =>
-  message("Video sterzo non leggibile in questo browser. Prova un MP4 H.264."),
-);
-$("steerPrevious").onclick = () =>
-  stepVideo(sv, selectedLap(), -1, steerOrigin);
-$("steerNext").onclick = () => stepVideo(sv, selectedLap(), 1, steerOrigin);
-$("steerRate").onchange = (e) => {
-  sv.playbackRate = Number(e.target.value);
-};
-$("steerLap").onchange = () => {
-  if (demo && selectedLap() !== 0) {
-    message(
-      "Hai selezionato il giro 6. Apri il secondo video originale: l’esempio qui è del giro 4.",
-    );
-  }
-  drawing = null;
-  pending = [];
-  activeLine = null;
-  overlay.parentElement.classList.remove("drawing");
-  drawOverlay();
-};
-loadVideo(
-  $("steerFile"),
-  sv,
-  "steer",
-  () => {
-    demo = false;
-    steerOrigin = 0;
-    drawing = null;
-    pending = [];
-    activeLine = null;
-    calibrations[selectedLap()] = null;
-    bodyReferences[selectedLap()] = null;
-    measured[selectedLap()] = [];
-    $("pointCount").textContent =
-      measured.flat().length + " misure registrate.";
-    $("steerStatus").textContent =
-      "Video aperto. Seleziona il giro corretto e imposta lo zero.";
-    overlay.parentElement.classList.remove("drawing");
-    schedule();
-  },
-  () =>
-    !measured[selectedLap()].length ||
-    confirm(
-      "Il nuovo video richiede una nuova calibrazione. Cancellare le misure di sterzo del giro selezionato? Esporta prima il CSV per conservarle.",
-    ),
-);
-$("markMissing").onclick = () => {
-  sv.pause();
-  if (!sv.videoWidth) return;
-  if (demo && selectedLap() !== 0) {
-    message("Apri prima il secondo video originale.");
-    return;
-  }
-  recordMeasure(null, "occluded");
-  $("steerStatus").textContent =
-    "Fotogramma segnato come non leggibile: non è stato assegnato un angolo.";
-};
-$("undoSteering").onclick = () => {
-  const lap = selectedLap();
-  if (measured[lap].length) {
-    const lastId = Math.max(...measured[lap].map((p) => p.id));
-    measured[lap].splice(
-      measured[lap].findIndex((p) => p.id === lastId),
-      1,
-    );
-  }
-  if (!measured[lap].some((p) => p.status === "manual_zero"))
-    calibrations[lap] = null;
-  $("pointCount").textContent = measured.flat().length + " misure registrate.";
-  activeLine = null;
-  schedule();
-  drawOverlay();
-};
-$("clearSteering").onclick = () => {
-  const lap = selectedLap();
-  if (
-    measured[lap].length &&
-    !confirm("Cancellare le misure di sterzo del giro selezionato?")
-  )
-    return;
-  measured[lap] = [];
-  calibrations[lap] = null;
-  bodyReferences[lap] = null;
-  drawing = null;
-  pending = [];
-  activeLine = null;
-  overlay.parentElement.classList.remove("drawing");
-  $("pointCount").textContent = measured.flat().length + " misure registrate.";
-  $("steerStatus").textContent =
-    "Misure cancellate per il giro selezionato. Imposta un nuovo zero.";
-  schedule();
-  drawOverlay();
-};
-$("exportSteering").onclick = () => {
-  const rows = [
-    [
-      "video_id",
-      "video_time_s",
-      "lap_elapsed_s_est",
-      "aligned_time_s",
-      "original_frame_index_est",
-      "angle_apparent_deg",
-      "status",
-      "line_points_normalized_json",
-      "zero_reference_json",
-      "body_reference_json",
-      "body_reference_status",
-    ],
-  ];
-  for (const p of measured
-    .flat()
-    .sort((a, b) => a.lap - b.lap || a.videoTime - b.videoTime))
-    rows.push([
-      "giro" + (p.lap + 1),
-      p.videoTime,
-      p.lapTime,
-      +(p.lapTime + (p.lap ? state.offset : 0)).toFixed(6),
-      p.frameIndex,
-      p.angle,
-      p.status,
-      JSON.stringify(p.points),
-      JSON.stringify(p.baseline),
-      JSON.stringify(p.bodyReference),
-      p.bodyReferenceStatus,
-    ]);
-  csvDownload(rows, "monza-sterzo-manuale.csv");
-};
-
-$("exportActivity").onclick = () => {
-  const rows = [
-    [
-      "video_id",
-      "frame_index",
-      "video_time_s",
-      "lap_elapsed_s_est",
-      "aligned_time_s",
-      "wheel_region_motion_index",
-      "support_score",
-      "status",
-    ],
-  ];
-  DATA.wheelActivity.forEach((lap, i) =>
-    lap.forEach((r) =>
-      rows.push([
-        "giro" + (i + 1),
-        r[0],
-        r[1],
-        r[2],
-        +(r[2] + (i ? state.offset : 0)).toFixed(6),
-        r[3],
-        r[4],
-        r[5],
-      ]),
-    ),
-  );
-  csvDownload(rows, "monza-attivita-volante-automatica.csv");
-};
-$("steeringSection").addEventListener("toggle", schedule);
-
-window.addEventListener("resize", () => {
-  schedule();
-  drawOverlay();
-});
-// Expose state for useful browser interaction checks and future integration.
+window.addEventListener("resize", schedule);
 window.monzaViewer = {
   state,
   laps,
-  measured,
-  calibrations,
-  bodyReferences,
-  wheelActivity: DATA.wheelActivity,
+  channels,
   setRange,
   setOffset,
   fullView,
   nearestValue,
-  channels,
   drawAll,
-  sourceSteerTime,
+  setChannel,
+  selectChannel,
+  channelY,
 };
+updateControls();
 fullView();

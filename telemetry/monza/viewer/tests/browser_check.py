@@ -1,114 +1,104 @@
-"""Exercise real zoom, alignment, downloads, video controls, and steering calibration."""
-import asyncio,csv,io,json,math,pathlib,base64
+"""Exercise the single plot, real axis gestures, unchanged telemetry, alignment and exports."""
+import asyncio,base64,csv,json,pathlib,threading
+from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from playwright.async_api import async_playwright
 ROOT=pathlib.Path(__file__).resolve().parents[2]
+HTML=(ROOT/'confronto-interattivo.html').read_bytes()
+class Handler(BaseHTTPRequestHandler):
+ def do_GET(self):
+  self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.end_headers();self.wfile.write(HTML)
+ def log_message(self,*args):pass
 async def check():
+ server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
  async with async_playwright() as p:
   browser=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox','--disable-dev-shm-usage'],env={'PATH':'/usr/bin:/bin','XDG_CONFIG_HOME':'/tmp/monza-browser-config','XDG_CACHE_HOME':'/tmp/monza-browser-cache'})
-  page=await browser.new_page(viewport={'width':1440,'height':1100},device_scale_factor=1)
-  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-  await page.set_content((ROOT/'confronto-interattivo.html').read_text(),wait_until='domcontentloaded')
-  await page.wait_for_function('window.monzaViewer && document.querySelector("canvas").width>100')
-  await page.wait_for_function('document.getElementById("steerVideo").videoWidth>0')
-  assert await page.evaluate('monzaViewer.wheelActivity.length')==2
-  assert await page.evaluate('monzaViewer.wheelActivity.every(rows=>rows.filter(r=>r[3]!==null).length>2000)')
-  assert await page.locator('#steeringSection').evaluate('(el)=>!el.open')
-  async with page.expect_download() as d:
-   await page.click('#exportActivity')
-  exported=list(csv.DictReader(pathlib.Path(await (await d.value).path()).read_text().splitlines()))
-  assert len(exported)==5665 and 'wheel_region_motion_index' in exported[0]
-  assert not any('angle_deg' in key for key in exported[0])
+  page=await browser.new_page(viewport={'width':1600,'height':1240},device_scale_factor=1);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+  await page.goto(f'http://127.0.0.1:{server.server_port}/',wait_until='domcontentloaded')
+  await page.wait_for_function('window.monzaViewer && plot.width>100')
+  assert await page.locator('canvas').count()==1
+  assert await page.evaluate('monzaViewer.channels.length')==5
+  assert await page.evaluate('Object.keys(JSON.parse(document.getElementById("telemetry").textContent)).join()')=='laps'
+  assert await page.locator('#steeringSection, #activityChart, #steerVideo').count()==0
+  await page.fill('#rangeStart','20');await page.fill('#rangeEnd','10');await page.click('#applyRange');assert 'intervallo valido' in await page.locator('#message').inner_text();await page.click('#resetView')
+  source=json.loads((ROOT/'viewer/telemetry-data.json').read_text())
+  assert await page.evaluate('monzaViewer.laps')==source['laps']
+  cv=page.locator('#plot')
+  async def drag(x1,y1,x2,y2):
+   b=await cv.bounding_box();await page.mouse.move(b['x']+x1,b['y']+y1);await page.mouse.down();await page.mouse.move(b['x']+x2,b['y']+y2,steps=8);await page.mouse.up();await page.wait_for_timeout(60)
   original=await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')
   await page.click('#zoomIn');assert abs(await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')-original/2)<.001
-  cv=page.locator('#charts canvas').first;box=await cv.bounding_box()
-  await page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2);await page.mouse.wheel(0,-150)
-  await page.wait_for_timeout(100);assert await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')<original/2
-  await page.click('#resetView');box=await cv.bounding_box()
-  y=box['y']+80;await page.mouse.move(box['x']+box['width']*.3,y);await page.mouse.down();await page.mouse.move(box['x']+box['width']*.6,y,steps=8);await page.mouse.up()
-  width=await page.evaluate('monzaViewer.state.max-monzaViewer.state.min');assert 20<width<40
-  before=await page.evaluate('({...monzaViewer.state})');await page.keyboard.down('Shift');await page.mouse.move(box['x']+box['width']*.6,y);await page.mouse.down();await page.mouse.move(box['x']+box['width']*.5,y,steps=5);await page.mouse.up();await page.keyboard.up('Shift')
-  after=await page.evaluate('({...monzaViewer.state})');assert abs((after['max']-after['min'])-width)<.001 and after['min']>before['min']
+  await page.click('#resetView');await page.wait_for_timeout(50)
+  g=await page.evaluate('({left:plot._g.left,right:plot._g.right,top:plot._g.top,bottom:plot._g.bottom})');width=g['right']-g['left'];y=g['top']+100
+  await drag(g['left']+width*.2,y,g['left']+width*.5,y)
+  span=await page.evaluate('monzaViewer.state.max-monzaViewer.state.min');assert 25<span<30
+  before=await page.evaluate('monzaViewer.state.min');await page.keyboard.down('Shift');await drag(g['left']+width*.6,y,g['left']+width*.5,y);await page.keyboard.up('Shift')
+  assert await page.evaluate('monzaViewer.state.min')>before
+  assert abs(await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')-span)<.001
+  b=await cv.bounding_box();await page.mouse.move(b['x']+g['left']+width*.5,b['y']+y);await page.mouse.wheel(0,-150);await page.wait_for_timeout(60)
+  assert await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')<span
+  # Move an axis; the other channels and the raw telemetry must remain unchanged.
+  await page.click('#resetLayout');await page.wait_for_timeout(50)
+  original_channels=await page.evaluate('monzaViewer.channels.map(c=>({center:c.center,span:c.span}))')
+  before_image=await cv.evaluate('(el)=>el.toDataURL()')
+  ruler=await page.evaluate('({x:plot._g.rulerRects[0].x,axis:plot._g.rulerRects[0].axis})')
+  await drag(ruler['x']+15,g['top']+150,ruler['x']+15,g['top']+200)
+  assert await page.evaluate('monzaViewer.channels[0].center')>original_channels[0]['center']+.05
+  assert await page.evaluate('monzaViewer.channels.slice(1).map(c=>({center:c.center,span:c.span}))')==original_channels[1:]
+  assert await cv.evaluate('(el)=>el.toDataURL()')!=before_image
+  time_before=await page.evaluate('[monzaViewer.state.min,monzaViewer.state.max]')
+  span_before=await page.evaluate('monzaViewer.channels[0].span');b=await cv.bounding_box();await page.mouse.move(b['x']+ruler['x']+15,b['y']+g['top']+200);await page.mouse.wheel(0,-150);await page.wait_for_timeout(60)
+  assert await page.evaluate('monzaViewer.channels[0].span')>span_before
+  assert await page.evaluate('[monzaViewer.state.min,monzaViewer.state.max]')==time_before
+  # Resize the top handle while the lower value remains anchored.
+  await page.click('#resetChannel');await page.wait_for_timeout(60)
+  r=await page.evaluate('({axis:plot._g.rulerRects[0].axis,upper:plot._g.rulerRects[0].upper,lower:plot._g.rulerRects[0].lower})')
+  await drag(r['axis'],r['upper'],r['axis'],r['upper']+35)
+  assert await page.evaluate('monzaViewer.channels[0].span')<.58
+  assert abs(await page.evaluate('plot._g.rulerRects[0].lower')-r['lower'])<.5
+  # Select another channel and move it directly inside the common plot.
+  await page.locator('[data-channel="rpm"] button').click();await page.click('#modeMove')
+  before=await page.evaluate('monzaViewer.channels[1].center');await drag(g['left']+width*.5,y,g['left']+width*.5,y+60)
+  assert await page.evaluate('monzaViewer.channels[1].center')>before+.08
+  assert await page.evaluate('[monzaViewer.state.min,monzaViewer.state.max]')==time_before
+  await page.click('#modeZoom')
+  # Layout is saved across a real same-origin reload.
+  await page.wait_for_timeout(200);saved=await page.evaluate('monzaViewer.channels.map(c=>({center:c.center,span:c.span}))')
+  await page.reload(wait_until='domcontentloaded');await page.wait_for_function('window.monzaViewer && plot.width>100')
+  assert await page.evaluate('monzaViewer.channels.map(c=>({center:c.center,span:c.span}))')==saved
+  await page.locator('[data-channel="rpm"] input').uncheck();assert not await page.evaluate('monzaViewer.channels[1].visible')
+  await page.locator('#lapB').uncheck();await page.wait_for_timeout(30);assert await page.locator('[data-channel="speed"] .g6 b').inner_text()=='nascosto';await page.locator('#lapB').check()
+  # Numeric and actual uploaded-video alignment.
   await page.locator('#videoDetails').evaluate('(el)=>el.open=true')
-  await page.fill('#anchorA','12.5');await page.fill('#anchorB','12');await page.click('#alignAnchors');assert abs(await page.evaluate('monzaViewer.state.offset')-.5)<.00001
+  await page.fill('#anchorA','12.5');await page.fill('#anchorB','12');await page.click('#alignAnchors')
+  assert abs(await page.evaluate('monzaViewer.state.offset')-.5)<1e-6
   assert await page.evaluate('monzaViewer.nearestValue(1,monzaViewer.channels[0],.25)') is None
-  async with page.expect_download() as download:
-   await page.click('#exportData')
-  path=await (await download.value).path();rows=list(csv.DictReader(pathlib.Path(path).read_text().splitlines()));assert len(rows)==5716
-  r=next(r for r in rows if r['video_id']=='giro2');assert abs(float(r['aligned_time_s'])-float(r['lap_elapsed_s_est'])-.5)<.00001
-  async with page.expect_download() as download:
-   await page.click('#exportView')
-  png=pathlib.Path(await (await download.value).path()).read_bytes();assert png[:8]==b'\x89PNG\r\n\x1a\n' and len(png)>10000
-  # Verify the real video-reference action, not just numeric alignment fields.
-  sample=ROOT/'viewer/volante-demo.mp4'
-  await page.set_input_files('#fileA',sample);await page.set_input_files('#fileB',sample)
-  await page.wait_for_function('videoA.readyState>=1&&videoB.readyState>=1')
-  await page.evaluate('videoA.currentTime=8;videoB.currentTime=4')
-  await page.wait_for_function('!videoA.seeking&&!videoB.seeking')
-  await page.click('#alignVideos');expected=(8-5.121667)-(4-1.418333);assert abs(await page.evaluate('monzaViewer.state.offset')-expected)<.001
+  async with page.expect_download() as d:await page.click('#exportData')
+  exported=list(csv.DictReader(pathlib.Path(await (await d.value).path()).read_text().splitlines()));assert len(exported)==5716
+  expected=[(i,r) for i,lap in enumerate(source['laps']) for r in lap['rows']]
+  fields=['speed_kmh','engine_rpm','gear','throttle_pct_est','brake_pct_est']
+  for row,(i,r) in zip(exported,expected):
+   assert int(row['frame_index'])==r[0] and float(row['video_time_s'])==r[1]
+   assert abs(float(row['aligned_time_s'])-r[2]-(.5 if i else 0))<1e-6
+   for field,value in zip(fields,r[3:]):assert (row[field]=='' if value is None else float(row[field])==value)
+  async with page.expect_download() as d:await page.click('#exportView')
+  png=pathlib.Path(await (await d.value).path()).read_bytes();assert png[:8]==b'\x89PNG\r\n\x1a\n' and len(png)>15000
+  fixture=ROOT/'viewer/volante-demo.mp4'
+  await page.set_input_files('#fileA',fixture);await page.set_input_files('#fileB',fixture);await page.wait_for_function('videoA.readyState>=1&&videoB.readyState>=1')
+  await page.evaluate('videoA.currentTime=8;videoB.currentTime=4');await page.wait_for_function('!videoA.seeking&&!videoB.seeking');await page.click('#alignVideos')
+  assert abs(await page.evaluate('monzaViewer.state.offset')-((8-source['laps'][0]['sourceStart'])-(4-source['laps'][1]['sourceStart'])))<.001
   await page.click('#resetOffset');assert await page.evaluate('monzaViewer.state.offset')==0
-  # Exact geometric checks of the two-point annotation UI. These are synthetic test clicks,
-  # not physical measurements and are not saved as steering data.
-  await page.locator('#steeringSection').evaluate('(el)=>el.open=true')
-  await page.locator('#steeringSection').scroll_into_view_if_needed()
-  await page.click('#setBody');ob=await page.locator('#steerOverlay').bounding_box()
-  async def point(x,y):await page.mouse.click(ob['x']+x*ob['width'],ob['y']+y*ob['height'])
-  # The chassis line is undirected: right-to-left must not add 180 degrees.
-  await point(.65,.25);await point(.35,.25)
-  assert abs(await page.evaluate('monzaViewer.bodyReferences[0].angle'))<.01
-  assert await page.evaluate('monzaViewer.measured[0].length')==0
-  await page.click('#setZero');ob=await page.locator('#steerOverlay').bounding_box()
-  await point(.35,.35);await point(.65,.35)
-  assert await page.evaluate('monzaViewer.measured[0].length')==1
-  await page.evaluate('steerVideo.currentTime=1');await page.wait_for_function('!steerVideo.seeking')
-  await page.click('#measureAngle');ob=await page.locator('#steerOverlay').bounding_box()
-  ratio=await page.evaluate('steerVideo.videoWidth/steerVideo.videoHeight')
-  await point(.35,.35);await point(.55,.35+.2*ratio*math.tan(math.pi/6))
-  angle=await page.evaluate('monzaViewer.measured[0].at(-1).angle');assert abs(angle-30)<.15,angle
-  async with page.expect_download() as download:
-   await page.click('#exportSteering')
-  rr=list(csv.DictReader(pathlib.Path(await (await download.value).path()).read_text().splitlines()));assert len(rr)==2 and abs(float(rr[1]['angle_apparent_deg'])-30)<.15
-  # A hidden reference must stay missing rather than become zero or a fabricated angle.
-  await page.evaluate('steerVideo.currentTime=.5');await page.wait_for_function('!steerVideo.seeking');await page.click('#markMissing')
-  assert await page.evaluate('monzaViewer.measured[0].find(r=>r.status==="occluded").angle') is None
-  await page.click('#undoSteering');assert await page.evaluate('monzaViewer.measured[0].length')==2
-  assert await page.evaluate('monzaViewer.measured[0].some(r=>r.status==="occluded")') is False
-  # Re-measure chassis after a simulated camera roll: common rotation cancels.
-  await page.evaluate('steerVideo.currentTime=2');await page.wait_for_function('!steerVideo.seeking')
-  await page.click('#setBody');ob=await page.locator('#steerOverlay').bounding_box()
-  await point(.3,.25);await point(.6,.25+.3*ratio*math.tan(math.radians(10)))
-  assert await page.evaluate('monzaViewer.measured[0].length')==2
-  assert abs(await page.evaluate('monzaViewer.measured[0][0].bodyReference.angle'))<.01
-  await page.click('#measureAngle');ob=await page.locator('#steerOverlay').bounding_box()
-  await point(.35,.35);await point(.55,.35+.2*ratio*math.tan(math.radians(10)))
-  assert abs(await page.evaluate('monzaViewer.measured[0].at(-1).angle'))<.15
-  await page.evaluate('steerVideo.currentTime=3');await page.wait_for_function('!steerVideo.seeking')
-  await page.click('#measureAngle');ob=await page.locator('#steerOverlay').bounding_box()
-  await point(.35,.35);await point(.55,.35+.2*ratio*math.tan(math.radians(40)))
-  assert abs(await page.evaluate('monzaViewer.measured[0].at(-1).angle')-30)<.15
-  assert await page.evaluate('monzaViewer.measured[0].at(-1).bodyReferenceStatus')=='saved_reference_reused'
-  # Switching to the second lap must not erase annotations of the first lap.
-  await page.select_option('#steerLap','1')
-  await page.click('#setZero')
-  assert await page.evaluate('monzaViewer.measured[0].length')==4
-  assert await page.evaluate('monzaViewer.measured[1].length')==0
-  await page.set_input_files('#steerFile',sample)
-  await page.wait_for_function('steerVideo.readyState>=1')
-  assert await page.evaluate('monzaViewer.measured[0].length')==4
-  assert not errors,errors
-  # Fresh state for the published screenshot: no synthetic annotations from tests.
-  await page.goto('about:blank');await page.set_content((ROOT/'confronto-interattivo.html').read_text(),wait_until='domcontentloaded');await page.wait_for_function('monzaViewer.channels[0].canvas.width>100')
-  await page.evaluate('monzaViewer.setRange(3,16)');await page.wait_for_timeout(150)
-  session=await page.context.new_cdp_session(page)
-  image=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
-  (ROOT/'confronto-interattivo-preview.png').write_bytes(base64.b64decode(image['data']))
-  await page.wait_for_function('steerVideo.readyState>=2')
-  await page.locator('#steeringSection').evaluate('(el)=>el.open=true')
-  await page.locator('#steeringSection').evaluate('(el)=>el.scrollIntoView({block:"start"})')
-  await page.wait_for_timeout(100)
-  shot=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
-  (ROOT/'sterzo-scocca-preview.png').write_bytes(base64.b64decode(shot['data']))
+  await page.click('#resetLayout');await page.click('#resetView');await page.locator('[data-channel="speed"] button').click();await page.locator('#videoDetails').evaluate('(el)=>el.open=false')
+  await page.evaluate('monzaViewer.state.cursor=10;monzaViewer.drawAll();scrollTo(0,0)');await page.wait_for_timeout(80)
+  async with page.expect_download() as d:await page.click('#exportView')
+  (ROOT/'confronto-monza.png').write_bytes(pathlib.Path(await (await d.value).path()).read_bytes())
+  client=await page.context.new_cdp_session(page);shot=await client.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False});(ROOT/'confronto-interattivo-preview.png').write_bytes(base64.b64decode(shot['data']))
   await page.set_viewport_size({'width':390,'height':844});await page.wait_for_timeout(100)
   assert await page.evaluate('document.documentElement.scrollWidth')<=390
+  assert await page.evaluate('plot._g.rulerRects.length')==1
+  await page.locator('[data-channel="throttle"] button').click();await page.wait_for_timeout(40)
+  assert await page.evaluate('plot._g.rulerRects[0].ch.id')=='throttle'
+  assert not errors,errors
   await browser.close()
- print('PASS: automatic activity loaded without manual input, 5665-row automatic CSV, zoom buttons/wheel/selection, pan, numerical+video alignment, 5716-row CSV, PNG export, chassis-only reference, reversed endpoints, camera-roll cancellation, zero+30-degree annotation, missing/undo, mobile layout; no JS errors.')
+ server.shutdown()
+ print('PASS: one canvas, no steering, unchanged 5716-row source and CSV, axis move/wheel/resize, in-plot channel move, independent transforms, persistence across reload, hide channels/laps, zoom/selection/pan, numeric+video alignment, PNG, mobile ruler/layout; no JS errors.')
 asyncio.run(check())

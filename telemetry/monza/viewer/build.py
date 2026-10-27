@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
-"""Build the standalone viewer using Python's standard library."""
-import base64,json,pathlib,zipfile
+"""Build an offline, single-plot comparison containing the original lap data."""
+import json,pathlib,zipfile
 root=pathlib.Path(__file__).resolve().parent
+source=json.loads((root/'telemetry-data.json').read_text())
+data=json.dumps({'laps':source['laps']},separators=(',',':'),ensure_ascii=False)
 page=(root/'template.html').read_text()
-json.loads((root/'telemetry-data.json').read_text())
-for marker,content in [('STYLE',(root/'style.css').read_text()),('DATA',(root/'telemetry-data.json').read_text()),('SCRIPT',(root/'app.js').read_text()),('DEMO','data:video/mp4;base64,'+base64.b64encode((root/'volante-demo.mp4').read_bytes()).decode())]:
+for marker,content in [('STYLE',(root/'style.css').read_text()),('DATA',data),('SCRIPT',(root/'app.js').read_text())]:
  page=page.replace('/*'+marker+'*/',content)
 output=root.parent/'confronto-interattivo.html';output.write_text(page)
-print(f'{output.name}: {output.stat().st_size:,} bytes')
+instructions='''MONZA — CONFRONTO TELEMETRIA
 
+Apri confronto-interattivo.html con Safari o Chrome sul Mac. Non servono installazioni o connessione.
+Tutti e cinque i canali sono in un unico grafico. Il colore identifica il canale; la linea continua è il giro 4, quella tratteggiata è il giro 6.
+Trascina una scala a sinistra per spostare verticalmente il suo canale. La rotella sulla scala cambia l’ampiezza. Le maniglie alle estremità della scala selezionata permettono di ridimensionarla.
+Puoi usare anche i cursori Ampiezza e Posizione verticale o il comando Sposta canale. Ripristina riporta alla disposizione iniziale.
+Le disposizioni vengono ricordate nel browser quando l’archiviazione locale è disponibile.
+Sul grafico, la rotella ingrandisce il tempo; trascina per selezionare un intervallo, Maiusc + trascina per scorrere. Doppio clic sul grafico: giro intero; su una scala: ripristina quel canale.
+Riallinea il giro 6 con lo spostamento in secondi oppure aprendo i due video originali e scegliendo lo stesso riferimento fisico. I video restano sul Mac e non sono inclusi nel pacchetto.
+Il CSV conserva tutti i 5.716 campioni originali e aggiunge il tempo riallineato. Posizione e ampiezza dei canali cambiano soltanto il disegno. Il PNG include la disposizione e il confronto correnti.
+L’asse X è il tempo, non la distanza. Acceleratore e freno sono stime dalle barre dei video; le letture incerte restano vuote.
+'''
 archive=root.parent/'confronto-interattivo.zip'
-instructions=("MONZA - CONFRONTO INTERATTIVO\n\n"
- "Apri confronto-interattivo.html con Safari o Chrome sul Mac. Non servono installazioni.\n"
- "Il file include dati e un estratto video di esempio. Per i riferimenti visivi di entrambi i giri apri i video originali dai selettori della pagina.\n"
- "Zoom: trascina sui grafici o usa la rotella. Riallineamento: modifica lo spostamento oppure seleziona lo stesso riferimento nei due video.\n"
- "La traccia automatica di movimento della zona volante e gia calcolata per entrambi i giri, senza clic. E un indice 0-100, NON gradi o posizione dello sterzo. Le misure manuali sono facoltative.\n"
- "Esporta le misure dello sterzo in CSV prima di chiudere: restano solo in memoria.\n"
- "L'angolo della linea nel video non e' ancora una misura meccanica calibrata. Il tracciamento automatico non e' validato.\n")
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
  for name,content in [('confronto-interattivo.html',page),('LEGGIMI.txt',instructions)]:
-  info=zipfile.ZipInfo(name,date_time=(2026,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
-  z.writestr(info,content.encode())
-with zipfile.ZipFile(archive) as z:
- assert z.read('confronto-interattivo.html')==page.encode()
-print(f'{archive.name}: {archive.stat().st_size:,} bytes')
+  info=zipfile.ZipInfo(name,date_time=(2026,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;z.writestr(info,content.encode())
+with zipfile.ZipFile(archive) as z:assert z.read('confronto-interattivo.html')==page.encode()
+print(f'{output.name}: {output.stat().st_size:,} bytes; ZIP: {archive.stat().st_size:,} bytes')

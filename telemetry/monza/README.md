@@ -1,49 +1,46 @@
-# Confronto dei due giri a Monza
+# Monza · confronto telemetria
 
-**Nuovo: [prove dei metodi per lo sterzo con segno](steering/benchmark/README.md)** — confronto quantitativo di errore, copertura e falsi agganci. I test con gradi noti sono simulazioni 2D; sui video sono misurati scarti di tracciamento in pixel, non la precisione dei gradi meccanici.
+**[Scarica il pacchetto interattivo](confronto-interattivo.zip)** · **[Guarda l'anteprima](confronto-interattivo-preview.png)** · [Grafico PNG](confronto-monza.png)
 
-## Aprire la versione interattiva sul Mac
+Scarica lo ZIP con il pulsante di download di GitHub, estrailo sul Mac e apri `confronto-interattivo.html` con Safari o Chrome. Non servono installazioni né connessione. È disponibile anche il [singolo file HTML](confronto-interattivo.html), da scaricare: GitHub non esegue la pagina nella propria anteprima.
 
-Scarica **[confronto-interattivo.zip](confronto-interattivo.zip)** usando il pulsante di download di GitHub, apri lo ZIP e poi apri `confronto-interattivo.html` con Safari o Chrome. Non servono installazioni. Lo ZIP contiene la pagina completa: dati e video di esempio sono già inclusi.
+![Grafico unico con scale indipendenti](confronto-interattivo-preview.png)
 
-È disponibile anche il [singolo file HTML](confronto-interattivo.html), da scaricare e aprire nel browser. La pagina di GitHub mostra il file, non esegue l'applicazione interattiva.
+## Un solo grafico, cinque canali
 
-![Anteprima della vista interattiva, zoom sulla prima staccata](confronto-interattivo-preview.png)
+Velocità, giri motore, marcia, acceleratore e freno condividono lo stesso grafico e lo stesso asse del tempo. **Il colore identifica il canale; linea continua = giro 4, linea tratteggiata = giro 6.** Il cursore mostra i valori originali dei due giri nella lista dei canali.
 
-### Traccia automatica disponibile senza annotazioni
+La pagina consegnata non include canali o strumenti di sterzo.
 
-La pagina mostra già un [indicatore automatico di movimento nella zona del volante](volante-automatico.png) per entrambi i giri. È un indice relativo 0–100: **non è un angolo di sterzo né la posizione del volante**. Un valore basso può indicare assenza di movimento visibile anche durante una sterzata mantenuta. La ricostruzione automatica dei gradi ha fallito il controllo di coerenza; [metodo e limiti](steering/README.md) sono documentati. Le misure manuali restano disponibili come opzione chiusa, non sono un passaggio richiesto.
+### Disporre i canali
 
-### Controlli
+- **Sposta:** trascina verticalmente una delle scale colorate a sinistra del grafico. Puoi anche selezionare un canale e usare «Sposta canale» per trascinarlo direttamente nell'area del grafico.
+- **Ingrandisci o rimpicciolisci:** usa la rotella sulla scala del canale, trascina le maniglie alle sue estremità oppure usa il cursore «Ampiezza». La rotella mantiene fermo il punto della scala sotto il puntatore.
+- **Posizione verticale:** regolabile anche con il cursore nella barra laterale. I canali possono sovrapporsi e non sono vincolati a righe separate.
+- **Visibilità:** le caselle permettono di nascondere un canale o uno dei giri, conservandone la disposizione.
+- **Ripristina:** il pulsante del canale o il doppio clic sulla sua scala annullano i suoi spostamenti; «Ripristina tutti i canali» recupera la disposizione iniziale.
+- La disposizione viene ricordata fra riaperture nel medesimo browser quando l'archiviazione locale è disponibile. Sul telefono viene mostrata una scala per volta, quella del canale selezionato.
 
-- **Zoom:** trascina sul grafico, usa la rotella/trackpad oppure i pulsanti. Tutti i canali condividono l'intervallo. **Maiusc + trascinamento** sposta la vista; doppio clic ripristina il giro intero.
-- **Riallineamento:** cambia lo spostamento del giro arancione in secondi, oppure apri i due video originali dal dispositivo, seleziona lo stesso riferimento fisico e premi **Allinea questi fotogrammi**. Puoi anche indicare due tempi di riferimento. Un valore positivo sposta l'arancione verso destra. Il riallineamento non cambia le durate dei giri.
-- **Cursore:** mostra i valori dei due video nel punto temporale scelto; le letture dubbie restano vuote.
-- **Esporta vista PNG:** salva sul tuo Mac l'immagine del confronto con lo zoom e lo spostamento attuali.
-- **Esporta dati CSV:** salva tutti i campioni, i timestamp originali e il tempo allineato; conserva i valori mancanti.
-- **Misure manuali facoltative dell’angolo:** linea fissa sulla scocca, linea mobile sul volante, zero sul rettilineo e misure manuali della rotazione relativa, con esportazione CSV. È incluso un video ritagliato di esempio. [Metodo e risultato della prova automatica](steering/README.md).
+Le scale verticali sono indipendenti: spostamento e ampiezza cambiano soltanto il disegno, non i valori o i tempi dei dati. Con il grafico a fuoco, Freccia su/giù sposta il canale selezionato e +/− ne cambia l'ampiezza.
 
-I video aperti tramite i selettori rimangono sul dispositivo. Le misure dello sterzo restano in memoria: esporta il CSV per conservarle prima di chiudere la pagina.
+### Tempo, allineamento ed esportazioni
 
-[Anteprima del riferimento scocca](sterzo-scocca-preview.png).
+- **Zoom sul tempo:** rotella nell'area del grafico, pulsanti oppure trascinamento per selezionare un intervallo. Maiusc + trascinamento scorre nel tempo; doppio clic nell'area ripristina il giro intero.
+- **Riallineamento:** imposta lo spostamento del giro 6 in secondi oppure apri i due originali, fermali sullo stesso riferimento fisico e premi «Allinea questi fotogrammi». Sono disponibili anche riferimenti temporali numerici. Un valore positivo sposta il giro 6 verso destra, conservando entrambe le durate.
+- **PNG:** esporta il grafico unico con la disposizione, lo zoom, la visibilità e lo spostamento correnti.
+- **CSV:** esporta sempre tutti i campioni dei cinque canali, anche se nascosti, con timestamp originali e tempo riallineato. Le letture mancanti restano vuote.
+
+I video aperti dai selettori restano sul dispositivo; non sono inclusi nello ZIP.
 
 ## Dati e limiti
 
-- Blu: giro 4 del primo video, tempo mostrato nell'HUD **1:33.07**.
-- Arancione: giro 6 del secondo video, tempo mostrato nell'HUD **1:32.49**.
-- Differenza dei tempi mostrati: **0,58 secondi**.
-- Il confronto contiene **5.716 fotogrammi** (2.952 + 2.764), con timestamp a frequenza variabile.
+- Giro 4, primo video: tempo mostrato nell'HUD **1:33.07**.
+- Giro 6, secondo video: tempo mostrato nell'HUD **1:32.49**.
+- Differenza dei tempi mostrati: **0,58 s**.
+- **5.716 campioni** originali, 2.952 + 2.764, a frequenza variabile.
 
-Le partenze sono stimate dal cronometro HUD. L'asse orizzontale mantiene il tempo reale di ciascun giro: allo stesso secondo le auto possono trovarsi in punti diversi della pista. Non è ancora un allineamento per distanza o un riallineamento locale fra più riferimenti.
+I dati della precedente estrazione sono conservati. Le partenze sono stimate dal cronometro HUD. L'asse X è il tempo, non la distanza: allo stesso secondo le auto possono essere in punti diversi del circuito. Lo spostamento è unico per il giro, senza dilatazione o allineamenti locali multipli.
 
-Acceleratore e freno sono percentuali stimate dalle barre grafiche. Le letture numeriche incerte sono escluse; i valori mancanti non sono interpolati. Si tratta di una prima estrazione automatica con verifiche a campione, da rivedere prima di un confronto definitivo.
-
-Lo sterzo manuale misura l'angolo apparente della linea nell'immagine, non l'angolo meccanico corretto per prospettiva. La prova automatica perde il riferimento prima della curva: non è presentata come una curva sterzo valida.
-
-## Immagine originale
-
-![Confronto telemetria statico](confronto-monza.png)
-
-Questa immagine è statica. Lo zoom temporale e il riallineamento richiedono la versione HTML.
+Acceleratore e freno sono percentuali stimate dalle barre grafiche, non misure della centralina. Le letture numeriche incerte restano escluse. Non vengono interpolati valori mancanti e i tratti con intervalli fra campioni superiori a 0,15 s non vengono collegati nel disegno. I dati restano una prima estrazione da video con controlli a campione.
 
 [Sorgenti, rigenerazione e verifiche nel browser](viewer/README.md).

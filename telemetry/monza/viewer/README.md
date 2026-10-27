@@ -22,6 +22,6 @@ Con Python, Playwright e Chromium installati:
 python telemetry/monza/viewer/tests/browser_check.py
 ```
 
-La verifica esercita realmente zoom con pulsanti e rotella, selezione, spostamento della vista, allineamento numerico e da fotogrammi video, esportazione di tutti i campioni e del PNG, calibrazione della linea, angolo noto di prova, misure non leggibili, annullamento e larghezza mobile. I clic sintetici del test non vengono salvati come dati di sterzo. L'anteprima pubblicata è catturata da una sessione pulita.
+La verifica esercita realmente zoom con pulsanti e rotella, selezione, spostamento della vista, allineamento numerico e da fotogrammi video, esportazione di tutti i campioni e del PNG, riferimento scocca indipendente, inversione dei punti scocca, annullamento di una rotazione comune della camera, angolo noto di prova, misure non leggibili, annullamento e larghezza mobile. I clic sintetici del test non vengono salvati come dati di sterzo. L'anteprima pubblicata è catturata da una sessione pulita.
 
 L'ambiente di test limita la navigazione `file://`; il test carica lo stesso documento completo nel browser con `set_content`. Il viewer non richiede chiamate a un server o risorse remote.

@@ -41,8 +41,13 @@ async def check():
   # Exact geometric checks of the two-point annotation UI. These are synthetic test clicks,
   # not physical measurements and are not saved as steering data.
   await page.locator('#steeringSection').scroll_into_view_if_needed()
-  await page.click('#setZero');ob=await page.locator('#steerOverlay').bounding_box()
+  await page.click('#setBody');ob=await page.locator('#steerOverlay').bounding_box()
   async def point(x,y):await page.mouse.click(ob['x']+x*ob['width'],ob['y']+y*ob['height'])
+  # The chassis line is undirected: right-to-left must not add 180 degrees.
+  await point(.65,.25);await point(.35,.25)
+  assert abs(await page.evaluate('monzaViewer.bodyReferences[0].angle'))<.01
+  assert await page.evaluate('monzaViewer.measured[0].length')==0
+  await page.click('#setZero');ob=await page.locator('#steerOverlay').bounding_box()
   await point(.35,.35);await point(.65,.35)
   assert await page.evaluate('monzaViewer.measured[0].length')==1
   await page.evaluate('steerVideo.currentTime=1');await page.wait_for_function('!steerVideo.seeking')
@@ -58,14 +63,28 @@ async def check():
   assert await page.evaluate('monzaViewer.measured[0].find(r=>r.status==="occluded").angle') is None
   await page.click('#undoSteering');assert await page.evaluate('monzaViewer.measured[0].length')==2
   assert await page.evaluate('monzaViewer.measured[0].some(r=>r.status==="occluded")') is False
+  # Re-measure chassis after a simulated camera roll: common rotation cancels.
+  await page.evaluate('steerVideo.currentTime=2');await page.wait_for_function('!steerVideo.seeking')
+  await page.click('#setBody');ob=await page.locator('#steerOverlay').bounding_box()
+  await point(.3,.25);await point(.6,.25+.3*ratio*math.tan(math.radians(10)))
+  assert await page.evaluate('monzaViewer.measured[0].length')==2
+  assert abs(await page.evaluate('monzaViewer.measured[0][0].bodyReference.angle'))<.01
+  await page.click('#measureAngle');ob=await page.locator('#steerOverlay').bounding_box()
+  await point(.35,.35);await point(.55,.35+.2*ratio*math.tan(math.radians(10)))
+  assert abs(await page.evaluate('monzaViewer.measured[0].at(-1).angle'))<.15
+  await page.evaluate('steerVideo.currentTime=3');await page.wait_for_function('!steerVideo.seeking')
+  await page.click('#measureAngle');ob=await page.locator('#steerOverlay').bounding_box()
+  await point(.35,.35);await point(.55,.35+.2*ratio*math.tan(math.radians(40)))
+  assert abs(await page.evaluate('monzaViewer.measured[0].at(-1).angle')-30)<.15
+  assert await page.evaluate('monzaViewer.measured[0].at(-1).bodyReferenceStatus')=='saved_reference_reused'
   # Switching to the second lap must not erase annotations of the first lap.
   await page.select_option('#steerLap','1')
   await page.click('#setZero')
-  assert await page.evaluate('monzaViewer.measured[0].length')==2
+  assert await page.evaluate('monzaViewer.measured[0].length')==4
   assert await page.evaluate('monzaViewer.measured[1].length')==0
   await page.set_input_files('#steerFile',sample)
   await page.wait_for_function('steerVideo.readyState>=1')
-  assert await page.evaluate('monzaViewer.measured[0].length')==2
+  assert await page.evaluate('monzaViewer.measured[0].length')==4
   assert not errors,errors
   # Fresh state for the published screenshot: no synthetic annotations from tests.
   await page.goto('about:blank');await page.set_content((ROOT/'confronto-interattivo.html').read_text(),wait_until='domcontentloaded');await page.wait_for_function('monzaViewer.channels[0].canvas.width>100')
@@ -73,8 +92,13 @@ async def check():
   session=await page.context.new_cdp_session(page)
   image=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
   (ROOT/'confronto-interattivo-preview.png').write_bytes(base64.b64decode(image['data']))
+  await page.wait_for_function('steerVideo.readyState>=2')
+  await page.locator('#steeringSection').evaluate('(el)=>el.scrollIntoView({block:"start"})')
+  await page.wait_for_timeout(100)
+  shot=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
+  (ROOT/'sterzo-scocca-preview.png').write_bytes(base64.b64decode(shot['data']))
   await page.set_viewport_size({'width':390,'height':844});await page.wait_for_timeout(100)
   assert await page.evaluate('document.documentElement.scrollWidth')<=390
   await browser.close()
- print('PASS: zoom buttons/wheel/selection, pan, numerical+video alignment, 5716-row CSV, PNG export, zero+30-degree annotation, missing/undo, mobile layout; no JS errors.')
+ print('PASS: zoom buttons/wheel/selection, pan, numerical+video alignment, 5716-row CSV, PNG export, chassis-only reference, reversed endpoints, camera-roll cancellation, zero+30-degree annotation, missing/undo, mobile layout; no JS errors.')
 asyncio.run(check())

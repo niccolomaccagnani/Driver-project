@@ -14,7 +14,7 @@ instructions=("MONZA - CONFRONTO INTERATTIVO\n\n"
  "Apri confronto-interattivo.html con Safari o Chrome sul Mac. Non servono installazioni.\n"
  "Il file include dati e un estratto video di esempio. Per i riferimenti visivi di entrambi i giri apri i video originali dai selettori della pagina.\n"
  "Zoom: trascina sui grafici o usa la rotella. Riallineamento: modifica lo spostamento oppure seleziona lo stesso riferimento nei due video.\n"
- "Esperimento sterzo: imposta lo zero con due clic sul volante, poi misura gli stessi riferimenti nei fotogrammi leggibili.\n"
+ "Esperimento sterzo: traccia la linea scocca fissa, imposta il volante dritto e misura la sua rotazione rispetto alla scocca. Aggiorna la linea scocca se la camera ruota.\n"
  "Esporta le misure dello sterzo in CSV prima di chiudere: restano solo in memoria.\n"
  "L'angolo della linea nel video non e' ancora una misura meccanica calibrata. Il tracciamento automatico non e' validato.\n")
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:

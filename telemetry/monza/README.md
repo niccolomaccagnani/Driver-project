@@ -15,9 +15,11 @@ Scarica **[confronto-interattivo.zip](confronto-interattivo.zip)** usando il pul
 - **Cursore:** mostra i valori dei due video nel punto temporale scelto; le letture dubbie restano vuote.
 - **Esporta vista PNG:** salva sul tuo Mac l'immagine del confronto con lo zoom e lo spostamento attuali.
 - **Esporta dati CSV:** salva tutti i campioni, i timestamp originali e il tempo allineato; conserva i valori mancanti.
-- **Esperimento sterzo:** linea di zero, misure manuali sul fotogramma e grafico a punti con esportazione CSV. È incluso un video ritagliato di esempio. [Metodo e risultato della prova automatica](steering/README.md).
+- **Esperimento sterzo:** linea fissa sulla scocca, linea mobile sul volante, zero sul rettilineo e misure manuali della rotazione relativa, con esportazione CSV. È incluso un video ritagliato di esempio. [Metodo e risultato della prova automatica](steering/README.md).
 
 I video aperti tramite i selettori rimangono sul dispositivo. Le misure dello sterzo restano in memoria: esporta il CSV per conservarle prima di chiudere la pagina.
+
+[Anteprima del riferimento scocca](sterzo-scocca-preview.png).
 
 ## Dati e limiti
 

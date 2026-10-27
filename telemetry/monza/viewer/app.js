@@ -6,7 +6,8 @@ const $ = (id) => document.getElementById(id),
 const laps = DATA.laps;
 const state = { min: 0, max: 94, offset: 0, cursor: 0, drag: null };
 const measured = [[], []],
-  calibrations = [null, null];
+  calibrations = [null, null],
+  bodyReferences = [null, null];
 let drawing = null,
   pending = [],
   activeLine = null,
@@ -606,6 +607,19 @@ function angleOf(points) {
 function wrap(a) {
   return ((((a + 180) % 360) + 360) % 360) - 180;
 }
+function bodyAxis(angle) {
+  return ((((angle + 90) % 180) + 180) % 180) - 90;
+}
+function bodySnapshot(points, method = "manual_body_line") {
+  return {
+    angle: bodyAxis(angleOf(points)),
+    points: points.map((p) => ({ ...p })),
+    videoTime: sourceSteerTime(),
+    width: sv.videoWidth,
+    height: sv.videoHeight,
+    method,
+  };
+}
 function recordMeasure(angle, status, line = null) {
   const lap = selectedLap(),
     t = sourceSteerTime(),
@@ -627,6 +641,12 @@ function recordMeasure(angle, status, line = null) {
     status,
     points: line,
     baseline: calibrations[lap],
+    bodyReference: bodyReferences[lap],
+    bodyReferenceStatus: !bodyReferences[lap]
+      ? "missing"
+      : Math.abs(bodyReferences[lap].videoTime - t) < 0.025
+        ? "same_frame"
+        : "saved_reference_reused",
     frameIndexEstimated: Math.abs(r[1] - t) >= 0.02,
   };
   measured[lap].push(item);
@@ -646,6 +666,10 @@ function startDraw(mode) {
     message("Attendi che il video sia pronto.");
     return;
   }
+  if (mode !== "body" && !bodyReferences[selectedLap()]) {
+    message("Traccia prima il riferimento fisso sui due lati della scocca.");
+    return;
+  }
   if (mode === "measure" && !calibrations[selectedLap()]) {
     message("Imposta prima lo zero sul rettilineo.");
     return;
@@ -656,11 +680,14 @@ function startDraw(mode) {
   activeLine = null;
   overlay.parentElement.classList.add("drawing");
   $("steerStatus").textContent =
-    (mode === "zero" ? "Zero: " : "Misura: ") +
-    "clicca il primo punto e poi il secondo sullo stesso riferimento fisico del volante.";
+    mode === "body"
+      ? "Scocca: collega i due lati fissi come nella foto. Non stai ancora misurando lo sterzo."
+      : (mode === "zero" ? "Volante dritto: " : "Misura volante: ") +
+        "indica i due riferimenti mobili del volante nello stesso ordine. La misura usa la linea scocca come riferimento.";
   message("");
   drawOverlay();
 }
+$("setBody").onclick = () => startDraw("body");
 $("setZero").onclick = () => startDraw("zero");
 $("measureAngle").onclick = () => startDraw("measure");
 overlay.addEventListener("pointerdown", (e) => {
@@ -681,7 +708,12 @@ overlay.addEventListener("pointerdown", (e) => {
       return;
     }
     const lap = selectedLap();
-    if (drawing === "zero") {
+    const wasBody = drawing === "body";
+    if (wasBody) {
+      bodyReferences[lap] = bodySnapshot(pending);
+      $("steerStatus").textContent =
+        "Riferimento scocca aggiornato. La scocca non genera misure di sterzo. Ora imposta lo zero del volante sul dritto, oppure misura il volante in questo fotogramma.";
+    } else if (drawing === "zero") {
       if (measured[lap].some((p) => p.angle !== null)) {
         pending = [];
         drawing = null;
@@ -692,7 +724,9 @@ overlay.addEventListener("pointerdown", (e) => {
         return;
       }
       calibrations[lap] = {
-        angle: angleOf(pending),
+        angle: wrap(angleOf(pending) - bodyReferences[lap].angle),
+        wheelImageAngle: angleOf(pending),
+        bodyReference: bodyReferences[lap],
         points: pending.map((p) => ({ ...p })),
         videoTime: sourceSteerTime(),
         width: sv.videoWidth,
@@ -706,7 +740,9 @@ overlay.addEventListener("pointerdown", (e) => {
       $("steerStatus").textContent =
         "Zero impostato. Avanza nel video e misura gli stessi due riferimenti nello stesso ordine.";
     } else {
-      const angle = wrap(angleOf(pending) - calibrations[lap].angle);
+      const angle = wrap(
+        angleOf(pending) - bodyReferences[lap].angle - calibrations[lap].angle,
+      );
       recordMeasure(
         angle,
         "manual_line",
@@ -718,6 +754,7 @@ overlay.addEventListener("pointerdown", (e) => {
     activeLine = {
       points: pending.map((p) => ({ ...p })),
       time: sv.currentTime,
+      type: wasBody ? "body" : "wheel",
     };
     drawing = null;
     pending = [];
@@ -750,12 +787,28 @@ function drawOverlay() {
       c.fillText(String(i + 1), p.x * w + 9, p.y * h - 7);
     });
   }
+  const body = bodyReferences[selectedLap()];
+  line(body?.points, "#ffc65c", true);
+  $("bodyStatus").textContent = !body
+    ? "Nessuna linea scocca. Collega i due lati fissi come nella foto."
+    : `${body.method === "photo_example_approx" ? "Linea scocca proposta dalla foto: verificala. " : "Scocca impostata. "}${Math.abs(body.videoTime - sourceSteerTime()) < 0.025 ? "Riferimento di questo fotogramma." : "Riferimento salvato riutilizzato: se la camera ruota, aggiornalo sul fotogramma corrente prima di misurare il volante."}`;
   line(calibrations[selectedLap()]?.points, "#94a3b8", true);
   if (activeLine && Math.abs(activeLine.time - sv.currentTime) < 0.025)
-    line(activeLine.points, "#39e6b0");
+    line(activeLine.points, activeLine.type === "body" ? "#ffc65c" : "#39e6b0");
   line(pending, "#ffdd55");
 }
-sv.addEventListener("loadedmetadata", drawOverlay);
+sv.addEventListener("loadedmetadata", () => {
+  if (demo && !bodyReferences[0]) {
+    bodyReferences[0] = bodySnapshot(
+      [
+        { x: 0.16, y: 0.692 },
+        { x: 0.907, y: 0.728 },
+      ],
+      "photo_example_approx",
+    );
+  }
+  drawOverlay();
+});
 sv.addEventListener("timeupdate", () => {
   $("steerClock").textContent =
     "Video originale " + sourceSteerTime().toFixed(3) + " s";
@@ -801,6 +854,7 @@ loadVideo(
     pending = [];
     activeLine = null;
     calibrations[selectedLap()] = null;
+    bodyReferences[selectedLap()] = null;
     measured[selectedLap()] = [];
     $("pointCount").textContent =
       measured.flat().length + " misure registrate.";
@@ -851,6 +905,7 @@ $("clearSteering").onclick = () => {
     return;
   measured[lap] = [];
   calibrations[lap] = null;
+  bodyReferences[lap] = null;
   drawing = null;
   pending = [];
   activeLine = null;
@@ -873,6 +928,8 @@ $("exportSteering").onclick = () => {
       "status",
       "line_points_normalized_json",
       "zero_reference_json",
+      "body_reference_json",
+      "body_reference_status",
     ],
   ];
   for (const p of measured
@@ -888,6 +945,8 @@ $("exportSteering").onclick = () => {
       p.status,
       JSON.stringify(p.points),
       JSON.stringify(p.baseline),
+      JSON.stringify(p.bodyReference),
+      p.bodyReferenceStatus,
     ]);
   csvDownload(rows, "monza-sterzo-manuale.csv");
 };
@@ -901,6 +960,7 @@ window.monzaViewer = {
   laps,
   measured,
   calibrations,
+  bodyReferences,
   setRange,
   setOffset,
   fullView,

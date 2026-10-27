@@ -1,5 +1,7 @@
 # Sterzo: tracciamento controllato
 
+**Nuova prova:** [modello di rotazione con confronto sul video](../rigid/README.md). Affronta i cambi di riferimento e alcuni errori di segno; i limiti e il confronto completo sono documentati.
+
 **[Scarica lo ZIP interattivo](sterzo-interattivo.zip)** · **[Guarda il confronto](sterzo-stimato.png)** · [Video di verifica](verifica-sterzo.mp4) · [CSV](steering.csv) · [Versione precedente](../README.md)
 
 Scarica lo ZIP, estrailo sul Mac e apri `sterzo-interattivo.html` con Safari o Chrome. Video, grafico, zoom ed esportazioni sono già inclusi. Non occorre selezionare punti o calibrare manualmente.

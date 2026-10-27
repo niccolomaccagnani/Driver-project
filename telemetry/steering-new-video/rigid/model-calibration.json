@@ -1,0 +1,16 @@
+{
+  "center": [
+    1231.4264240957882,
+    1263.3252205675697
+  ],
+  "radius": 145.35342278320786,
+  "source_sha256": "ca36168ed18eaa93cbdf5ec996b47f54d838ae31151f85d373f54e10c5fff790",
+  "source_size_px": [
+    2622,
+    1206
+  ],
+  "fit_method": "robust signed line-distance fit on 772 long, high-contrast rim observations with |angle| < 45 degrees",
+  "fit_observations": 772,
+  "fit_median_absolute_distance_residual_px": 0.8347699327698592,
+  "note": "This is an apparent 2D rotation model of this recording, not a mechanical-angle calibration. Center lies below the image. Do not transfer to a different camera."
+}

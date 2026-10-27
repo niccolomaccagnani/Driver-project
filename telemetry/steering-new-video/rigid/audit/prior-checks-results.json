@@ -1,0 +1,384 @@
+[
+  {
+    "requested_s": 4,
+    "actual_s": 4.0183333333333335,
+    "frame_index": 127,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1117
+      ],
+      [
+        1360,
+        1117
+      ]
+    ],
+    "reference_apparent_angle_deg": 0.0,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -0.144,
+    "first_error": 0.144,
+    "previous_deg": -0.313,
+    "previous_error": 0.313,
+    "rotation_model_deg": 4.078,
+    "rotation_model_error": 4.078
+  },
+  {
+    "requested_s": 9,
+    "actual_s": 9.018333333333334,
+    "frame_index": 277,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1200,
+        1075
+      ],
+      [
+        1390,
+        1175
+      ]
+    ],
+    "reference_apparent_angle_deg": 27.758540601060023,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 19.791,
+    "first_error": 7.967540601060023,
+    "previous_deg": 25.481,
+    "previous_error": 2.2775406010600214,
+    "rotation_model_deg": 31.251,
+    "rotation_model_error": 3.492459398939978
+  },
+  {
+    "requested_s": 11,
+    "actual_s": 11.018333333333334,
+    "frame_index": 337,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1180,
+        1110
+      ],
+      [
+        1380,
+        1100
+      ]
+    ],
+    "reference_apparent_angle_deg": -2.8624052261117474,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -2.289,
+    "first_error": 0.5734052261117473,
+    "previous_deg": -2.14,
+    "previous_error": 0.7224052261117473,
+    "rotation_model_deg": -0.572,
+    "rotation_model_error": 2.2904052261117473
+  },
+  {
+    "requested_s": 22,
+    "actual_s": 22.020000000000003,
+    "frame_index": 667,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1110,
+        1148
+      ],
+      [
+        1290,
+        1070
+      ]
+    ],
+    "reference_apparent_angle_deg": -23.428692808745403,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -28.822,
+    "first_error": 5.393307191254596,
+    "previous_deg": -27.564,
+    "previous_error": 4.135307191254597,
+    "rotation_model_deg": -27.526,
+    "rotation_model_error": 4.097307191254597
+  },
+  {
+    "requested_s": 24,
+    "actual_s": 24.02166666666667,
+    "frame_index": 727,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1150,
+        1125
+      ],
+      [
+        1330,
+        1093
+      ]
+    ],
+    "reference_apparent_angle_deg": -10.08059798754232,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -11.973,
+    "first_error": 1.89240201245768,
+    "previous_deg": -10.103,
+    "previous_error": 0.02240201245767892,
+    "rotation_model_deg": -8.951,
+    "rotation_model_error": 1.1295979875423203
+  },
+  {
+    "requested_s": 29,
+    "actual_s": 29.02166666666667,
+    "frame_index": 877,
+    "visible_rim": false,
+    "reference_points": null,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": null,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 35,
+    "actual_s": 35.02333333333333,
+    "frame_index": 1057,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1150,
+        1115
+      ],
+      [
+        1340,
+        1115
+      ]
+    ],
+    "reference_apparent_angle_deg": 0.0,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 1.973,
+    "first_error": 1.973,
+    "previous_deg": -0.537,
+    "previous_error": 0.537,
+    "rotation_model_deg": 0.971,
+    "rotation_model_error": 0.971
+  },
+  {
+    "requested_s": 39,
+    "actual_s": 39.02333333333333,
+    "frame_index": 1177,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1110
+      ],
+      [
+        1340,
+        1115
+      ]
+    ],
+    "reference_apparent_angle_deg": 1.4320961841646465,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -0.166,
+    "first_error": 1.5980961841646464,
+    "previous_deg": -0.545,
+    "previous_error": 1.9770961841646466,
+    "rotation_model_deg": -0.966,
+    "rotation_model_error": 2.3980961841646464
+  },
+  {
+    "requested_s": 47,
+    "actual_s": 47.025000000000006,
+    "frame_index": 1417,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1118
+      ],
+      [
+        1340,
+        1100
+      ]
+    ],
+    "reference_apparent_angle_deg": -5.142764557884242,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -8.124,
+    "first_error": 2.981235442115759,
+    "previous_deg": -7.288,
+    "previous_error": 2.1452354421157587,
+    "rotation_model_deg": -5.479,
+    "rotation_model_error": 0.3362354421157585
+  },
+  {
+    "requested_s": 50,
+    "actual_s": 50.025000000000006,
+    "frame_index": 1507,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1100,
+        1162
+      ],
+      [
+        1270,
+        1075
+      ]
+    ],
+    "reference_apparent_angle_deg": -27.10176409167988,
+    "uncertainty_deg": 7,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -23.449,
+    "first_error": 3.6527640916798774,
+    "previous_deg": -24.333,
+    "previous_error": 2.7687640916798806,
+    "rotation_model_deg": -24.555,
+    "rotation_model_error": 2.5467640916798793
+  },
+  {
+    "requested_s": 59,
+    "actual_s": 59.010000000000005,
+    "frame_index": 1775,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1160,
+        1100
+      ],
+      [
+        1370,
+        1142
+      ]
+    ],
+    "reference_apparent_angle_deg": 11.309932474020213,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 7.735,
+    "first_error": 3.574932474020213,
+    "previous_deg": 8.642,
+    "previous_error": 2.6679324740202137,
+    "rotation_model_deg": 9.375,
+    "rotation_model_error": 1.9349324740202132
+  },
+  {
+    "requested_s": 66,
+    "actual_s": 66.01166666666667,
+    "frame_index": 1985,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1200,
+        1078
+      ],
+      [
+        1360,
+        1170
+      ]
+    ],
+    "reference_apparent_angle_deg": 29.898901838614567,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 22.947,
+    "first_error": 6.9519018386145675,
+    "previous_deg": 33.979,
+    "previous_error": 4.080098161385433,
+    "rotation_model_deg": 32.348,
+    "rotation_model_error": 2.4490981613854323
+  },
+  {
+    "requested_s": 69,
+    "actual_s": 69.01166666666667,
+    "frame_index": 2075,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1117
+      ],
+      [
+        1340,
+        1128
+      ]
+    ],
+    "reference_apparent_angle_deg": 3.148096099562759,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -2.249,
+    "first_error": 5.397096099562759,
+    "previous_deg": 1.859,
+    "previous_error": 1.2890960995627592,
+    "rotation_model_deg": 4.212,
+    "rotation_model_error": 1.0639039004372406
+  },
+  {
+    "requested_s": 73,
+    "actual_s": 73.01333333333334,
+    "frame_index": 2195,
+    "visible_rim": false,
+    "reference_points": null,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 28.625,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 79,
+    "actual_s": 79.01333333333334,
+    "frame_index": 2375,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1108
+      ],
+      [
+        1320,
+        1116
+      ]
+    ],
+    "reference_apparent_angle_deg": 2.5448043798130953,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": 7.878,
+    "first_error": 5.333195620186904,
+    "previous_deg": 7.1,
+    "previous_error": 4.555195620186904,
+    "rotation_model_deg": 7.057,
+    "rotation_model_error": 4.512195620186905
+  },
+  {
+    "requested_s": 91,
+    "actual_s": 91.015,
+    "frame_index": 2735,
+    "visible_rim": true,
+    "reference_points": [
+      [
+        1140,
+        1120
+      ],
+      [
+        1340,
+        1120
+      ]
+    ],
+    "reference_apparent_angle_deg": 0.0,
+    "uncertainty_deg": 5,
+    "note": "Coarse visual annotation, not mechanical steering ground truth; annotated before candidate evaluation on these frames.",
+    "first_deg": -2.666,
+    "first_error": 2.666,
+    "previous_deg": -1.8,
+    "previous_error": 1.8,
+    "rotation_model_deg": -1.373,
+    "rotation_model_error": 1.373
+  }
+]

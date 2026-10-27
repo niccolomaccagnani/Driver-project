@@ -1,5 +1,7 @@
 # Sterzo stimato dal nuovo video
 
+**Nuova prova:** [modello di rotazione con confronto sul video](rigid/README.md). Affronta i cambi di riferimento e alcuni errori di segno; i limiti e il confronto completo sono documentati.
+
 **Aggiornamento:** disponibile una [versione con controllo del bordo centrale e verifica più ampia](refined/README.md), con [ZIP interattivo](refined/sterzo-interattivo.zip) e [grafico di confronto](refined/sterzo-stimato.png). Questa cartella conserva la versione precedente.
 
 **[Guarda il grafico](sterzo-stimato.png)** · **[Scarica la versione interattiva](sterzo-interattivo.zip)** · [Video con linea sovrapposta](verifica-sterzo.mp4) · [Dati CSV](steering.csv)

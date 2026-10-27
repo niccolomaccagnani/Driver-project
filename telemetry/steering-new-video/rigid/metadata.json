@@ -1,0 +1,19 @@
+{
+  "frames": 2835,
+  "returned": 2265,
+  "observed": 2158,
+  "reconstructed": 107,
+  "unreadable": 570,
+  "zero_offset_deg": -1.0196644186149526,
+  "zero_video_interval_s": [
+    1,
+    4
+  ],
+  "max_reconstructed_gap_s": 0.3,
+  "smoothing_penalty": 0.3,
+  "quantity": "apparent 2D rim orientation; not calibrated mechanical steering",
+  "method": "signed rotation geometry, dense rim-profile evidence, LED pairs in the expected wheel region, confidence anchors, angular-motion association with forward/backward flow checks, local robust filtering",
+  "sign": "clockwise positive (right), counterclockwise negative (left) for this recording",
+  "source_sha256": "ca36168ed18eaa93cbdf5ec996b47f54d838ae31151f85d373f54e10c5fff790",
+  "overlay_note": "The overlay is the fitted rim pose, not a measured segment endpoint pair; amber includes indirect LED support."
+}

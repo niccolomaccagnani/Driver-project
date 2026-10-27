@@ -1,0 +1,112 @@
+{
+  "note": "All references are approximate visual image-plane annotations (\u00b15\u20137 degrees), not mechanical-angle ground truth. These are development and diagnostic checks; parameters were iterated after reviewing difficult transitions. No independent accuracy certification is claimed.",
+  "video": {
+    "first": {
+      "frames": 2835,
+      "returned": 2766,
+      "reconstructed": 181,
+      "unreadable": 69
+    },
+    "previous": {
+      "frames": 2835,
+      "returned": 2396,
+      "reconstructed": 351,
+      "unreadable": 439
+    },
+    "rotation_model": {
+      "frames": 2835,
+      "returned": 2265,
+      "reconstructed": 107,
+      "unreadable": 570
+    }
+  },
+  "checks": {
+    "development": {
+      "total_reviewed": 32,
+      "readable_references": 22,
+      "paired_previous_new": 19,
+      "first": {
+        "returned_on_readable": 22,
+        "mae_all_returned": 7.6931658927817805,
+        "paired_mae": 6.229462114246833,
+        "paired_max": 20.772067525979786,
+        "paired_sign_errors": 0,
+        "paired_active_references": 15
+      },
+      "previous": {
+        "returned_on_readable": 20,
+        "mae_all_returned": 2.58226439776451,
+        "paired_mae": 2.590039301853912,
+        "paired_max": 9.83084608587236,
+        "paired_sign_errors": 0,
+        "paired_active_references": 15
+      },
+      "rotation_model": {
+        "returned_on_readable": 21,
+        "mae_all_returned": 2.7551843886092233,
+        "paired_mae": 2.59897599528159,
+        "paired_max": 7.7318460858723626,
+        "paired_sign_errors": 0,
+        "paired_active_references": 15
+      }
+    },
+    "prior-checks": {
+      "total_reviewed": 16,
+      "readable_references": 14,
+      "paired_previous_new": 14,
+      "first": {
+        "returned_on_readable": 14,
+        "mae_all_returned": 3.578491198659198,
+        "paired_mae": 3.578491198659198,
+        "paired_max": 7.967540601060023,
+        "paired_sign_errors": 0,
+        "paired_active_references": 6
+      },
+      "previous": {
+        "returned_on_readable": 14,
+        "mae_all_returned": 2.092219507428546,
+        "paired_mae": 2.092219507428546,
+        "paired_max": 4.555195620186904,
+        "paired_sign_errors": 0,
+        "paired_active_references": 6
+      },
+      "rotation_model": {
+        "returned_on_readable": 14,
+        "mae_all_returned": 2.333785405559908,
+        "paired_mae": 2.333785405559908,
+        "paired_max": 4.512195620186905,
+        "paired_sign_errors": 0,
+        "paired_active_references": 6
+      }
+    },
+    "difficult-transitions": {
+      "total_reviewed": 28,
+      "readable_references": 16,
+      "paired_previous_new": 9,
+      "first": {
+        "returned_on_readable": 16,
+        "mae_all_returned": 26.787470218139624,
+        "paired_mae": 15.554526186879352,
+        "paired_max": 69.29192418666068,
+        "paired_sign_errors": 1,
+        "paired_active_references": 7
+      },
+      "previous": {
+        "returned_on_readable": 11,
+        "mae_all_returned": 37.98683411534143,
+        "paired_mae": 24.08458755714656,
+        "paired_max": 108.17692418666068,
+        "paired_sign_errors": 2,
+        "paired_active_references": 7
+      },
+      "rotation_model": {
+        "returned_on_readable": 10,
+        "mae_all_returned": 5.457240126252833,
+        "paired_mae": 5.8716541453992015,
+        "paired_max": 17.784246457208727,
+        "paired_sign_errors": 0,
+        "paired_active_references": 7
+      }
+    }
+  }
+}

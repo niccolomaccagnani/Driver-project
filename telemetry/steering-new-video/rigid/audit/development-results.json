@@ -1,0 +1,712 @@
+[
+  {
+    "requested_s": 6,
+    "actual_s": 6.0183333333333335,
+    "frame_index": 187,
+    "visible_rim": true,
+    "points": [
+      [
+        1220,
+        1103
+      ],
+      [
+        1400,
+        1182
+      ]
+    ],
+    "reference_apparent_angle_deg": 23.696136546368816,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 35.768,
+    "first_error": 12.071863453631185,
+    "previous_deg": 23.988,
+    "previous_error": 0.2918634536311835,
+    "rotation_model_deg": 23.468,
+    "rotation_model_error": 0.22813654636881608
+  },
+  {
+    "requested_s": 7,
+    "actual_s": 7.0183333333333335,
+    "frame_index": 217,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 51.822,
+    "first_error": null,
+    "previous_deg": 49.577,
+    "previous_error": null,
+    "rotation_model_deg": 53.243,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 8,
+    "actual_s": 8.018333333333334,
+    "frame_index": 247,
+    "visible_rim": true,
+    "points": [
+      [
+        1160,
+        1100
+      ],
+      [
+        1350,
+        1138
+      ]
+    ],
+    "reference_apparent_angle_deg": 11.309932474020213,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 32.082,
+    "first_error": 20.772067525979786,
+    "previous_deg": 19.021,
+    "previous_error": 7.711067525979788,
+    "rotation_model_deg": 15.991,
+    "rotation_model_error": 4.6810675259797865
+  },
+  {
+    "requested_s": 12,
+    "actual_s": 12.018333333333334,
+    "frame_index": 367,
+    "visible_rim": true,
+    "points": [
+      [
+        1180,
+        1090
+      ],
+      [
+        1430,
+        1165
+      ]
+    ],
+    "reference_apparent_angle_deg": 16.69924423399362,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 20.381,
+    "first_error": 3.681755766006379,
+    "previous_deg": 17.158,
+    "previous_error": 0.45875576600638013,
+    "rotation_model_deg": 18.974,
+    "rotation_model_error": 2.274755766006379
+  },
+  {
+    "requested_s": 13,
+    "actual_s": 13.018333333333334,
+    "frame_index": 397,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 59.068,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 14,
+    "actual_s": 14.020000000000001,
+    "frame_index": 427,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 68.08,
+    "first_error": null,
+    "previous_deg": 66.213,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 16,
+    "actual_s": 16.02,
+    "frame_index": 487,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 6.564,
+    "first_error": null,
+    "previous_deg": 14.686,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 17,
+    "actual_s": 17.02,
+    "frame_index": 517,
+    "visible_rim": true,
+    "points": [
+      [
+        1100,
+        1175
+      ],
+      [
+        1280,
+        1043
+      ]
+    ],
+    "reference_apparent_angle_deg": -36.25383773744479,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -34.947,
+    "first_error": 1.3068377374447877,
+    "previous_deg": -34.161,
+    "previous_error": 2.092837737444789,
+    "rotation_model_deg": -33.737,
+    "rotation_model_error": 2.5168377374447886
+  },
+  {
+    "requested_s": 18,
+    "actual_s": 18.02,
+    "frame_index": 547,
+    "visible_rim": true,
+    "points": [
+      [
+        1100,
+        1150
+      ],
+      [
+        1240,
+        1075
+      ]
+    ],
+    "reference_apparent_angle_deg": -28.178590109959174,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -28.006,
+    "first_error": 0.1725901099591738,
+    "previous_deg": -29.356,
+    "previous_error": 1.1774098900408276,
+    "rotation_model_deg": -28.679,
+    "rotation_model_error": 0.5004098900408245
+  },
+  {
+    "requested_s": 21,
+    "actual_s": 21.02,
+    "frame_index": 637,
+    "visible_rim": true,
+    "points": [
+      [
+        1080,
+        1174
+      ],
+      [
+        1240,
+        1092
+      ]
+    ],
+    "reference_apparent_angle_deg": -27.135139622076878,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -28.529,
+    "first_error": 1.3938603779231222,
+    "previous_deg": -27.296,
+    "previous_error": 0.1608603779231217,
+    "rotation_model_deg": -27.471,
+    "rotation_model_error": 0.3358603779231224
+  },
+  {
+    "requested_s": 27,
+    "actual_s": 27.02166666666667,
+    "frame_index": 817,
+    "visible_rim": true,
+    "points": [
+      [
+        1200,
+        1103
+      ],
+      [
+        1380,
+        1185
+      ]
+    ],
+    "reference_apparent_angle_deg": 24.491901028231563,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 21.804,
+    "first_error": 2.6879010282315647,
+    "previous_deg": 25.066,
+    "previous_error": 0.5740989717684357,
+    "rotation_model_deg": 25.898,
+    "rotation_model_error": 1.4060989717684365
+  },
+  {
+    "requested_s": 28,
+    "actual_s": 28.02166666666667,
+    "frame_index": 847,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": null,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": 35.526,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 31,
+    "actual_s": 31.02166666666667,
+    "frame_index": 937,
+    "visible_rim": true,
+    "points": [
+      [
+        1200,
+        1100
+      ],
+      [
+        1410,
+        1165
+      ]
+    ],
+    "reference_apparent_angle_deg": 17.198541220065866,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 8.207,
+    "first_error": 8.991541220065866,
+    "previous_deg": 14.764,
+    "previous_error": 2.434541220065867,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 33,
+    "actual_s": 33.02333333333333,
+    "frame_index": 997,
+    "visible_rim": true,
+    "points": [
+      [
+        1210,
+        1125
+      ],
+      [
+        1360,
+        1108
+      ]
+    ],
+    "reference_apparent_angle_deg": -6.465932098939534,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -5.706,
+    "first_error": 0.759932098939534,
+    "previous_deg": -5.988,
+    "previous_error": 0.4779320989395339,
+    "rotation_model_deg": -6.061,
+    "rotation_model_error": 0.4049320989395344
+  },
+  {
+    "requested_s": 42,
+    "actual_s": 42.02333333333333,
+    "frame_index": 1267,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 2.396,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 44,
+    "actual_s": 44.025000000000006,
+    "frame_index": 1327,
+    "visible_rim": true,
+    "points": [
+      [
+        1160,
+        1130
+      ],
+      [
+        1370,
+        1114
+      ]
+    ],
+    "reference_apparent_angle_deg": -4.356975005846297,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 5.823,
+    "first_error": 10.179975005846298,
+    "previous_deg": -3.451,
+    "previous_error": 0.905975005846297,
+    "rotation_model_deg": -7.072,
+    "rotation_model_error": 2.715024994153703
+  },
+  {
+    "requested_s": 46,
+    "actual_s": 46.025000000000006,
+    "frame_index": 1387,
+    "visible_rim": true,
+    "points": [
+      [
+        1160,
+        1105
+      ],
+      [
+        1410,
+        1153
+      ]
+    ],
+    "reference_apparent_angle_deg": 10.868525340168706,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 7.81,
+    "first_error": 3.058525340168706,
+    "previous_deg": 8.684,
+    "previous_error": 2.1845253401687064,
+    "rotation_model_deg": 12.006,
+    "rotation_model_error": 1.1374746598312946
+  },
+  {
+    "requested_s": 49,
+    "actual_s": 49.025000000000006,
+    "frame_index": 1477,
+    "visible_rim": true,
+    "points": [
+      [
+        1100,
+        1178
+      ],
+      [
+        1260,
+        1080
+      ]
+    ],
+    "reference_apparent_angle_deg": -31.487469364213986,
+    "annotation_uncertainty_deg": 7,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -3.547,
+    "first_error": 27.940469364213985,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": -30.135,
+    "rotation_model_error": 1.3524693642139844
+  },
+  {
+    "requested_s": 53,
+    "actual_s": 53.010000000000005,
+    "frame_index": 1595,
+    "visible_rim": true,
+    "points": [
+      [
+        1100,
+        1155
+      ],
+      [
+        1250,
+        1078
+      ]
+    ],
+    "reference_apparent_angle_deg": -27.172941146916724,
+    "annotation_uncertainty_deg": 7,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -27.809,
+    "first_error": 0.6360588530832771,
+    "previous_deg": -33.461,
+    "previous_error": 6.288058853083275,
+    "rotation_model_deg": -31.835,
+    "rotation_model_error": 4.662058853083277
+  },
+  {
+    "requested_s": 54,
+    "actual_s": 54.010000000000005,
+    "frame_index": 1625,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 51.529,
+    "first_error": null,
+    "previous_deg": 59.586,
+    "previous_error": null,
+    "rotation_model_deg": -50.14,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 56,
+    "actual_s": 56.010000000000005,
+    "frame_index": 1685,
+    "visible_rim": true,
+    "points": [
+      [
+        1050,
+        1195
+      ],
+      [
+        1230,
+        1085
+      ]
+    ],
+    "reference_apparent_angle_deg": -31.429565614838516,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -32.665,
+    "first_error": 1.2354343851614829,
+    "previous_deg": -30.072,
+    "previous_error": 1.3575656148385171,
+    "rotation_model_deg": -30.326,
+    "rotation_model_error": 1.1035656148385158
+  },
+  {
+    "requested_s": 57,
+    "actual_s": 57.010000000000005,
+    "frame_index": 1715,
+    "visible_rim": true,
+    "points": [
+      [
+        1100,
+        1160
+      ],
+      [
+        1250,
+        1050
+      ]
+    ],
+    "reference_apparent_angle_deg": -36.25383773744479,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -33.463,
+    "first_error": 2.7908377374447895,
+    "previous_deg": -34.057,
+    "previous_error": 2.1968377374447883,
+    "rotation_model_deg": -33.422,
+    "rotation_model_error": 2.8318377374447934
+  },
+  {
+    "requested_s": 61,
+    "actual_s": 61.010000000000005,
+    "frame_index": 1835,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 10.128,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 63,
+    "actual_s": 63.01166666666667,
+    "frame_index": 1895,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 10.846,
+    "first_error": null,
+    "previous_deg": 22.555,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 67,
+    "actual_s": 67.01166666666667,
+    "frame_index": 2015,
+    "visible_rim": true,
+    "points": [
+      [
+        1160,
+        1117
+      ],
+      [
+        1350,
+        1119
+      ]
+    ],
+    "reference_apparent_angle_deg": 0.6030911943805325,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -0.032,
+    "first_error": 0.6350911943805325,
+    "previous_deg": 0.62,
+    "previous_error": 0.016908805619467504,
+    "rotation_model_deg": 2.736,
+    "rotation_model_error": 2.1329088056194676
+  },
+  {
+    "requested_s": 71,
+    "actual_s": 71.01166666666667,
+    "frame_index": 2135,
+    "visible_rim": true,
+    "points": [
+      [
+        1160,
+        1080
+      ],
+      [
+        1380,
+        1182
+      ]
+    ],
+    "reference_apparent_angle_deg": 24.87415391412764,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 45.541,
+    "first_error": 20.666846085872358,
+    "previous_deg": 34.705,
+    "previous_error": 9.83084608587236,
+    "rotation_model_deg": 32.606,
+    "rotation_model_error": 7.7318460858723626
+  },
+  {
+    "requested_s": 74,
+    "actual_s": 74.01333333333334,
+    "frame_index": 2225,
+    "visible_rim": true,
+    "points": [
+      [
+        1200,
+        1080
+      ],
+      [
+        1400,
+        1170
+      ]
+    ],
+    "reference_apparent_angle_deg": 24.22774531795417,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 42.736,
+    "first_error": 18.508254682045827,
+    "previous_deg": 27.555,
+    "previous_error": 3.3272546820458295,
+    "rotation_model_deg": 29.064,
+    "rotation_model_error": 4.83625468204583
+  },
+  {
+    "requested_s": 77,
+    "actual_s": 77.01333333333334,
+    "frame_index": 2315,
+    "visible_rim": true,
+    "points": [
+      [
+        1200,
+        1090
+      ],
+      [
+        1400,
+        1182
+      ]
+    ],
+    "reference_apparent_angle_deg": 24.70243022777131,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 26.898,
+    "first_error": 2.1955697722286907,
+    "previous_deg": 26.903,
+    "previous_error": 2.2005697722286897,
+    "rotation_model_deg": 29.167,
+    "rotation_model_error": 4.464569772228693
+  },
+  {
+    "requested_s": 82,
+    "actual_s": 82.01333333333334,
+    "frame_index": 2465,
+    "visible_rim": true,
+    "points": [
+      [
+        1150,
+        1111
+      ],
+      [
+        1360,
+        1119
+      ]
+    ],
+    "reference_apparent_angle_deg": 2.181641403551466,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": 0.231,
+    "first_error": 1.9506414035514659,
+    "previous_deg": 0.994,
+    "previous_error": 1.187641403551466,
+    "rotation_model_deg": 1.178,
+    "rotation_model_error": 1.003641403551466
+  },
+  {
+    "requested_s": 84,
+    "actual_s": 84.015,
+    "frame_index": 2525,
+    "visible_rim": false,
+    "points": null,
+    "reference_apparent_angle_deg": null,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -40.261,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 86,
+    "actual_s": 86.015,
+    "frame_index": 2585,
+    "visible_rim": true,
+    "points": [
+      [
+        1080,
+        1190
+      ],
+      [
+        1240,
+        1060
+      ]
+    ],
+    "reference_apparent_angle_deg": -39.0938588862295,
+    "annotation_uncertainty_deg": 7,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -25.136,
+    "first_error": 13.957858886229499,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": -31.968,
+    "rotation_model_error": 7.125858886229498
+  },
+  {
+    "requested_s": 88,
+    "actual_s": 88.015,
+    "frame_index": 2645,
+    "visible_rim": true,
+    "points": [
+      [
+        1140,
+        1140
+      ],
+      [
+        1310,
+        1097
+      ]
+    ],
+    "reference_apparent_angle_deg": -14.194737612790878,
+    "annotation_uncertainty_deg": 5,
+    "note": "Approximate apparent 2D rim orientation, not mechanical steering. Occluded/ambiguous frames are not assigned a reference angle.",
+    "first_deg": -0.539,
+    "first_error": 13.655737612790878,
+    "previous_deg": -7.425,
+    "previous_error": 6.769737612790878,
+    "rotation_model_deg": -18.608,
+    "rotation_model_error": 4.413262387209123
+  }
+]

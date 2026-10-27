@@ -1,0 +1,594 @@
+[
+  {
+    "requested_s": 6.25,
+    "actual_s": 6.251666666666667,
+    "frame_index": 194,
+    "reference_points": [
+      [
+        1240,
+        1100
+      ],
+      [
+        1340,
+        1180
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 38.65980825409009,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 45.051,
+    "first_error": 6.391191745909914,
+    "previous_deg": 23.693,
+    "previous_error": 14.966808254090086,
+    "rotation_model_deg": 50.473,
+    "rotation_model_error": 11.813191745909911
+  },
+  {
+    "requested_s": 6.75,
+    "actual_s": 6.751666666666667,
+    "frame_index": 209,
+    "reference_points": [
+      [
+        1280,
+        1080
+      ],
+      [
+        1380,
+        1200
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 50.19442890773481,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 52.712,
+    "first_error": 2.517571092265193,
+    "previous_deg": 49.167,
+    "previous_error": 1.0274289077348087,
+    "rotation_model_deg": 47.622,
+    "rotation_model_error": 2.5724289077348104
+  },
+  {
+    "requested_s": 7.25,
+    "actual_s": 7.251666666666667,
+    "frame_index": 224,
+    "reference_points": [
+      [
+        1300,
+        1090
+      ],
+      [
+        1360,
+        1200
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 61.38954033403479,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 54.359,
+    "first_error": 7.030540334034789,
+    "previous_deg": 50.539,
+    "previous_error": 10.85054033403479,
+    "rotation_model_deg": 58.091,
+    "rotation_model_error": 3.29854033403479
+  },
+  {
+    "requested_s": 7.75,
+    "actual_s": 7.751666666666667,
+    "frame_index": 239,
+    "reference_points": [
+      [
+        1280,
+        1080
+      ],
+      [
+        1380,
+        1200
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 50.19442890773481,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 47.416,
+    "first_error": 2.7784289077348134,
+    "previous_deg": 51.283,
+    "previous_error": 1.088571092265191,
+    "rotation_model_deg": 52.226,
+    "rotation_model_error": 2.031571092265189
+  },
+  {
+    "requested_s": 8.25,
+    "actual_s": 8.251666666666667,
+    "frame_index": 254,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 23.635,
+    "first_error": null,
+    "previous_deg": 22.38,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 8.75,
+    "actual_s": 8.751666666666667,
+    "frame_index": 269,
+    "reference_points": [
+      [
+        1190,
+        1093
+      ],
+      [
+        1370,
+        1158
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 19.855214369321057,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 21.75,
+    "first_error": 1.8947856306789426,
+    "previous_deg": 18.443,
+    "previous_error": 1.412214369321056,
+    "rotation_model_deg": 21.67,
+    "rotation_model_error": 1.8147856306789443
+  },
+  {
+    "requested_s": 13.25,
+    "actual_s": 13.251666666666667,
+    "frame_index": 404,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 62.632,
+    "first_error": null,
+    "previous_deg": 62.843,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 13.75,
+    "actual_s": 13.753333333333334,
+    "frame_index": 419,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 68.701,
+    "first_error": null,
+    "previous_deg": 67.027,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 14.25,
+    "actual_s": 14.253333333333334,
+    "frame_index": 434,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 59.696,
+    "first_error": null,
+    "previous_deg": 66.028,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 14.75,
+    "actual_s": 14.753333333333334,
+    "frame_index": 449,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 29.398,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 41.25,
+    "actual_s": 41.25666666666667,
+    "frame_index": 1244,
+    "reference_points": [
+      [
+        1200,
+        1090
+      ],
+      [
+        1375,
+        1160
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 21.80140948635181,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 7.169,
+    "first_error": 14.632409486351811,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 41.75,
+    "actual_s": 41.75666666666667,
+    "frame_index": 1259,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 6.155,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 42.25,
+    "actual_s": 42.25666666666667,
+    "frame_index": 1274,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -1.303,
+    "first_error": null,
+    "previous_deg": 65.875,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 42.75,
+    "actual_s": 42.75666666666667,
+    "frame_index": 1289,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -6.666,
+    "first_error": null,
+    "previous_deg": 52.045,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 43.25,
+    "actual_s": 43.25833333333333,
+    "frame_index": 1304,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -10.358,
+    "first_error": null,
+    "previous_deg": -26.18,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 53.25,
+    "actual_s": 53.27666666666667,
+    "frame_index": 1603,
+    "reference_points": [
+      [
+        1100,
+        1165
+      ],
+      [
+        1260,
+        1075
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -29.357753542791276,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -31.969,
+    "first_error": 2.6112464572087255,
+    "previous_deg": 20.86,
+    "previous_error": 50.21775354279127,
+    "rotation_model_deg": -47.142,
+    "rotation_model_error": 17.784246457208727
+  },
+  {
+    "requested_s": 53.75,
+    "actual_s": 53.77666666666667,
+    "frame_index": 1618,
+    "reference_points": [
+      [
+        1080,
+        1195
+      ],
+      [
+        1210,
+        1060
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -46.08092418666069,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 23.211,
+    "first_error": 69.29192418666068,
+    "previous_deg": 62.096,
+    "previous_error": 108.17692418666068,
+    "rotation_model_deg": -51.561,
+    "rotation_model_error": 5.480075813339312
+  },
+  {
+    "requested_s": 54.25,
+    "actual_s": 54.27666666666667,
+    "frame_index": 1633,
+    "reference_points": [
+      [
+        1090,
+        1195
+      ],
+      [
+        1210,
+        1075
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -45.0,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 62.877,
+    "first_error": 107.87700000000001,
+    "previous_deg": 61.529,
+    "previous_error": 106.529,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 54.75,
+    "actual_s": 54.77666666666667,
+    "frame_index": 1648,
+    "reference_points": [
+      [
+        1090,
+        1178
+      ],
+      [
+        1240,
+        1070
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -35.75388725443675,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 57.837,
+    "first_error": 93.59088725443675,
+    "previous_deg": 58.811,
+    "previous_error": 94.56488725443674,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 61.25,
+    "actual_s": 61.27666666666667,
+    "frame_index": 1843,
+    "reference_points": [
+      [
+        1190,
+        1105
+      ],
+      [
+        1400,
+        1178
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 19.168425133520085,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 19.356,
+    "first_error": 0.18757486647991684,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 62.25,
+    "actual_s": 62.27666666666667,
+    "frame_index": 1873,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 7.749,
+    "first_error": null,
+    "previous_deg": 20.257,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 63.25,
+    "actual_s": 63.278333333333336,
+    "frame_index": 1903,
+    "reference_points": [
+      [
+        1150,
+        1120
+      ],
+      [
+        1370,
+        1125
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 1.3019526725788753,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 12.402,
+    "first_error": 11.100047327421123,
+    "previous_deg": 14.919,
+    "previous_error": 13.617047327421126,
+    "rotation_model_deg": 5.83,
+    "rotation_model_error": 4.528047327421125
+  },
+  {
+    "requested_s": 70.75,
+    "actual_s": 70.77833333333334,
+    "frame_index": 2128,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 50.644,
+    "first_error": null,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": 61.171,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 71.25,
+    "actual_s": 71.27833333333334,
+    "frame_index": 2143,
+    "reference_points": [
+      [
+        1140,
+        1110
+      ],
+      [
+        1370,
+        1110
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": 0.0,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": 36.375,
+    "first_error": 36.375,
+    "previous_deg": 15.404,
+    "previous_error": 15.404,
+    "rotation_model_deg": 3.522,
+    "rotation_model_error": 3.522
+  },
+  {
+    "requested_s": 85.25,
+    "actual_s": 85.28166666666667,
+    "frame_index": 2563,
+    "reference_points": null,
+    "visible_rim": false,
+    "reference_apparent_angle_deg": null,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -49.057,
+    "first_error": null,
+    "previous_deg": -52.513,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 85.75,
+    "actual_s": 85.78166666666667,
+    "frame_index": 2578,
+    "reference_points": [
+      [
+        1100,
+        1185
+      ],
+      [
+        1170,
+        1070
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -58.67130713219584,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -26.933,
+    "first_error": 31.738307132195843,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 86.25,
+    "actual_s": 86.28166666666667,
+    "frame_index": 2593,
+    "reference_points": [
+      [
+        1115,
+        1190
+      ],
+      [
+        1190,
+        1080
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -55.71312302279104,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -27.17,
+    "first_error": 28.543123022791036,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": null,
+    "rotation_model_error": null
+  },
+  {
+    "requested_s": 86.75,
+    "actual_s": 86.78166666666667,
+    "frame_index": 2608,
+    "reference_points": [
+      [
+        1100,
+        1165
+      ],
+      [
+        1270,
+        1070
+      ]
+    ],
+    "visible_rim": true,
+    "reference_apparent_angle_deg": -29.197486046064476,
+    "uncertainty_deg": 7,
+    "note": "Approximate image-plane rim orientation in difficult steering transitions; annotated before comparison of this sequence. Not mechanical ground truth.",
+    "first_deg": -17.158,
+    "first_error": 12.039486046064475,
+    "previous_deg": null,
+    "previous_error": null,
+    "rotation_model_deg": -30.925,
+    "rotation_model_error": 1.7275139539355244
+  }
+]

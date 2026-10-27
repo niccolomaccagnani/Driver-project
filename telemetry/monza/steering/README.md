@@ -35,3 +35,26 @@ python track_experiment.py '/percorso/al/primo-video.mp4' --out /tmp/monza-trial
 ```
 
 Le coordinate sono specifiche del primo video ruotato correttamente (2622 × 1206); non generalizzano automaticamente ad altre telecamere. Il comando produce un CSV sperimentale e un'immagine diagnostica.
+
+## Nuova elaborazione automatica: attività visiva, non angolo
+
+Sono stati provati un flusso ottico denso, una compensazione del movimento della scocca, l'esclusione del casco tramite colore e il riaggancio di dettagli visivi. La ricostruzione del **segno e dell'angolo integrato** ha dato risultati incoerenti fra pose simili dei due video, oltre a deriva e occlusioni. Questa verifica è fallita: non è stata pubblicata una curva in gradi come se fosse una misura valida.
+
+La pagina carica invece automaticamente una **traccia di attività visiva della zona del volante**, in indice relativo 0–100. Non richiede clic, punti, calibrazioni o annotazioni dell'utente. Le opzioni di misura manuale sono facoltative e inizialmente chiuse.
+
+- Il flusso nella scocca stima un movimento comune della camera da sottrarre.
+- Una maschera cromatica tenta di escludere il casco. La zona di analisi include volante e mani che lo impugnano: possono restare movimenti di guanti, riflessi o porzioni di casco.
+- Viene conservata l'ampiezza del movimento locale supportato dall'immagine, prima di integrarla in un angolo. Il supporto è un punteggio euristico, non una probabilità di correttezza.
+- Una media quadratica su 0,3 secondi attenua il rumore. La scala 0–100 è comune ai due video, con riferimento al percentile 95 dei valori supportati e al rumore iniziale.
+- I campioni con supporto insufficiente restano vuoti; non sono riempiti per ottenere una curva continua. La traccia inizia circa 0,8 secondi dopo l’inizio del giro, al primo fotogramma usato per inizializzare il confronto visivo.
+- **Un valore basso non significa volante dritto:** il volante potrebbe essere fermo mentre mantiene una sterzata. L'indice non fornisce né gradi né direzione della sterzata e non è una percentuale del fine corsa.
+
+`automatic-activity-giro1.csv` e `automatic-activity-giro2.csv` contengono timestamp, indice, supporto e stato. Il campo `visual_angular_rate_proxy` è una quantità intermedia del modello di movimento nell'immagine, non una misura della velocità angolare meccanica. I metadati documentano la normalizzazione. La pagina esporta anche un CSV dedicato alla traccia automatica e una PNG dello zoom attuale.
+
+Per ricalcolare dai due originali:
+
+```bash
+python automatic_activity.py '/percorso/video1.mp4' '/percorso/video2.mp4' --out /tmp/monza-activity
+```
+
+Servono `opencv-python-headless` e `numpy`. La geometria è specifica di questi video. Il test `test_automatic_activity.py` verifica con immagini sintetiche la sottrazione di una traslazione comune e la sensibilità a movimento locale in entrambi i versi. Questi test non validano una ricostruzione dello sterzo nei video reali: quella resta irrisolta.

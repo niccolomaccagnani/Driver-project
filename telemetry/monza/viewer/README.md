@@ -12,6 +12,8 @@ python telemetry/monza/viewer/build.py
 
 Serve solo Python standard. `telemetry-data.json` conserva 5.716 righe accettate dalla prima estrazione, con `null` per le letture numeriche dubbie. Le colonne sono: indice del fotogramma originale, timestamp video, tempo stimato nel giro, km/h, RPM, marcia, acceleratore %, freno %. I due tempi nel giro non vengono dilatati quando si modifica lo spostamento.
 
+`wheelActivity` contiene la traccia automatica precomputata: indice di movimento visivo, non gradi di sterzo. Si mostra senza aprire le misure manuali. I campioni senza supporto restano `null`; la ricostruzione automatica dell’angolo non ha superato i controlli di coerenza.
+
 `volante-demo.mp4` è un estratto H.264 del primo video, secondi 6–18, ritagliato sulla zona del volante. È incorporato nella pagina costruita, quindi non occorre scaricarlo separatamente.
 
 ## Verifica nel browser

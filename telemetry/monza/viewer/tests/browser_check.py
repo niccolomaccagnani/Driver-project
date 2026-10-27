@@ -10,6 +10,14 @@ async def check():
   await page.set_content((ROOT/'confronto-interattivo.html').read_text(),wait_until='domcontentloaded')
   await page.wait_for_function('window.monzaViewer && document.querySelector("canvas").width>100')
   await page.wait_for_function('document.getElementById("steerVideo").videoWidth>0')
+  assert await page.evaluate('monzaViewer.wheelActivity.length')==2
+  assert await page.evaluate('monzaViewer.wheelActivity.every(rows=>rows.filter(r=>r[3]!==null).length>2000)')
+  assert await page.locator('#steeringSection').evaluate('(el)=>!el.open')
+  async with page.expect_download() as d:
+   await page.click('#exportActivity')
+  exported=list(csv.DictReader(pathlib.Path(await (await d.value).path()).read_text().splitlines()))
+  assert len(exported)==5665 and 'wheel_region_motion_index' in exported[0]
+  assert not any('angle_deg' in key for key in exported[0])
   original=await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')
   await page.click('#zoomIn');assert abs(await page.evaluate('monzaViewer.state.max-monzaViewer.state.min')-original/2)<.001
   cv=page.locator('#charts canvas').first;box=await cv.bounding_box()
@@ -40,6 +48,7 @@ async def check():
   await page.click('#resetOffset');assert await page.evaluate('monzaViewer.state.offset')==0
   # Exact geometric checks of the two-point annotation UI. These are synthetic test clicks,
   # not physical measurements and are not saved as steering data.
+  await page.locator('#steeringSection').evaluate('(el)=>el.open=true')
   await page.locator('#steeringSection').scroll_into_view_if_needed()
   await page.click('#setBody');ob=await page.locator('#steerOverlay').bounding_box()
   async def point(x,y):await page.mouse.click(ob['x']+x*ob['width'],ob['y']+y*ob['height'])
@@ -93,6 +102,7 @@ async def check():
   image=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
   (ROOT/'confronto-interattivo-preview.png').write_bytes(base64.b64decode(image['data']))
   await page.wait_for_function('steerVideo.readyState>=2')
+  await page.locator('#steeringSection').evaluate('(el)=>el.open=true')
   await page.locator('#steeringSection').evaluate('(el)=>el.scrollIntoView({block:"start"})')
   await page.wait_for_timeout(100)
   shot=await session.send('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
@@ -100,5 +110,5 @@ async def check():
   await page.set_viewport_size({'width':390,'height':844});await page.wait_for_timeout(100)
   assert await page.evaluate('document.documentElement.scrollWidth')<=390
   await browser.close()
- print('PASS: zoom buttons/wheel/selection, pan, numerical+video alignment, 5716-row CSV, PNG export, chassis-only reference, reversed endpoints, camera-roll cancellation, zero+30-degree annotation, missing/undo, mobile layout; no JS errors.')
+ print('PASS: automatic activity loaded without manual input, 5665-row automatic CSV, zoom buttons/wheel/selection, pan, numerical+video alignment, 5716-row CSV, PNG export, chassis-only reference, reversed endpoints, camera-roll cancellation, zero+30-degree annotation, missing/undo, mobile layout; no JS errors.')
 asyncio.run(check())

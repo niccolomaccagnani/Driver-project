@@ -59,6 +59,16 @@ const channels = [
     ticks: [0, 50, 100],
   },
   {
+    name: "Movimento zona volante · automatico",
+    unit: "indice 0–100",
+    activity: true,
+    col: 3,
+    min: 0,
+    max: 100,
+    ticks: [0, 25, 50, 75, 100],
+    className: "steerPlot",
+  },
+  {
     name: "Sterzo · angolo apparente",
     unit: "°",
     steering: true,
@@ -72,7 +82,12 @@ function createPanel(ch) {
   const el = document.createElement("div");
   el.className = "chart " + (ch.className || "");
   el.innerHTML = `<div class="chartTop"><strong>${ch.name}${ch.unit ? " · " + ch.unit : ""}</strong><div class="values"><span class="blue">Blu: <b>—</b></span><span class="orange">Arancione: <b>—</b></span></div></div><canvas class="plot" aria-label="${ch.name}. Trascina per zoommare." tabindex="0"></canvas>`;
-  (ch.steering ? $("steerChart") : $("charts")).append(el);
+  (ch.activity
+    ? $("activityChart")
+    : ch.steering
+      ? $("steerChart")
+      : $("charts")
+  ).append(el);
   ch.canvas = el.querySelector("canvas");
   ch.values = el.querySelectorAll("b");
   bindPlot(ch);
@@ -153,7 +168,7 @@ function nearestValue(lap, ch, x) {
     return Math.abs(closest.lapTime - t) < 0.1 ? closest.angle : null;
   }
   if (t < 0 || t > laps[lap].duration) return null;
-  const r = nearest(laps[lap].rows, t);
+  const r = nearest(ch.activity ? DATA.wheelActivity[lap] : laps[lap].rows, t);
   return r && Math.abs(r[2] - t) < 0.12 ? r[ch.col] : null;
 }
 let scheduled = false;
@@ -171,6 +186,7 @@ function drawAll() {
     `Cursore ${state.cursor.toFixed(3)} s · intervallo ${(state.max - state.min).toFixed(2)} s`;
 }
 function draw(ch) {
+  if (ch.canvas.getBoundingClientRect().height < 1) return;
   const cv = ch.canvas,
     w = Math.max(300, cv.getBoundingClientRect().width),
     h = cv.getBoundingClientRect().height,
@@ -239,7 +255,7 @@ function draw(ch) {
     } else {
       c.beginPath();
       let previous = null;
-      for (const r of laps[lap].rows) {
+      for (const r of ch.activity ? DATA.wheelActivity[lap] : laps[lap].rows) {
         const t = r[2] + off,
           value = r[ch.col];
         if (t < state.min - 0.2 || t > state.max + 0.2 || value === null) {
@@ -444,13 +460,16 @@ $("exportData").onclick = () => {
 };
 $("exportView").onclick = () => {
   drawAll();
+  const visibleChannels = channels.filter(
+    (ch) => ch.canvas.getBoundingClientRect().height > 0,
+  );
   const width = Math.max(
       1000,
       Math.round(channels[0].canvas.getBoundingClientRect().width),
     ),
     top = 100,
     bottom = 70,
-    heights = channels.map(
+    heights = visibleChannels.map(
       (ch) => Math.round(ch.canvas.getBoundingClientRect().height) + 32,
     ),
     cv = document.createElement("canvas");
@@ -474,7 +493,7 @@ $("exportView").onclick = () => {
     86,
   );
   let y = top;
-  channels.forEach((ch, i) => {
+  visibleChannels.forEach((ch, i) => {
     c.fillStyle = "#1b2d49";
     c.font = "bold 13px system-ui";
     c.fillText(ch.name + " " + ch.unit, 24, y + 21);
@@ -485,7 +504,7 @@ $("exportView").onclick = () => {
   c.fillStyle = "#65768d";
   c.font = "12px system-ui";
   c.fillText(
-    "Pedali stimati; sterzo: misure manuali dell’angolo apparente. Letture incerte escluse.",
+    "Pedali stimati; attività visiva del volante: indice automatico, non gradi di sterzo. Letture incerte escluse.",
     24,
     y + 28,
   );
@@ -950,6 +969,38 @@ $("exportSteering").onclick = () => {
     ]);
   csvDownload(rows, "monza-sterzo-manuale.csv");
 };
+
+$("exportActivity").onclick = () => {
+  const rows = [
+    [
+      "video_id",
+      "frame_index",
+      "video_time_s",
+      "lap_elapsed_s_est",
+      "aligned_time_s",
+      "wheel_region_motion_index",
+      "support_score",
+      "status",
+    ],
+  ];
+  DATA.wheelActivity.forEach((lap, i) =>
+    lap.forEach((r) =>
+      rows.push([
+        "giro" + (i + 1),
+        r[0],
+        r[1],
+        r[2],
+        +(r[2] + (i ? state.offset : 0)).toFixed(6),
+        r[3],
+        r[4],
+        r[5],
+      ]),
+    ),
+  );
+  csvDownload(rows, "monza-attivita-volante-automatica.csv");
+};
+$("steeringSection").addEventListener("toggle", schedule);
+
 window.addEventListener("resize", () => {
   schedule();
   drawOverlay();
@@ -961,6 +1012,7 @@ window.monzaViewer = {
   measured,
   calibrations,
   bodyReferences,
+  wheelActivity: DATA.wheelActivity,
   setRange,
   setOffset,
   fullView,

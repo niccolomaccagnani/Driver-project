@@ -8,6 +8,10 @@ Scarica **[confronto-interattivo.zip](confronto-interattivo.zip)** usando il pul
 
 ![Anteprima della vista interattiva, zoom sulla prima staccata](confronto-interattivo-preview.png)
 
+### Traccia automatica disponibile senza annotazioni
+
+La pagina mostra già un [indicatore automatico di movimento nella zona del volante](volante-automatico.png) per entrambi i giri. È un indice relativo 0–100: **non è un angolo di sterzo né la posizione del volante**. Un valore basso può indicare assenza di movimento visibile anche durante una sterzata mantenuta. La ricostruzione automatica dei gradi ha fallito il controllo di coerenza; [metodo e limiti](steering/README.md) sono documentati. Le misure manuali restano disponibili come opzione chiusa, non sono un passaggio richiesto.
+
 ### Controlli
 
 - **Zoom:** trascina sul grafico, usa la rotella/trackpad oppure i pulsanti. Tutti i canali condividono l'intervallo. **Maiusc + trascinamento** sposta la vista; doppio clic ripristina il giro intero.
@@ -15,7 +19,7 @@ Scarica **[confronto-interattivo.zip](confronto-interattivo.zip)** usando il pul
 - **Cursore:** mostra i valori dei due video nel punto temporale scelto; le letture dubbie restano vuote.
 - **Esporta vista PNG:** salva sul tuo Mac l'immagine del confronto con lo zoom e lo spostamento attuali.
 - **Esporta dati CSV:** salva tutti i campioni, i timestamp originali e il tempo allineato; conserva i valori mancanti.
-- **Esperimento sterzo:** linea fissa sulla scocca, linea mobile sul volante, zero sul rettilineo e misure manuali della rotazione relativa, con esportazione CSV. È incluso un video ritagliato di esempio. [Metodo e risultato della prova automatica](steering/README.md).
+- **Misure manuali facoltative dell’angolo:** linea fissa sulla scocca, linea mobile sul volante, zero sul rettilineo e misure manuali della rotazione relativa, con esportazione CSV. È incluso un video ritagliato di esempio. [Metodo e risultato della prova automatica](steering/README.md).
 
 I video aperti tramite i selettori rimangono sul dispositivo. Le misure dello sterzo restano in memoria: esporta il CSV per conservarle prima di chiudere la pagina.
 

@@ -1,0 +1,9 @@
+{
+  "quantity": "wheel_region_motion_index",
+  "units": "relative index 0–100; NOT steering angle or wheel position",
+  "noise_reference": 16.465924446941443,
+  "shared_p95_scale": 231.179655944226,
+  "smoothing_window_s": 0.3,
+  "region": "visible wheel zone with glove motion; static chassis compensation and helmet-colour exclusion",
+  "limitations": "Can include residual glove, helmet, lighting and viewpoint motion. Zero index does not mean straight steering. Signed-angle reconstruction failed consistency checks and is not included."
+}

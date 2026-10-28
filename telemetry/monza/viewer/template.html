@@ -12,17 +12,19 @@
     <header>
       <div>
         <p class="eyebrow">DRIVING NOTES / TELEMETRIA</p>
-        <h1>Monza, due giri a confronto.</h1>
+        <h1 id="reportTitle">Monza, due giri a confronto.</h1>
         <p class="subtitle">Un solo grafico. Ogni canale, alla tua altezza.</p>
       </div>
       <div class="lap-legend">
         <label class="lap-a"
-          ><input id="lapA" type="checkbox" checked /><i class="line"></i>Giro 4
-          <strong>1:33.07</strong></label
+          ><input id="lapA" type="checkbox" checked /><i class="line"></i
+          ><span id="lapNameA">Giro 4</span>
+          <strong id="lapDurationA">1:33.07</strong></label
         >
         <label class="lap-b"
-          ><input id="lapB" type="checkbox" checked /><i class="line"></i>Giro 6
-          <strong>1:32.49</strong></label
+          ><input id="lapB" type="checkbox" checked /><i class="line"></i
+          ><span id="lapNameB">Giro 6</span>
+          <strong id="lapDurationB">1:32.49</strong></label
         >
       </div>
     </header>
@@ -43,7 +45,13 @@
             >Partenze allineate dal cronometro HUD.</span
           >
           <div class="spacer"></div>
-          <button id="exportView">Esporta PNG</button
+          <button
+            id="openData"
+            aria-controls="dataDetails"
+            aria-expanded="false"
+          >
+            Dati</button
+          ><button id="exportView">Esporta PNG</button
           ><button id="exportData">Esporta CSV</button>
         </div>
         <div id="message" role="status" aria-live="polite"></div>
@@ -55,7 +63,7 @@
         <aside class="channel-panel">
           <div class="panel-heading">
             <h2>Canali</h2>
-            <span class="help">G4 / G6</span>
+            <span class="help">Blu / Arancio</span>
           </div>
           <div id="channelList" class="channel-list"></div>
           <div class="channel-settings">
@@ -118,10 +126,15 @@
                 aria-pressed="false"
                 aria-keyshortcuts="Alt+S"
               >
-                Sposta giro 6 · Alt+S
+                Sposta arancione · Alt+S
               </button>
             </div>
-            <span id="cursorReadout" class="time-readout">0,000 s</span>
+            <div class="cursor-controls">
+              <span id="cursorReadout" class="time-readout">0,000 s</span
+              ><button id="unlockCursor" class="small" disabled>
+                Libera cursore
+              </button>
+            </div>
           </div>
           <canvas
             id="plot"
@@ -130,8 +143,8 @@
           ></canvas>
           <div class="plot-footer">
             <span class="help" id="interactionHint" aria-live="polite"
-              >Trascina sul grafico per ingrandire · Maiusc + trascina: scorri ·
-              Doppio clic: giro intero</span
+              >Clic: fissa il cursore · Trascina: ingrandisci · Maiusc +
+              trascina: scorri · Doppio clic: giro intero</span
             ><span class="help">Scale verticali indipendenti</span>
           </div>
         </div>
@@ -144,14 +157,19 @@
       <details class="card" id="videoDetails">
         <summary>Riallinea con un riferimento visivo dei video</summary>
         <p>
-          Apri i due originali dal Mac, fermali sullo stesso passaggio visivo
-          (per esempio una linea o un cartello) e premi «Allinea questi
-          fotogrammi». I file restano sul dispositivo. Lo spostamento conserva
-          la durata dei giri.
+          Il cursore fisso del grafico è il riferimento: i video si aprono su
+          quel punto. Avanza o arretra uno dei video fino allo stesso passaggio
+          visivo: i suoi dati si riallineano automaticamente alla linea fissa. I
+          file restano sul dispositivo.
         </p>
+        <label class="follow-control"
+          ><input id="followVideo" type="checkbox" checked /> Aggancia i dati al
+          cursore quando regolo un video</label
+        >
+        <p id="videoFilesNote" class="help"></p>
         <div class="videoGrid">
           <div>
-            <h3>Video 1 · giro 4</h3>
+            <h3 id="videoNameA">Video blu · Giro 4</h3>
             <input
               id="fileA"
               type="file"
@@ -173,7 +191,7 @@
             <p id="timeA" class="help">Carica il primo video.</p>
           </div>
           <div>
-            <h3>Video 2 · giro 6</h3>
+            <h3 id="videoNameB">Video arancione · Giro 6</h3>
             <input
               id="fileB"
               type="file"
@@ -213,10 +231,43 @@
           ></span>
         </div>
       </details>
+      <details class="card" id="dataDetails">
+        <summary>Salva o apri dati</summary>
+        <p>
+          Salva un confronto completo con dati, allineamento, cursore e
+          disposizione dei canali. Puoi riaprire un file JSON oppure importare
+          dati CSV. I video originali vanno selezionati di nuovo dal Mac.
+        </p>
+        <div class="row">
+          <button id="saveSession" class="primary">Salva confronto JSON</button
+          ><label class="file-button"
+            >Apri JSON o CSV<input
+              id="openDataFile"
+              type="file"
+              accept=".json,.csv,application/json,text/csv" /></label
+          ><label
+            >Se il file contiene un giro:
+            <select id="importTarget">
+              <option value="1">sostituisci arancione</option>
+              <option value="0">sostituisci blu</option>
+            </select></label
+          ><button id="resetData">Ricarica dati Monza</button>
+        </div>
+        <p class="help">
+          CSV: tempo nel giro e almeno un canale tra speed_kmh, engine_rpm,
+          gear, throttle_pct_est, brake_pct_est. Sono supportati i CSV esportati
+          da questa pagina, anche con entrambi i giri.
+        </p>
+        <p id="dataStatus" role="status" aria-live="polite">
+          Dati Monza caricati.
+        </p>
+      </details>
     </main>
     <footer>
-      Confronto locale · 5.716 campioni dai video · Nessuna interpolazione delle
-      letture mancanti.
+      <span id="dataSummary"
+        >Confronto locale · 5.716 campioni dai video · Nessuna interpolazione
+        delle letture mancanti.</span
+      >
     </footer>
     <script id="telemetry" type="application/json">
       /*DATA*/

@@ -1,7 +1,7 @@
 "use strict";
 const DATA = JSON.parse(document.getElementById("telemetry").textContent);
 const $ = (id) => document.getElementById(id);
-const laps = DATA.laps;
+const laps = structuredClone(DATA.laps);
 const LAP_COLORS = ["#216bce", "#e07825"];
 const channels = [
   {
@@ -81,6 +81,8 @@ const state = {
   min: 0,
   max: 93.07,
   offset: 0,
+  referenceOffset: 0,
+  cursorLocked: false,
   cursor: 0,
   active: "speed",
   mode: "zoom",
@@ -89,6 +91,8 @@ const state = {
 };
 const cv = $("plot"),
   sourceURLs = {};
+const pendingSeeks = [null, null],
+  videoBindings = [null, null];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 let scheduled = false,
   saveTimer;
@@ -200,11 +204,20 @@ $("resetLayout").onclick = () => {
   schedule();
   remember();
 };
+function lapShift(i) {
+  return state.referenceOffset + (i ? state.offset : 0);
+}
 function bounds() {
   return [
-    Math.min(0, state.offset),
-    Math.max(laps[0].duration, laps[1].duration + state.offset),
+    Math.min(0, lapShift(0), lapShift(1)),
+    Math.max(laps[0].duration + lapShift(0), laps[1].duration + lapShift(1)),
   ];
+}
+function updateAlignmentStatus() {
+  $("alignmentStatus").textContent =
+    state.referenceOffset === 0 && state.offset === 0
+      ? "Partenze allineate dal riferimento iniziale."
+      : `Blu ${lapShift(0) >= 0 ? "+" : ""}${lapShift(0).toFixed(3)} s · Arancione ${lapShift(1) >= 0 ? "+" : ""}${lapShift(1).toFixed(3)} s. Durate invariate.`;
 }
 function setRange(a, b) {
   if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
@@ -215,7 +228,8 @@ function setRange(a, b) {
     width = clamp(b - a, 0.15, hi - lo);
   state.min = clamp(a, lo, hi - width);
   state.max = state.min + width;
-  state.cursor = clamp(state.cursor, state.min, state.max);
+  if (!state.cursorLocked)
+    state.cursor = clamp(state.cursor, state.min, state.max);
   message("");
   schedule();
   return true;
@@ -224,8 +238,8 @@ function fullView() {
   setRange(...bounds());
 }
 function setOffset(value, { preserveRange = false } = {}) {
-  if (!Number.isFinite(value) || Math.abs(value) > 120) {
-    message("Usa uno spostamento fra −120 e +120 secondi.");
+  if (!Number.isFinite(value) || Math.abs(value) > 1e7) {
+    message("Spostamento non valido.");
     return false;
   }
   const old = bounds(),
@@ -233,10 +247,7 @@ function setOffset(value, { preserveRange = false } = {}) {
       Math.abs(state.min - old[0]) < 0.02 &&
       Math.abs(state.max - old[1]) < 0.02;
   state.offset = value;
-  $("alignmentStatus").textContent =
-    value === 0
-      ? "Partenze allineate dal cronometro HUD."
-      : `Giro 6: ${value > 0 ? "+" : ""}${value.toFixed(3)} s, verso ${value > 0 ? "destra" : "sinistra"}. Durate invariate.`;
+  updateAlignmentStatus();
   if (!preserveRange) {
     if (wasFull) fullView();
     else setRange(state.min, state.max);
@@ -259,7 +270,7 @@ function nearest(rows, time, index = 2) {
     : rows[a - 1];
 }
 function nearestValue(lap, ch, x) {
-  const t = x - (lap ? state.offset : 0);
+  const t = x - lapShift(lap);
   if (t < 0 || t > laps[lap].duration) return null;
   const row = nearest(laps[lap].rows, t);
   return row && Math.abs(row[2] - t) < 0.12 ? row[ch.col] : null;
@@ -281,12 +292,12 @@ function geometry(w, h) {
       : visible.slice(0, 1)
     : visible;
   return {
-    left: 12 + rulers.length * (compact ? 52 : 54),
+    left: 12 + rulers.length * (compact ? 40 : 34),
     right: w - 16,
     top: 58,
     bottom: h - 34,
     rulers,
-    rulerWidth: compact ? 52 : 54,
+    rulerWidth: compact ? 40 : 34,
   };
 }
 function channelY(ch, value, g) {
@@ -320,7 +331,7 @@ function drawScene(c, w, h, exporting = false) {
     c.fillText(ch.short, x + g.rulerWidth / 2, 17);
     c.font = "9px system-ui";
     c.fillStyle = "#7a899b";
-    c.fillText(ch.unit, x + g.rulerWidth / 2, 33);
+    c.fillText(ch.id === "rpm" ? "rpm" : ch.unit, x + g.rulerWidth / 2, 33);
     c.strokeStyle = ch.color + "55";
     c.lineWidth = 1;
     c.beginPath();
@@ -334,8 +345,12 @@ function drawScene(c, w, h, exporting = false) {
       last = y;
       c.textAlign = "right";
       c.fillStyle = ch.color;
-      c.font = "10px system-ui";
-      c.fillText(tick, axis - 5, y);
+      c.font = "9px system-ui";
+      c.fillText(
+        ch.id === "rpm" && tick >= 1000 ? String(tick / 1000) + "k" : tick,
+        axis - 3,
+        y,
+      );
       c.strokeStyle = ch.color;
       c.beginPath();
       c.moveTo(axis - 3, y);
@@ -394,7 +409,7 @@ function drawScene(c, w, h, exporting = false) {
       c.beginPath();
       let previous = null;
       for (const r of laps[lap].rows) {
-        const t = r[2] + (lap ? state.offset : 0),
+        const t = r[2] + lapShift(lap),
           value = r[ch.col];
         if (value === null || t < state.min - 0.2 || t > state.max + 0.2) {
           previous = null;
@@ -414,8 +429,8 @@ function drawScene(c, w, h, exporting = false) {
     }
   if (state.cursor >= state.min && state.cursor <= state.max) {
     c.strokeStyle = "#70849c";
-    c.lineWidth = 1;
-    c.setLineDash([3, 4]);
+    c.lineWidth = state.cursorLocked ? 1.5 : 1;
+    c.setLineDash(state.cursorLocked ? [] : [3, 4]);
     c.beginPath();
     c.moveTo(X(state.cursor), g.top);
     c.lineTo(X(state.cursor), g.bottom);
@@ -475,7 +490,9 @@ function drawAll() {
   const c = cv.getContext("2d");
   c.scale(dpr, dpr);
   cv._g = drawScene(c, rect.width, rect.height);
-  $("cursorReadout").textContent = state.cursor.toFixed(3) + " s";
+  $("cursorReadout").textContent =
+    state.cursor.toFixed(3) + (state.cursorLocked ? " s · fisso" : " s");
+  $("unlockCursor").disabled = !state.cursorLocked;
   for (const ch of channels)
     for (let lap = 0; lap < 2; lap++) {
       const value = nearestValue(lap, ch, state.cursor);
@@ -543,7 +560,7 @@ cv.addEventListener("pointerdown", (e) => {
     };
   } else if (p.x >= g.left && p.y >= g.top && p.y <= g.bottom) {
     const t = pointerTime(p.x);
-    state.cursor = clamp(t, state.min, state.max);
+    if (!state.cursorLocked) state.cursor = clamp(t, state.min, state.max);
     state.drag =
       state.mode === "dataset"
         ? {
@@ -606,7 +623,7 @@ cv.addEventListener("pointermove", (e) => {
       : state.mode === "move"
         ? "ns-resize"
         : "crosshair";
-  if (!ruler && p.x >= g.left && p.x <= g.right) {
+  if (!state.cursorLocked && !ruler && p.x >= g.left && p.x <= g.right) {
     state.cursor = clamp(pointerTime(p.x), state.min, state.max);
     schedule();
   }
@@ -615,8 +632,11 @@ function endPointer(e) {
   const d = state.drag;
   if (!d) return;
   state.drag = null;
-  if (d.mode === "zoom" && Math.abs(pointer(e).x - d.startX) > 7)
-    setRange(Math.min(d.start, d.end), Math.max(d.start, d.end));
+  if (d.mode === "zoom") {
+    if (Math.abs(pointer(e).x - d.startX) > 7)
+      setRange(Math.min(d.start, d.end), Math.max(d.start, d.end));
+    else pinCursor(clamp(pointerTime(pointer(e).x), state.min, state.max));
+  }
   schedule();
 }
 cv.addEventListener("pointerup", endPointer);
@@ -668,7 +688,7 @@ function setMode(mode) {
       ? "Trascina orizzontalmente il giro 6 arancione · Alt+S o Esc per tornare alla selezione"
       : mode === "move"
         ? "Trascina verticalmente il canale selezionato · Le scale a sinistra regolano la sua ampiezza"
-        : "Trascina sul grafico per ingrandire · Maiusc + trascina: scorri · Doppio clic: giro intero";
+        : "Clic: fissa il cursore · Trascina: ingrandisci · Maiusc + trascina: scorri · Doppio clic: giro intero";
   cv.style.cursor =
     mode === "dataset"
       ? "ew-resize"
@@ -698,10 +718,16 @@ document.addEventListener("keydown", (e) => {
   }
 });
 $("resetView").onclick = fullView;
-$("resetOffset").onclick = () => setOffset(0);
+$("resetOffset").onclick = () => {
+  state.referenceOffset = 0;
+  setOffset(0);
+  if ($("videoDetails").open) syncVideos();
+};
 $("openAlignment").onclick = () => {
   const panel = $("videoDetails");
+  pinCursor(state.cursor);
   panel.open = true;
+  syncVideos();
   $("openAlignment").setAttribute("aria-expanded", "true");
   panel.scrollIntoView({ block: "start", behavior: "smooth" });
 };
@@ -743,6 +769,7 @@ $("exportData").onclick = () => {
   const rows = [
     [
       "video_id",
+      "dataset_name",
       "frame_index",
       "video_time_s",
       "lap_elapsed_s_est",
@@ -758,10 +785,11 @@ $("exportData").onclick = () => {
     lap.rows.forEach((r) =>
       rows.push([
         "giro" + (i + 1),
+        lap.name,
         r[0],
         r[1],
         r[2],
-        +(r[2] + (i ? state.offset : 0)).toFixed(6),
+        +(r[2] + lapShift(i)).toFixed(6),
         ...r.slice(3),
       ]),
     ),
@@ -784,10 +812,10 @@ $("exportView").onclick = () => {
   c.fillRect(0, 0, w, out.height);
   c.fillStyle = "#172b46";
   c.font = "bold 24px system-ui";
-  c.fillText("Monza · confronto telemetria", 22, 32);
+  c.fillText($("reportTitle").textContent, 22, 32);
   c.font = "12px system-ui";
   c.fillText(
-    `Giro 4: blu · Giro 6: arancione · Spostamento giro 6: ${state.offset.toFixed(3)} s`,
+    `${laps[0].name}: blu · ${laps[1].name}: arancione · Spostamento relativo: ${state.offset.toFixed(3)} s`,
     22,
     58,
   );
@@ -810,11 +838,24 @@ function loadVideo(input, video, key) {
     if (!file) return;
     if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
     sourceURLs[key] = URL.createObjectURL(file);
+    const i = key === "A" ? 0 : 1;
+    videoBindings[i] = {
+      name: file.name,
+      size: file.size,
+      lastModified: file.lastModified,
+    };
+    pendingSeeks[i] = null;
+    updateVideoNote();
     video.src = sourceURLs[key];
     video.load();
   };
-  video.addEventListener("error", () =>
-    message("Video non leggibile: prova Safari sul Mac o una copia MP4 H.264."),
+  video.addEventListener(
+    "error",
+    () =>
+      video.getAttribute("src") &&
+      message(
+        "Video non leggibile: prova Safari sul Mac o una copia MP4 H.264.",
+      ),
   );
 }
 for (const [key, i] of [
@@ -823,6 +864,8 @@ for (const [key, i] of [
 ]) {
   const video = $("video" + key);
   loadVideo($("file" + key), video, key);
+  video.addEventListener("loadedmetadata", () => seekVideoToCursor(i));
+  video.addEventListener("seeked", () => handleVideoSeek(i));
   video.addEventListener("timeupdate", () => {
     $("time" + key).textContent =
       `Video ${video.currentTime.toFixed(3)} s · nel giro ${(video.currentTime - laps[i].sourceStart).toFixed(3)} s`;
@@ -851,6 +894,68 @@ document.querySelectorAll("[data-step-video]").forEach(
       );
     }),
 );
+function pinCursor(time) {
+  state.cursor = time;
+  state.cursorLocked = true;
+  schedule();
+  if ($("videoDetails").open) syncVideos();
+}
+$("unlockCursor").onclick = () => {
+  state.cursorLocked = false;
+  schedule();
+};
+function updateVideoNote() {
+  $("videoFilesNote").textContent = videoBindings.some(Boolean)
+    ? videoBindings
+        .map(
+          (v, i) =>
+            `${i ? "Arancione" : "Blu"}: ${v ? v.name : "seleziona il video"}`,
+        )
+        .join(" · ")
+    : "Seleziona i video originali dal Mac; non sono incorporati nei file di dati.";
+}
+function seekVideoToCursor(i) {
+  const video = $(i ? "videoB" : "videoA");
+  if (!video.videoWidth || !video.getAttribute("src")) return;
+  const target = state.cursor - lapShift(i) + laps[i].sourceStart;
+  video.pause();
+  pendingSeeks[i] = clamp(target, 0, video.duration);
+  video.currentTime = pendingSeeks[i];
+  if (Math.abs(target - pendingSeeks[i]) > 0.02)
+    $("videoAlignmentStatus").textContent =
+      "Il cursore è fuori dalla durata di uno dei video selezionati.";
+}
+function syncVideos() {
+  [0, 1].forEach(seekVideoToCursor);
+}
+function handleVideoSeek(i) {
+  const video = $(i ? "videoB" : "videoA");
+  if (!sourceURLs[i ? "B" : "A"]) return;
+  if (
+    pendingSeeks[i] !== null &&
+    Math.abs(video.currentTime - pendingSeeks[i]) < 0.02
+  ) {
+    pendingSeeks[i] = null;
+    return;
+  }
+  pendingSeeks[i] = null;
+  if (
+    !state.cursorLocked ||
+    !$("followVideo").checked ||
+    !$("videoDetails").open
+  )
+    return;
+  const shift = state.cursor - (video.currentTime - laps[i].sourceStart);
+  if (i === 0) {
+    const orange = lapShift(1);
+    state.referenceOffset = shift;
+    state.offset = orange - shift;
+  } else state.offset = shift - state.referenceOffset;
+  updateAlignmentStatus();
+  schedule();
+  $("videoAlignmentStatus").textContent =
+    `Dati ${i ? "arancioni" : "blu"} agganciati al cursore ${state.cursor.toFixed(3)} s.`;
+}
 $("alignVideos").onclick = () => {
   const a = $("videoA"),
     b = $("videoB");
@@ -860,22 +965,12 @@ $("alignVideos").onclick = () => {
   }
   const ta = a.currentTime - laps[0].sourceStart,
     tb = b.currentTime - laps[1].sourceStart;
-  setOffset(ta - tb);
+  if (state.cursorLocked) state.referenceOffset = state.cursor - ta;
+  setOffset(ta - tb, { preserveRange: true });
   $("videoAlignmentStatus").textContent =
     "Riferimenti allineati. Torna al grafico per confrontare i giri.";
 };
-$("syncVideos").onclick = () => {
-  [$("videoA"), $("videoB")].forEach((video, i) => {
-    if (video.videoWidth) {
-      video.pause();
-      video.currentTime = clamp(
-        state.cursor - (i ? state.offset : 0) + laps[i].sourceStart,
-        0,
-        video.duration,
-      );
-    }
-  });
-};
+$("syncVideos").onclick = syncVideos;
 window.addEventListener("resize", schedule);
 window.monzaViewer = {
   state,
@@ -889,8 +984,13 @@ window.monzaViewer = {
   setChannel,
   setMode,
   lapColors: LAP_COLORS,
+  lapShift,
+  pinCursor,
+  syncVideos,
+  videoBindings,
   selectChannel,
   channelY,
 };
 updateControls();
 fullView();
+updateVideoNote();

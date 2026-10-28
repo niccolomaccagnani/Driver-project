@@ -505,3 +505,75 @@ footer {
 .lap-b input {
   accent-color: var(--lap-b);
 }
+
+.workspace {
+  grid-template-columns: 190px minmax(0, 1fr);
+}
+.channel-panel {
+  padding: 12px 9px;
+}
+.channel-list {
+  gap: 5px;
+}
+.channel-card {
+  padding: 7px;
+}
+.channel-settings {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+.cursor-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.follow-control {
+  margin: 8px 0;
+}
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.file-button input {
+  max-width: 240px;
+  font-size: 12px;
+}
+select {
+  font: inherit;
+  font-size: 12px;
+  padding: 7px;
+  border: 1px solid #d4dfe9;
+  border-radius: 5px;
+  background: white;
+  color: inherit;
+}
+#dataDetails {
+  scroll-margin-top: 18px;
+}
+#dataStatus {
+  min-height: 18px;
+}
+@media (max-width: 1050px) and (min-width: 761px) {
+  .workspace {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .cursor-controls {
+    gap: 4px;
+  }
+  .file-button input {
+    max-width: 100%;
+  }
+}

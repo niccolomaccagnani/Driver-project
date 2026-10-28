@@ -39,3 +39,23 @@ python telemetry/monza/viewer/tests/browser_check.py
 Il test usa un server HTTP temporaneo locale, senza servizi esterni. Esercita il canvas unico, assenza degli strumenti di sterzo, spostamento e ridimensionamento effettivi delle scale, zoom verticale con rotella, indipendenza fra canali e tempo, spostamento nell'area del grafico, persistenza dopo ricaricamento, visibilità dei canali e dei giri, colori e tratti effettivamente disegnati dal canvas, zoom temporale solo da selezione, pan, Alt+S (compreso il carattere Mac), spostamento del dataset senza variare la vista, e allineamento da due file video realmente caricati, PNG e layout mobile.
 
 Verifica inoltre tutti i valori e i timestamp delle 5.716 righe esportate contro il JSON sorgente, inclusi i valori mancanti: le trasformazioni non alterano il CSV. Le anteprime vengono prodotte dopo aver ripristinato tutti i canali e azzerato l'allineamento.
+
+## Cursore e collegamento dei video
+
+`cursorLocked` distingue il punto fisso dalla lettura al passaggio del mouse. Un clic, separato dal gesto di selezione, fissa il riferimento. `referenceOffset` è lo spostamento del blu e `offset` la differenza arancione meno blu; `lapShift(i)` viene usato dal renderer, dal CSV e dalla sincronizzazione.
+
+All’apertura del pannello o al caricamento dei metadati di un video, il seek richiesto è `cursore - lapShift(i) + sourceStart`. Gli eventi `seeked` generati da questa sincronizzazione sono riconosciuti tramite un riferimento pendente e non modificano i dati. Un seek manuale o un avanzamento di fotogramma, con aggancio attivo, imposta invece `lapShift(i) = cursore - (videoTime - sourceStart)`, preservando l’altro dataset, il cursore e l’intervallo visibile. La normale riproduzione non riallinea continuamente le tracce.
+
+## File portabili
+
+`files.js` viene incluso dal builder dopo `app.js`. Il JSON `driving-notes-comparison`, versione 1, contiene `laps`, `view`, `channels`, titolo e nomi/metadati dei video. Non contiene URL blob o file video. Il ripristino conserva anche una vista leggermente esterna ai limiti dei dati dopo spostamenti, senza ricondurla automaticamente ai bordi.
+
+Sono importabili anche JSON semplici con uno o due `laps`, oppure un oggetto giro `{name, duration, sourceStart, rows}`. Le righe mantengono l’ordine `[frame_index, video_time_s, lap_elapsed_s_est, speed_kmh, engine_rpm, gear, throttle_pct_est, brake_pct_est]`; le cinque misure possono essere `null`. Tempi ordinati e almeno due campioni sono richiesti. Il CSV supporta i nomi dei canali del formato esportato, `video_id`/`lap_id` per raggruppare e `dataset_name` per i nomi. Gli allineamenti sono recuperati da `aligned_time_s` quando presente. Con un CSV privo di durata esplicita, il limite è il tempo dell’ultimo campione.
+
+Il file viene validato interamente prima di cambiare lo stato corrente. Le importazioni rilasciano i vecchi URL video e richiedono la selezione locale degli originali pertinenti. I dati iniziali rimangono separati dai dati attivi per consentire il ripristino Monza.
+
+Il test aggiuntivo `tests/workflow_check.py` esercita le scale compatte, pin e blocco del cursore, posizionamento dei video al caricamento, avanzamento di entrambi i video, isolamento degli spostamenti, disattivazione dell’aggancio, assenza di retroazione nei seek programmati, salvataggio/riapertura JSON con equivalenza dello stato, CSV di entrambi i giri, un altro giro con decimali a virgola e valori vuoti, rifiuto atomico dei file non validi, ripristino e layout mobile.
+
+```bash
+python telemetry/monza/viewer/tests/workflow_check.py
+```

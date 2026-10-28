@@ -5,7 +5,7 @@ root=pathlib.Path(__file__).resolve().parent
 source=json.loads((root/'telemetry-data.json').read_text())
 data=json.dumps({'laps':source['laps']},separators=(',',':'),ensure_ascii=False)
 page=(root/'template.html').read_text()
-for marker,content in [('STYLE',(root/'style.css').read_text()),('DATA',data),('SCRIPT',(root/'app.js').read_text())]:
+for marker,content in [('STYLE',(root/'style.css').read_text()),('DATA',data),('SCRIPT',(root/'app.js').read_text()+'\n'+(root/'files.js').read_text())]:
  page=page.replace('/*'+marker+'*/',content)
 output=root.parent/'confronto-interattivo.html';output.write_text(page)
 instructions='''MONZA — CONFRONTO TELEMETRIA
@@ -17,7 +17,9 @@ Puoi usare anche i cursori Ampiezza e Posizione verticale o il comando Sposta ca
 Le disposizioni vengono ricordate nel browser quando l’archiviazione locale è disponibile.
 Sul grafico trascina per ingrandire un intervallo, Maiusc + trascina per scorrere. Lo zoom temporale non usa campi numerici o la rotella. Doppio clic sul grafico: giro intero; su una scala: ripristina quel canale.
 Alt+S (Opzione+S sul Mac) attiva o disattiva lo spostamento del giro 6: trascina orizzontalmente nell’area del grafico. Puoi usare anche il pulsante Sposta giro 6. Esc torna alla selezione.
-Il pulsante Allineamento apre i due video originali: fermali sullo stesso riferimento fisico e premi Allinea questi fotogrammi. I video restano sul Mac e non sono inclusi nel pacchetto.
+Clicca sul grafico per fissare una linea di riferimento; Libera cursore torna alla lettura mobile.
+Il pulsante Allineamento porta i video a quel riferimento. Dopo aver selezionato gli originali, avanza o arretra uno dei video: i dati di quel giro seguono il fotogramma sotto la linea fissa. Puoi disattivare l’aggancio automatico oppure premere Allinea questi fotogrammi per applicare il riferimento esplicitamente. I video restano sul Mac e non sono inclusi nel pacchetto.
+La sezione Dati salva il confronto in JSON con i due giri, gli allineamenti, il cursore e la disposizione dei canali. Apri JSON o CSV riapre il confronto o importa nuovi dati; un file con un solo giro sostituisce il colore scelto. I video originali non sono incorporati e vanno riselezionati dal Mac alla riapertura.
 Il CSV conserva tutti i 5.716 campioni originali e aggiunge il tempo riallineato. Posizione e ampiezza dei canali cambiano soltanto il disegno. Il PNG include la disposizione e il confronto correnti.
 L’asse X è il tempo, non la distanza. Acceleratore e freno sono stime dalle barre dei video; le letture incerte restano vuote.
 '''

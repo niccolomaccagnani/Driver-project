@@ -1715,22 +1715,29 @@ $("exportView").onclick = () => {
   );
   out.toBlob((blob) => download(blob, "monza-confronto.png"), "image/png");
 };
+function attachVideo(file, i, metadata = {}) {
+  if (i !== 0 && i !== 1) throw Error("Giro non valido.");
+  const key = i ? "B" : "A",
+    video = $("video" + key);
+  if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
+  sourceURLs[key] = URL.createObjectURL(file);
+  videoBindings[i] = {
+    name: file.name || metadata.name || "Onboard",
+    size: file.size,
+    lastModified: file.lastModified || null,
+    ...metadata,
+  };
+  pendingSeeks[i] = null;
+  updateVideoNote();
+  video.src = sourceURLs[key];
+  video.load();
+  if (typeof updateDatasetEditor === "function") updateDatasetEditor();
+}
 function loadVideo(input, video, key) {
   input.onchange = () => {
     const file = input.files[0];
     if (!file) return;
-    if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
-    sourceURLs[key] = URL.createObjectURL(file);
-    const i = key === "A" ? 0 : 1;
-    videoBindings[i] = {
-      name: file.name,
-      size: file.size,
-      lastModified: file.lastModified,
-    };
-    pendingSeeks[i] = null;
-    updateVideoNote();
-    video.src = sourceURLs[key];
-    video.load();
+    attachVideo(file, key === "A" ? 0 : 1);
   };
   video.addEventListener(
     "error",
@@ -1871,6 +1878,7 @@ window.monzaViewer = {
   pinCursor,
   syncVideos,
   videoBindings,
+  attachVideo,
   selectChannel,
   channelY,
 };
@@ -2148,6 +2156,8 @@ function restoreComparison(
     if (binding && typeof binding.name === "string")
       videoBindings[target] = {
         name: binding.name.slice(0, 250),
+        siteVideoId:
+          typeof binding.siteVideoId === "string" ? binding.siteVideoId : null,
         size: Number.isFinite(binding.size) ? binding.size : null,
         lastModified: Number.isFinite(binding.lastModified)
           ? binding.lastModified
@@ -2183,6 +2193,9 @@ function restoreComparison(
           v && typeof v.name === "string"
             ? {
                 name: v.name.slice(0, 250),
+                ...(typeof v.siteVideoId === "string"
+                  ? { siteVideoId: v.siteVideoId }
+                  : {}),
                 size: Number.isFinite(v.size) ? v.size : null,
                 lastModified: Number.isFinite(v.lastModified)
                   ? v.lastModified
@@ -2210,6 +2223,7 @@ function restoreComparison(
   updateAlignmentStatus();
   updateVideoNote();
   updateDatasetEditor();
+  window.dispatchEvent(new Event("telemetrydatachange"));
   remember();
   schedule();
   $("dataStatus").textContent =

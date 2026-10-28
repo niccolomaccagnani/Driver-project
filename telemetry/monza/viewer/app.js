@@ -832,22 +832,29 @@ $("exportView").onclick = () => {
   );
   out.toBlob((blob) => download(blob, "monza-confronto.png"), "image/png");
 };
+function attachVideo(file, i, metadata = {}) {
+  if (i !== 0 && i !== 1) throw Error("Giro non valido.");
+  const key = i ? "B" : "A",
+    video = $("video" + key);
+  if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
+  sourceURLs[key] = URL.createObjectURL(file);
+  videoBindings[i] = {
+    name: file.name || metadata.name || "Onboard",
+    size: file.size,
+    lastModified: file.lastModified || null,
+    ...metadata,
+  };
+  pendingSeeks[i] = null;
+  updateVideoNote();
+  video.src = sourceURLs[key];
+  video.load();
+  if (typeof updateDatasetEditor === "function") updateDatasetEditor();
+}
 function loadVideo(input, video, key) {
   input.onchange = () => {
     const file = input.files[0];
     if (!file) return;
-    if (sourceURLs[key]) URL.revokeObjectURL(sourceURLs[key]);
-    sourceURLs[key] = URL.createObjectURL(file);
-    const i = key === "A" ? 0 : 1;
-    videoBindings[i] = {
-      name: file.name,
-      size: file.size,
-      lastModified: file.lastModified,
-    };
-    pendingSeeks[i] = null;
-    updateVideoNote();
-    video.src = sourceURLs[key];
-    video.load();
+    attachVideo(file, key === "A" ? 0 : 1);
   };
   video.addEventListener(
     "error",
@@ -988,6 +995,7 @@ window.monzaViewer = {
   pinCursor,
   syncVideos,
   videoBindings,
+  attachVideo,
   selectChannel,
   channelY,
 };

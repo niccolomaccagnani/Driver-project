@@ -268,6 +268,8 @@ function restoreComparison(
     if (binding && typeof binding.name === "string")
       videoBindings[target] = {
         name: binding.name.slice(0, 250),
+        siteVideoId:
+          typeof binding.siteVideoId === "string" ? binding.siteVideoId : null,
         size: Number.isFinite(binding.size) ? binding.size : null,
         lastModified: Number.isFinite(binding.lastModified)
           ? binding.lastModified
@@ -303,6 +305,9 @@ function restoreComparison(
           v && typeof v.name === "string"
             ? {
                 name: v.name.slice(0, 250),
+                ...(typeof v.siteVideoId === "string"
+                  ? { siteVideoId: v.siteVideoId }
+                  : {}),
                 size: Number.isFinite(v.size) ? v.size : null,
                 lastModified: Number.isFinite(v.lastModified)
                   ? v.lastModified
@@ -330,6 +335,7 @@ function restoreComparison(
   updateAlignmentStatus();
   updateVideoNote();
   updateDatasetEditor();
+  window.dispatchEvent(new Event("telemetrydatachange"));
   remember();
   schedule();
   $("dataStatus").textContent =

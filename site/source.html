@@ -1,0 +1,1190 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Driver Notes — Trackbook</title><style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#15243a;background:#f5f8fc}*{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:700}button.primary{background:#1769db;color:white}button.light{background:#e9f1ff;color:#1555ad}button.danger{background:#fff0f0;color:#bb3030}.layout{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:100vh}.side{background:#142d56;color:white;padding:24px 16px}.brand{font-size:24px;font-weight:900;margin:0 0 6px}.sub{font-size:12px;color:#bbd3f5;margin-bottom:30px}.nav{display:block;width:100%;text-align:left;background:transparent;color:#dce9fb;margin:6px 0;padding:13px}.nav.active,.nav:hover{background:#26518a;color:white}.main{padding:28px;max-width:1480px;width:100%;margin:auto}h1{font-size:29px;margin:0 0 8px}h2{font-size:19px;margin:0 0 15px}.muted{color:#718198;font-size:13px}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0}.card{background:white;border:1px solid #e3eaf4;border-radius:18px;padding:20px;box-shadow:0 5px 20px #19375c0a}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px}.trackCard{cursor:pointer;border-top:5px solid #2776e8}.trackCard:hover{box-shadow:0 10px 24px #19375c19}.pill{background:#e8f6ee;color:#21764b;border-radius:100px;padding:5px 10px;font-size:12px;font-weight:800}.tag{background:#fff3d2;color:#926000;border-radius:100px;padding:5px 10px;font-size:12px;font-weight:800}.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.hide{display:none!important}.two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(290px,1fr);gap:18px}.map{position:relative;background:linear-gradient(135deg,#f5f9ff,#e7f1ff);border:1px solid #d9e6f6;border-radius:14px;overflow:hidden;aspect-ratio:1.45;min-height:320px;user-select:none}.map img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}.map .placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;color:#7790ad}.pin{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;border:3px solid white;box-shadow:0 2px 10px #102d5060;background:#1769db;color:white;padding:0;font-size:13px;z-index:2}.pin.selected{background:#e34e49;scale:1.15}.pin.pending{background:#f4b522;color:#17263c;box-shadow:0 0 0 5px #f4b52255;pointer-events:none}.map.placing{cursor:crosshair}.map .placeholder{pointer-events:none}.pin.free{background:#f4b522;color:#3b2a04}.note{border:1px solid #e6edf5;border-radius:12px;padding:12px;margin-bottom:10px}.note strong{font-size:15px}.note small{display:block;color:#79899a;line-height:1.5;margin-top:6px;white-space:pre-wrap}.note.selected{border-color:#1769db;background:#f7fbff}input,textarea,select{width:100%;border:1px solid #d5dfec;border-radius:10px;padding:11px;background:white;color:#17263c}textarea{min-height:105px;resize:vertical}label{font-size:13px;font-weight:800;display:block;margin:12px 0 6px}.fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}.modalBg{position:fixed;inset:0;background:#0b1c35a8;display:grid;place-items:center;padding:16px;z-index:20}.modal{width:min(540px,100%);max-height:90vh;overflow:auto;background:white;border-radius:18px;padding:24px}.video{width:100%;max-height:300px;background:#101010;border-radius:10px}.videoItem{border:1px solid #e1eaf5;padding:12px;border-radius:12px;margin:10px 0}.section{margin-top:22px}.back{color:#1769db;background:transparent;padding:0;margin-bottom:16px}.tip{background:#fff7dc;color:#775b12;border-radius:12px;padding:12px;font-size:13px}.linkbtn{color:#1769db;background:transparent;padding:5px}.chip{padding:8px 12px;background:#eaf1fb;color:#315477;border-radius:20px}.chip.on{background:#1769db;color:white}.empty{padding:24px;text-align:center;color:#7b8b9c}.wide{width:100%}@media(max-width:900px){.layout{grid-template-columns:1fr}.side{padding:14px}.side .sub{display:none}.nav{display:inline-block;width:auto;margin:4px}.main{padding:18px}.two{grid-template-columns:1fr}}
+
+#map.drag-target{outline:4px dashed #1e73be;outline-offset:-8px;background:#eaf5ff!important;position:relative}
+#map.drag-target:after{content:"Drop image to set track map";position:absolute;inset:15%;display:grid;place-items:center;background:rgba(255,255,255,.94);border:2px dashed #1e73be;border-radius:14px;color:#164e82;font-size:20px;font-weight:750;z-index:100;pointer-events:none;text-align:center}
+ .carinfo-note{white-space:pre-wrap}.rich-notes{min-height:330px;border:1px solid #d5dfec;border-radius:12px;padding:20px;line-height:1.65;outline:none;overflow-wrap:anywhere;background:#fff}.rich-notes:focus{border-color:#1769db}.rich-notes:after{content:"";display:block;clear:both}.rich-notes .inline-sketch{max-width:85%;height:auto;display:inline-block;vertical-align:middle;border:3px solid transparent;border-radius:5px;cursor:grab;margin:8px;object-fit:contain}.rich-notes .inline-sketch.chosen{outline:2px solid #1769db;outline-offset:2px}.rich-notes .inline-sketch.has-border{border-color:#263c58}.rich-notes.drag-image-over{background:#eef6ff}.rich-notes .drop-caret{display:inline-block;width:3px;height:36px;background:#1769db;vertical-align:middle;pointer-events:none}.editor-controls{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.editor-controls button{padding:8px 11px}.drawing-box{border:1px solid #d5dfec;border-radius:12px;overflow:hidden;background:white}.drawing-box canvas{width:100%;height:auto;display:block;touch-action:none;cursor:crosshair} .rich-notes{display:flow-root} .rich-notes img.inline-sketch{max-width:85%;} 
+.homeTopBar{gap:16px;align-items:flex-start}.homeActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.searchWrap input{min-width:260px;max-width:340px}.statsGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 20px}.statCard{padding:18px 18px 16px}.statValue{font-size:32px;font-weight:900;line-height:1;color:#fff;margin-bottom:6px}.statLabel{text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:#9fb1c6}@media (max-width:1100px){.statsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:700px){.homeTopBar{flex-direction:column;align-items:stretch}.homeActions{width:100%}.searchWrap,.searchWrap input{width:100%;max-width:none;min-width:0}.statsGrid{grid-template-columns:1fr}}
+</style><style>
+#generalEditor{position:relative;min-height:380px;display:flow-root}
+#generalEditor img.inline-sketch{cursor:move;max-width:90%;height:auto;touch-action:none;user-select:none;outline-offset:3px}
+#generalEditor img.inline-sketch.chosen{outline:2px solid #1674e8;box-shadow:0 0 0 5px #1674e81b}
+#sketchResizeHandle{position:absolute;z-index:12;width:17px;height:17px;border:2px solid white;border-radius:4px;background:#1769db;box-shadow:0 1px 5px #1238;cursor:nwse-resize;touch-action:none}
+#generalEditor.sketch-moving{cursor:grabbing}
+#generalEditor .sketch-placeholder{display:block;height:3px;background:#1769db;margin:9px 0;pointer-events:none;clear:both}
+</style><style>
+.home-stage{display:grid;grid-template-columns:minmax(260px,0.95fr) minmax(0,1.6fr);gap:22px;align-items:start;margin-top:16px}
+.home-stage .gallery-shell{margin:0;min-height:440px;position:sticky;top:18px;box-shadow:0 12px 32px #152c4d20}
+.slide-gallery #driverGallery{height:440px;position:relative;overflow:hidden}
+.slide-gallery .gallery-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;transform:scale(1);transition:opacity .85s ease-in-out,transform 5.5s ease-out}
+.slide-gallery .gallery-photo.incoming{opacity:0;transform:scale(1.045)}
+.slide-gallery .gallery-photo.current{opacity:1;transform:scale(1)}
+.slide-gallery .gallery-photo.outgoing{opacity:0;pointer-events:none}
+.slide-gallery .gallery-controls{z-index:5}
+.home-circuit-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px}
+.home-circuit-heading h2{margin:0}
+.home-circuit-list .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home-circuit-list .trackCard{padding:15px;min-width:0}
+.home-circuit-list .trackCard h2{font-size:15px;margin:0;overflow-wrap:anywhere}
+.home-circuit-list .trackCard .muted{font-size:12px}
+.home-circuit-list .trackCard button{font-size:12px;padding:8px}
+.photo-tile button:disabled{opacity:.5;cursor:wait}
+body.dark-mode .home-circuit-heading{color:#e8eef9}
+@media(max-width:1100px){.home-stage{grid-template-columns:1fr}.home-stage .gallery-shell{position:relative;top:auto;min-height:280px}.slide-gallery #driverGallery{height:300px}}
+@media(max-width:570px){.home-circuit-list .grid{grid-template-columns:1fr}.slide-gallery #driverGallery{height:240px}}
+@media(prefers-reduced-motion:reduce){.slide-gallery .gallery-photo{transition:none}}
+</style><style id="squarer-design">
+/* Subtle squared-off visual refresh; functionality unchanged */
+button,input,textarea,select{border-radius:6px!important}
+.card,.modal{border-radius:9px!important}
+.map,.note,.videoItem,.tip,.rich-notes,.drawing-box{border-radius:8px!important}
+.gallery-shell,#view .home-stage .gallery-shell{border-radius:9px!important}
+#view .home-stage .trackCard{border-radius:7px!important}
+.photo-tile img,.chip{border-radius:7px!important}
+.pill,.tag{border-radius:6px!important}
+.video{border-radius:7px!important}
+/* Circular corner pins intentionally remain circular. */
+</style><style id="pin-move-ui">.pin-move-active{cursor:crosshair!important;outline:3px dashed #1769db;outline-offset:3px}.pin-move-active .moving-pin{background:#e34e49!important;box-shadow:0 0 0 6px #e34e4933!important;z-index:8!important}.pin-move-bar{background:#eaf2ff;padding:12px;border-left:4px solid #1769db;align-items:center}.pin-move-bar strong{flex:1;min-width:180px}</style><style id="dn-map-drop-boundary-fix">
+/* Keep the track-map drag/drop surface inside its own card at all viewport sizes. */
+#view .dn-fixed-track-row,#view .dn-fixed-track-row .dn-map-panel,#view .dn-fixed-track-row .dn-onboard-panel{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+#view .dn-fixed-track-row .dn-map-panel{overflow:hidden!important}
+#view .dn-fixed-track-row .dn-map-panel .map,#view .dn-fixed-track-row .dn-map-panel #map{display:block!important;position:relative!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important;aspect-ratio:1.45!important;height:auto!important;min-height:260px!important}
+#view .dn-fixed-track-row .dn-map-panel #map .placeholder{inset:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;overflow-wrap:anywhere!important;padding:16px!important}
+#view .dn-fixed-track-row .dn-map-panel #map img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain!important}
+#view .dn-fixed-track-row .dn-map-panel .toolbar{min-width:0!important;flex-wrap:wrap!important}
+@media(max-width:780px){#view .dn-fixed-track-row .dn-map-panel #map{min-height:220px!important}}
+</style></head><body><div class="layout"><aside class="side"><div class="brand dn-wordmark"><span>DRIVER</span><span>NOTES</span></div><button class="nav active" data-page="home">⌂ &nbsp; Home / Circuits</button><button class="nav" data-page="general">🏎️ &nbsp; Car Info</button><button class="nav" data-page="notes">📝 &nbsp; Notes</button><button class="nav" data-page="settings" onclick="navigate('settings')">⚙️ &nbsp; Settings</button></aside><main class="main"><div id="view"></div></main></div><div id="modalRoot"></div><script>
+const KEY='pilot-notes-v1';let state=JSON.parse(localStorage.getItem(KEY)||'{"tracks":[],"cars":[],"general":{}}');let page='home',trackId=null,carId=null,selected=null,placement=null;const $=s=>document.querySelector(s),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));function save(){localStorage.setItem(KEY,JSON.stringify(state))}function getTrack(){return state.tracks.find(t=>t.id===trackId)}function getCar(){return state.cars.find(c=>c.id===carId)}function modal(title,body,buttons=''){ $('#modalRoot').innerHTML=`<div class="modalBg" id="modalBg"><div class="modal"><div class="flex between"><h2>${title}</h2><button class="light" onclick="closeModal()">✕</button></div>${body}${buttons}</div></div>`;$('#modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal()})}function closeModal(){$('#modalRoot').innerHTML=''}function navigate(p){page=p;placement=null;selected=null;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===((p==='track'?'home':p==='carinfo'?'general':p))));render()}
+// Default circuits and cars; merge without overwriting existing notes.
+const DEFAULT_CARS=['F2','F3'];
+const DEFAULT_TRACKS=[
+ ['Jerez de la Frontera','Jerez de la Frontera, Spain'],
+ ['Portimão','Portimão, Portugal'],
+ ['Barcelona','Montmeló, Spain'],
+ ['Paul Ricard','Le Castellet, France'],
+ ['Silverstone','Silverstone, United Kingdom'],
+ ['Spa-Francorchamps','Stavelot, Belgium'],
+ ['Red Bull Ring','Spielberg, Austria'],
+ ['Monza','Monza, Italy'],
+ ['Imola','Imola, Italy'],
+ ['Melbourne','Melbourne, Australia'],
+ ['Bahrain','Sakhir, Bahrain'],
+ ['Monaco','Monte Carlo, Monaco'],
+ ['Madrid','Madrid, Spain'],
+ ['Budapest (Hungaroring)','Mogyoród, Hungary'],
+ ['Istanbul Park','Istanbul, Türkiye'],
+ ['Jeddah','Jeddah, Saudi Arabia'],
+ ['Montreal','Montreal, Canada'],
+ ['Abu Dhabi','Abu Dhabi, UAE'],
+ ['Qatar (Lusail)','Lusail, Qatar']
+];
+function seedDefaults(){
+ state.tracks??=[];
+ for(const t of state.tracks){if(t.name==='Jerez de la Frontera — F1 layout')t.name='Jerez de la Frontera';if(t.name==='Paul Ricard — F1 layout')t.name='Paul Ricard'};state.cars??=[];state.general??={};
+ if(!state.cars.length){for(const name of DEFAULT_CARS)state.cars.push({id:uid(),name})}
+ // Rename only the original default labels, preserving IDs and associated notes.
+ for(const car of state.cars){if(car.name==='F2 2018')car.name='F2';else if(car.name==='F3 2026')car.name='F3'}
+ // Keep stable car IDs: renaming must never recreate a default car.
+ if(!Array.isArray(state.defaultCarIds)){state.defaultCarIds=DEFAULT_CARS.map(name=>state.cars.find(c=>c.name.toLowerCase()===name.toLowerCase())?.id).filter(Boolean)}
+ const defaultIds=state.defaultCarIds.filter(id=>state.cars.some(c=>c.id===id));
+ for(const [name,location] of DEFAULT_TRACKS){
+   let t=state.tracks.find(t=>t.name.toLowerCase()===name.toLowerCase());
+   if(!t){t={id:uid(),name,location,carIds:[],entries:{},map:'',mapStatus:'not-searched'};state.tracks.push(t)}
+   t.carIds??=[];t.entries??={};t.videos??=[];if(t.map && /^https?:/i.test(t.map)){t.map='';t.mapSource='';t.mapStatus='missing'};for(const e of Object.values(t.entries)){if(e.videos?.length){for(const v of e.videos){if(!t.videos.some(z=>z.id===v.id))t.videos.push(v)}e.videos=[]}}
+   for(const id of defaultIds){if(!t.carIds.includes(id))t.carIds.push(id);t.entries[id]??={turns:[],free:[],videos:[]}}
+ }
+ save();
+}
+seedDefaults();
+
+let homeSearch='';
+function normalizeCountryName(location){
+  let x=(location||'').split(',').map(v=>v.trim()).filter(Boolean).pop()||'';
+  const map={'uk':'United Kingdom','u.k.':'United Kingdom','great britain':'United Kingdom','england':'United Kingdom','scotland':'United Kingdom','wales':'United Kingdom','usa':'United States','u.s.a.':'United States','united states of america':'United States','uae':'United Arab Emirates','u.a.e.':'United Arab Emirates'};
+  const key=x.toLowerCase();
+  return map[key]||x;
+}
+function continentFromCountry(country){
+  const c=(country||'').toLowerCase();
+  const table={'spain':'Europe','italy':'Europe','belgium':'Europe','united kingdom':'Europe','great britain':'Europe','portugal':'Europe','france':'Europe','austria':'Europe','hungary':'Europe','turkiye':'Europe','turkey':'Europe','monaco':'Europe','qatar':'Asia','bahrain':'Asia','saudi arabia':'Asia','united arab emirates':'Asia','japan':'Asia','australia':'Oceania','canada':'North America','mexico':'North America','united states':'North America'};
+  return table[c]||'';
+}
+function countNotesInTrack(t){
+  return Object.values(t.entries||{}).reduce((a,v)=>a+((v.turns||[]).length)+((v.free||[]).length),0);
+}
+function notesSavedToday(){
+  const today=new Date().toDateString();
+  let n=0;
+  for(const t of state.tracks||[]){
+    for(const v of Object.values(t.entries||{})){
+      for(const item of [...(v.turns||[]),...(v.free||[])]){
+        if(item.createdAt && new Date(item.createdAt).toDateString()===today)n++;
+      }
+    }
+  }
+  return n;
+}
+
+function render(){if(page==='home')home();if(page==='track')trackPage();if(page==='general')generalPage();if(page==='carinfo')carInfoPage()}
+function filterHomeCircuits(query){
+  homeSearch=query;
+  const grid=document.querySelector('#view .grid');
+  if(!grid)return;
+  const cards=[...grid.querySelectorAll('.trackCard')];
+  let visible=0;
+  for(const card of cards){
+    const circuit=card.querySelector('h2')?.textContent||'';
+    const location=card.querySelector('.muted')?.textContent||'';
+    const matched=(circuit+' '+location).toLocaleLowerCase().includes(query.toLocaleLowerCase());
+    card.style.display=matched?'':'none';
+    if(matched)visible++;
+  }
+  let empty=document.getElementById('homeSearchEmpty');
+  if(!empty){
+    empty=document.createElement('div');empty.id='homeSearchEmpty';empty.className='card empty';
+    grid.insertAdjacentElement('afterend',empty);
+  }
+  empty.textContent=cards.length&&!visible?'No circuits match your search.':'';
+  empty.style.display=cards.length&&!visible?'':'none';
+}
+function home(){
+  const sorted=[...(state.tracks||[])].sort((a,b)=>a.name.localeCompare(b.name));
+  const filtered=sorted;
+  const countries=[...new Set(sorted.map(t=>normalizeCountryName(t.location)).filter(Boolean))];
+  const continents=[...new Set(countries.map(continentFromCountry).filter(Boolean))];
+  const stats=[
+    {label:'Circuits', value:sorted.length},
+    {label:'Continents', value:continents.length},
+    {label:'Countries', value:countries.length},
+    {label:'Notes saved today', value:notesSavedToday()}
+  ];
+  $('#view').innerHTML=`<div class="flex between homeTopBar"><div><h1>My Circuits</h1></div><div class="homeActions"><div class="searchWrap"><input id="homeSearchInput" placeholder="Search circuit" value="${esc(homeSearch)}" oninput="filterHomeCircuits(this.value)"></div><button class="primary" onclick="addTrack()">＋ Add track</button></div></div><div class="statsGrid">${stats.map(s=>`<article class="card statCard"><div class="statValue">${s.value}</div><div class="statLabel">${s.label}</div></article>`).join('')}</div><div class="grid">${filtered.map(t=>`<article class="card trackCard" onclick="openTrack('${t.id}')"><div class="flex between"><h2>${esc(t.name)}</h2><span style="font-size:24px">🏎️</span></div><div class="muted">${esc(t.location||'Circuit')}</div><p class="muted">${(t.carIds||[]).length} cars · ${countNotesInTrack(t)} annotations</p><button class="light">Open circuit →</button></article>`).join('')||`<div class="card empty">${sorted.length?`No circuits match "${esc(homeSearch)}".`:'No circuits yet. Click <b>Add track</b> to start your trackbook.'}</div>`}</div>`
+  filterHomeCircuits(homeSearch);
+}
+function addTrack(){modal('Add a circuit',`<label>Circuit name</label><input id="trackName" placeholder="e.g. Circuit de Barcelona-Catalunya"><label>Location (optional)</label><input id="trackLocation" placeholder="Barcelona, Spain"><div class="tip section">After adding the circuit, click Upload Map Image to select a map from your device.</div><div class="toolbar"><button class="primary" onclick="createTrack()">Create circuit</button></div>`)}
+function createTrack(){let name=$('#trackName').value.trim();if(!name)return alert('Enter a circuit name');let t={id:uid(),name,location:$('#trackLocation').value.trim(),carIds:[],entries:{},map:'',mapStatus:'missing'};state.tracks.push(t);save();closeModal();openTrack(t.id)}
+function openTrack(id){trackId=id;let t=getTrack();if(!t)return;carId=t.carIds.includes(carId)?carId:t.carIds[0]||null;navigate('track')}
+function trackPage(){let t=getTrack();if(!t)return navigate('home');let entry=carId?(t.entries[carId]||{turns:[],free:[],videos:[]}):null;$('#view').innerHTML=`<button class="back" onclick="navigate('home')">← All circuits</button><div class="flex between"><div><h1>${esc(t.name)}</h1><div class="muted">${esc(t.location||'Circuit')} · Track notes by car</div></div><div class="flex"><button class="light" onclick="editTrack()">Edit circuit</button><button class="danger" onclick="deleteTrack()">Delete</button></div></div><div class="toolbar"><b>Car:</b>${t.carIds.map(id=>{let c=state.cars.find(x=>x.id===id);return c?`<button class="chip ${id===carId?'on':''}" onclick="carId='${id}';selected=null;render()">${esc(c.name)}</button>`:''}).join('')}<button class="light" onclick="renameCar(carId)" ${!carId?'disabled':''}>✎ Rename car</button><button class="light" onclick="addCarToTrack()">＋ Add car</button></div>${!carId?'<div class="card empty">Add or select a car to create its corner notes.</div>':`<div class="two"><section class="card"><div class="flex between"><h2>Track map</h2><span class="muted">Click a corner · Double-click for free note</span></div><div class="map" id="map" onclick="choosePlacement(event)" ondblclick="addFreeAt(event)">${t.map?`<img src="${esc(t.map)}" alt="Circuit map" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="placeholder" style="display:none">Map unavailable. Drag & drop a track map or upload an image.</div>`:`<div class="placeholder">${t.mapStatus==='loading'?'⏳ Searching for a track map…':'🗺️ Drag & Drop Track Map<br><small>Drop an image here, or click Upload Map Image below</small>'}</div>`}${placement&&placement.trackId===trackId&&placement.carId===carId&&placement.x!==null?`<button class="pin pending" style="left:${placement.x}%;top:${placement.y}%">${esc(placement.num)}</button>`:""}${(entry.turns||[]).map(n=>`<button class="pin ${selected===n.id?'selected':''}" style="left:${n.x}%;top:${n.y}%" onclick="event.stopPropagation();editNote('${n.id}','turn')" title="Turn ${esc(n.num)}">${esc(n.num)}</button>`).join('')}${(entry.free||[]).map(n=>`<button class="pin free ${selected===n.id?'selected':''}" style="left:${n.x}%;top:${n.y}%" onclick="event.stopPropagation();editNote('${n.id}','free')" title="${esc(n.title)}">!</button>`).join('')}</div><div id="placementControls" class="toolbar" style="display:${placement&&placement.trackId===trackId&&placement.carId===carId?'flex':'none'}">${placement?`<strong>${placement.x===null?'Click on the map to position Turn '+esc(placement.num):'Turn '+esc(placement.num)+' — confirm this position'}</strong><button class="primary" onclick="confirmPlacement()" ${placement.x===null?'disabled':''}>✓ Confirm</button><button class="light" onclick="cancelPlacement()">Cancel</button>`:''}</div><div class="toolbar"><button class="light" onclick="$('#mapFile').click()">↑ Upload map image</button><input class="hide" id="mapFile" type="file" accept="image/*" onchange="uploadMap(this.files[0])"><button class="light" onclick="addTurn()">＋ Add corner number</button>${t.mapSource?`<span class="muted">${esc(t.mapSource)}</span>`:''}</div></div></section><section class="card"><div class="flex between"><h2>${esc(getCar()?.name||'Car')} · Notes</h2><button class="light" onclick="addTurn()">＋ Turn</button></div><div id="notesList">${[...(entry.turns||[]).map(n=>({...n,kind:'turn'})),...(entry.free||[]).map(n=>({...n,kind:'free'}))].map(n=>`<div class="note ${selected===n.id?'selected':''}" onclick="editNote('${n.id}','${n.kind}')"><strong>${n.kind==='turn'?`Turn ${esc(n.num)} · ${esc(n.gear||'Gear —')}`:esc(n.title||'Extra note')}</strong><small>${esc(n.text||'Click to write notes…')}</small></div>`).join('')||'<div class="empty">No notes yet. Add your first corner or double-click on the map.</div>'}</div></section></div>`}`;$('#view').insertAdjacentHTML('beforeend',`<section class="card section"><div class="flex between"><h2>🎥 Onboard Videos</h2><button class="primary" onclick="$('#videoFile').click()">＋ Upload onboard</button><input class="hide" id="videoFile" type="file" accept="video/*" onchange="addVideo(this.files[0])"></div><div class="muted">Shared by all cars for this circuit. Videos are stored locally in this browser.</div><div id="videoList"></div></section>`);renderVideos()}
+function editTrack(){let t=getTrack();modal('Edit circuit',`<label>Circuit name</label><input id="editName" value="${esc(t.name)}"><label>Location</label><input id="editLoc" value="${esc(t.location||'')}"><div class="toolbar"><button class="primary" onclick="let t=getTrack();t.name=$('#editName').value.trim()||t.name;t.location=$('#editLoc').value;save();closeModal();render()">Save</button></div>`)}function deleteTrack(){if(confirm('Delete this circuit and all its notes?')){state.tracks=state.tracks.filter(t=>t.id!==trackId);save();navigate('home')}}
+function addCarToTrack(){modal('Add a car',`<label>Choose an existing car</label><select id="existingCar"><option value="">— Create new car —</option>${state.cars.filter(c=>!getTrack().carIds.includes(c.id)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><label>Or new car name</label><input id="newCar" placeholder="e.g. Dallara F3 2025"><div class="toolbar"><button class="primary" onclick="saveCarToTrack()">Add car</button></div>`)}function saveCarToTrack(){let id=$('#existingCar').value,name=$('#newCar').value.trim();if(!id){if(!name)return alert('Enter a car name');let c=state.cars.find(c=>c.name.toLowerCase()===name.toLowerCase());id=c?.id||uid();if(!c)state.cars.push({id,name})}let t=getTrack();if(!t.carIds.includes(id))t.carIds.push(id);t.entries[id]??={turns:[],free:[],videos:[]};carId=id;save();closeModal();render()}
+function entry(){let t=getTrack();return t.entries[carId]??(t.entries[carId]={turns:[],free:[],videos:[]})}function addTurn(){if(!carId)return;let count=entry().turns.length+1;modal('Add corner',`<label>Corner number</label><input id="cornerNum" value="${count}" placeholder="e.g. 1"><label>Gear</label><input id="cornerGear" placeholder="e.g. 3rd gear"><label>Driving notes</label><textarea id="cornerText" placeholder="Braking point, entry, apex, throttle, kerbs…"></textarea><div class="toolbar"><button class="primary" onclick="startPlacement()">Place →</button></div>`)}
+function startPlacement(){let num=$('#cornerNum').value.trim();if(!num)return alert('Enter corner number');placement={trackId,carId,num,gear:$('#cornerGear').value.trim(),text:$('#cornerText').value,x:null,y:null};closeModal();render();let map=$('#map');if(map)map.classList.add('placing')}
+function choosePlacement(e){if(!placement||placement.trackId!==trackId||placement.carId!==carId)return;if(e.target.closest('.pin'))return;let rect=$('#map').getBoundingClientRect();placement.x=Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100));placement.y=Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100));render();$('#map')?.classList.add('placing')}
+function confirmPlacement(){if(!placement||placement.x===null)return;let p=placement;entry().turns.push({id:uid(),num:p.num,gear:p.gear,text:p.text,x:p.x,y:p.y,createdAt:Date.now()});placement=null;save();render()}
+function cancelPlacement(){placement=null;render()}
+function addFreeAt(e){if(!carId||placement)return;let rect=$('#map').getBoundingClientRect();let x=Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100)),y=Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100));modal('New track annotation',`<label>Title</label><input id="freeTitle" placeholder="e.g. Braking reference"><label>Notes</label><textarea id="freeText" placeholder="Write your additional track notes…"></textarea><div class="toolbar"><button class="primary" onclick="saveFree(${x},${y})">Save note</button></div>`)}function saveFree(x,y){entry().free.push({id:uid(),title:$('#freeTitle').value.trim()||'Extra note',text:$('#freeText').value,x,y,createdAt:Date.now()});save();closeModal();render()}
+function editNote(id,kind){selected=id;let n=entry()[kind==='turn'?'turns':'free'].find(x=>x.id===id);if(!n)return;modal(kind==='turn'?'Edit corner':'Edit track annotation',`${kind==='turn'?`<label>Corner number</label><input id="noteNum" value="${esc(n.num)}"><label>Gear</label><input id="noteGear" value="${esc(n.gear||'')}" placeholder="e.g. 3rd gear">`:`<label>Title</label><input id="noteTitle" value="${esc(n.title)}">`}<label>Notes</label><textarea id="noteText">${esc(n.text)}</textarea><div class="toolbar"><button class="primary" onclick="saveNote('${id}','${kind}')">Save changes</button><button class="light" onclick="startPinMove('${id}','${kind}')">↔ Move pin on map</button><button class="danger" onclick="deleteNote('${id}','${kind}')">Delete note</button></div>`)}
+function updateNoteFromEditor(n,kind){if(kind==='turn'){n.num=$('#noteNum').value;n.gear=$('#noteGear').value}else n.title=$('#noteTitle').value;n.text=$('#noteText').value}
+function saveNote(id,kind){let n=entry()[kind==='turn'?'turns':'free'].find(x=>x.id===id);if(!n)return;updateNoteFromEditor(n,kind);save();closeModal();render()}
+let pinMove=null;
+function startPinMove(id,kind){let n=entry()[kind==='turn'?'turns':'free'].find(x=>x.id===id);if(!n)return;updateNoteFromEditor(n,kind);save();closeModal();pinMove={id,kind,trackId,carId,oldX:n.x,oldY:n.y};render();showPinMoveControls()}
+function showPinMoveControls(){if(!pinMove||pinMove.trackId!==trackId||pinMove.carId!==carId)return;let map=document.getElementById('map');if(!map)return;map.classList.add('pin-move-active');let bar=document.createElement('div');bar.id='pinMoveBar';bar.className='toolbar pin-move-bar';bar.innerHTML='<strong>Click anywhere on the track map to move the pin.</strong><button class="primary" id="confirmPinMove" disabled>✓ Confirm position</button><button class="light" id="cancelPinMove">Cancel</button>';map.insertAdjacentElement('afterend',bar);bar.querySelector('#confirmPinMove').onclick=confirmPinMove;bar.querySelector('#cancelPinMove').onclick=cancelPinMove;map.querySelectorAll('.pin').forEach(p=>p.style.pointerEvents='none');let n=entry()[pinMove.kind==='turn'?'turns':'free'].find(x=>x.id===pinMove.id);if(n){let pins=[...map.querySelectorAll('.pin')];let matching=pins.find(p=>Math.abs(parseFloat(p.style.left)-n.x)<.01&&Math.abs(parseFloat(p.style.top)-n.y)<.01);if(matching){matching.classList.add('moving-pin');pinMove.element=matching}}}
+function confirmPinMove(){if(!pinMove||!pinMove.proposed)return;let n=entry()[pinMove.kind==='turn'?'turns':'free'].find(x=>x.id===pinMove.id);if(n){n.x=pinMove.proposed.x;n.y=pinMove.proposed.y;save()}pinMove=null;render()}
+function cancelPinMove(){pinMove=null;render()}
+document.addEventListener('click',function(e){if(!pinMove)return;let map=e.target.closest?.('#map');if(!map)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();let rect=map.getBoundingClientRect();pinMove.proposed={x:Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100)),y:Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100))};if(pinMove.element){pinMove.element.style.left=pinMove.proposed.x+'%';pinMove.element.style.top=pinMove.proposed.y+'%'}document.getElementById('confirmPinMove').disabled=false},true);
+function deleteNote(id,kind){if(!confirm('Delete this note?'))return;let key=kind==='turn'?'turns':'free';entry()[key]=entry()[key].filter(x=>x.id!==id);selected=null;save();closeModal();render()}
+function uploadMap(file){if(!file)return;let reader=new FileReader();reader.onload=()=>{getTrack().map=reader.result;getTrack().mapSource='Uploaded map image';getTrack().mapStatus='found';try{save();render()}catch(e){alert('Map image is too large for browser storage. Please use a smaller image.')}};reader.readAsDataURL(file)}
+const DB='pilot-onboards';function db(){return new Promise((res,rej)=>{let r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('videos');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}async function storeVideo(id,file){let d=await db();return new Promise((res,rej)=>{let tx=d.transaction('videos','readwrite');tx.objectStore('videos').put(file,id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}async function loadVideo(id){let d=await db();return new Promise((res,rej)=>{let tx=d.transaction('videos');let r=tx.objectStore('videos').get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}async function removeVideoBlob(id){let d=await db();let tx=d.transaction('videos','readwrite');tx.objectStore('videos').delete(id)}async function addVideo(file){if(!file)return;let id=uid();try{await storeVideo(id,file);getTrack().videos??=[];getTrack().videos.push({id,name:file.name,size:file.size});save();renderVideos()}catch(e){alert('Video could not be saved. Browser storage may be full.')}}const onboardUrls=new Set();
+function clearOnboardUrls(){for(const u of onboardUrls)URL.revokeObjectURL(u);onboardUrls.clear()}
+async function renderVideos(){
+ const root=$('#videoList');if(!root)return;
+ clearOnboardUrls();const videos=getTrack().videos||[];
+ root.innerHTML=videos.length?'':'<div class="empty">No onboard videos uploaded for this circuit yet.</div>';
+ const grid=document.createElement('div');grid.className='dn-video-grid';root.append(grid);
+ for(const v of videos){
+  if(!root.isConnected)break;
+  const box=document.createElement('div');box.className='dn-video-tile';box.dataset.videoId=v.id;
+  const preview=document.createElement('button');preview.type='button';preview.className='dn-video-preview';preview.title='Open '+v.name;
+  const play=document.createElement('span');play.className='dn-play';play.textContent='▶';preview.append(play);
+  const title=document.createElement('div');title.className='dn-video-title';title.textContent=v.name;
+  const size=document.createElement('div');size.className='muted dn-video-size';size.textContent=((v.size||0)/1048576).toFixed(1)+' MB';
+  const actions=document.createElement('div');actions.className='dn-video-actions';
+  const rename=document.createElement('button');rename.className='light';rename.textContent='✎ Rename';rename.onclick=()=>renameOnboardVideo(v.id);
+  const del=document.createElement('button');del.className='danger';del.textContent='Delete';del.onclick=()=>removeVideo(v.id);
+  actions.append(rename,del);box.append(preview,title,size,actions);grid.append(box);
+  preview.onclick=()=>openOnboardVideo(v.id);
+  try{const file=await loadVideo(v.id);if(!file||!box.isConnected)continue;
+   const url=URL.createObjectURL(file);onboardUrls.add(url);
+   const video=document.createElement('video');video.className='dn-video-thumb';video.muted=true;video.preload='metadata';video.playsInline=true;video.src=url;
+   video.addEventListener('loadedmetadata',()=>{try{video.currentTime=Math.min(1,Math.max(0,(video.duration||0)/3))}catch(e){}});
+   preview.prepend(video);
+  }catch(e){size.textContent+=' · File unavailable';}
+ }
+}
+function renameOnboardVideo(id){const v=(getTrack().videos||[]).find(x=>x.id===id);if(!v)return;
+ const name=prompt('New video name:',v.name);if(name===null)return;const trimmed=name.trim();if(!trimmed)return alert('Please enter a name.');
+ v.name=trimmed;save();renderVideos();
+}
+async function openOnboardVideo(id){
+ const v=(getTrack().videos||[]).find(x=>x.id===id);if(!v)return;
+ let file;try{file=await loadVideo(id)}catch(e){}
+ if(!file)return alert('This video is unavailable on this device.');
+ closeOnboardPlayer();
+ const url=URL.createObjectURL(file);
+ const overlay=document.createElement('div');overlay.id='dnVideoOverlay';overlay.className='dn-video-overlay';
+ const bar=document.createElement('div');bar.className='dn-player-bar';
+ const label=document.createElement('strong');label.textContent=v.name;
+ const fullscreen=document.createElement('button');fullscreen.textContent='⛶ Full screen';fullscreen.className='light';
+ const close=document.createElement('button');close.textContent='✕ Close';close.className='light';close.onclick=closeOnboardPlayer;
+ bar.append(label,fullscreen,close);
+ const video=document.createElement('video');video.controls=true;video.autoplay=true;video.playsInline=true;video.src=url;video.className='dn-player-video';
+ fullscreen.onclick=()=>{if(video.requestFullscreen)video.requestFullscreen().catch(()=>{});else if(video.webkitEnterFullscreen)video.webkitEnterFullscreen()};
+ overlay.append(bar,video);document.body.append(overlay);document.body.style.overflow='hidden';
+ overlay.addEventListener('click',e=>{if(e.target===overlay)closeOnboardPlayer()});
+ overlay.dataset.url=url;
+ video.play().catch(()=>{});
+}
+function closeOnboardPlayer(){const overlay=document.getElementById('dnVideoOverlay');if(!overlay)return;
+ const v=overlay.querySelector('video');if(v)v.pause();
+ if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+ URL.revokeObjectURL(overlay.dataset.url);overlay.remove();document.body.style.overflow='';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeOnboardPlayer()});
+async function removeVideo(id){if(!confirm('Delete this onboard video?'))return;getTrack().videos=getTrack().videos.filter(v=>v.id!==id);save();await removeVideoBlob(id);renderVideos()}
+function generalPage(){$('#view').innerHTML=`<div class="flex between"><div><h1>Car Info</h1><div class="muted">Technical references, driving reminders and setup notes — organized by car, independent of circuit.</div></div><button class="primary" onclick="addGeneralCar()">＋ Add car</button></div><div class="grid section">${state.cars.map(c=>`<div class="card"><h2>🏎️ ${esc(c.name)}</h2><p class="muted">${esc((typeof state.general[c.id]==='string'?state.general[c.id]:(state.general[c.id]?.text||'')).slice(0,110))||'No notes yet.'}</p><div class="toolbar"><button class="light" onclick="editGeneral('${c.id}')">Open / Edit →</button><button class="light" onclick="renameCar('${c.id}')">✎ Rename</button></div></div>`).join('')||'<div class="card empty">No cars yet. Add a car to start.</div>'}</div>`}function addGeneralCar(){modal('Add car',`<label>Car name</label><input id="generalCarName" placeholder="e.g. Dallara F3"><div class="toolbar"><button class="primary" onclick="let n=$('#generalCarName').value.trim();if(!n)return;let c=state.cars.find(c=>c.name.toLowerCase()===n.toLowerCase());if(!c){c={id:uid(),name:n};state.cars.push(c);save()}closeModal();editGeneral(c.id)">Add car</button></div>`)}let infoCarId=null,drawMode=false,drawActive=false,drawCtx=null,drawCanvas=null;
+function editGeneral(id){infoCarId=id;navigate('carinfo')}
+function carInfoPage(){let c=state.cars.find(x=>x.id===infoCarId);if(!c)return navigate('general');let v=state.general[c.id];let plain=typeof v==='string'?v:(v?.text||'');let html=typeof v==='object'&&v?.html?v.html:null;let sketch=typeof v==='object'&&v?.drawing?v.drawing:'';
+$('#view').innerHTML=`<button class="back" onclick="navigate('general')">← All cars</button><div class="flex between"><div><h1>Car Info · ${esc(c.name)}</h1><div class="muted">Write and edit your car notes.</div></div><button class="light" onclick="renameCar('${c.id}')">Rename car</button></div><section class="card section"><h2>Notes</h2><div class="muted">Click inside to write and format your notes.</div><div class="editor-controls"><button class="light" onclick="formatCarText('bold')">B Bold</button><button class="light" onclick="formatCarText('insertUnorderedList')">• List</button><button class="light" onclick="formatCarText('formatBlock','h3')">Heading</button></div><div id="generalEditor" class="rich-notes" contenteditable="true" spellcheck="true" aria-label="Editable car notes"></div><div id="imageControls" class="editor-controls hide"><span class="muted" style="align-self:center">Selected drawing:</span><label style="display:flex;align-items:center;gap:7px;margin:0"><input type="checkbox" id="imageBorderToggle" style="width:auto" onchange="toggleCarImageBorder(this.checked)"> Add border</label></div><div class="toolbar"><button class="primary" onclick="saveCarInfo()">Save changes</button></div></section>`;
+const editor=$('#generalEditor');if(html){editor.innerHTML=sanitizeCarHtml(html)}else{editor.textContent=plain;if(sketch){let img=document.createElement('img');img.src=sketch;img.className='inline-sketch';img.dataset.align='center';editor.append(img)}}
+editor.querySelectorAll('img.inline-sketch').forEach(img=>img.draggable=true);editor.addEventListener('click',e=>{if(e.target.matches('img.inline-sketch'))selectCarImage(e.target);else selectCarImage(null)});editor.addEventListener('keyup',rememberCarCaret);editor.addEventListener('mouseup',rememberCarCaret);editor.addEventListener('focus',rememberCarCaret);editor.addEventListener('dragstart',e=>{const img=e.target.closest('img.inline-sketch');if(!img)return;draggedCarImage=img;selectCarImage(img);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','driver-notes-inline-image')});
+editor.addEventListener('dragover',e=>{if(!draggedCarImage)return;e.preventDefault();e.dataTransfer.dropEffect='move';editor.classList.add('drag-image-over')});
+editor.addEventListener('dragleave',e=>{if(!editor.contains(e.relatedTarget))editor.classList.remove('drag-image-over')});
+editor.addEventListener('drop',e=>{if(!draggedCarImage)return;e.preventDefault();editor.classList.remove('drag-image-over');const img=draggedCarImage;let range=document.caretRangeFromPoint?.(e.clientX,e.clientY);if(!range&&document.caretPositionFromPoint){const pos=document.caretPositionFromPoint(e.clientX,e.clientY);if(pos){range=document.createRange();range.setStart(pos.offsetNode,pos.offset);range.collapse(true)}}if(range&&editor.contains(range.startContainer)){range.collapse(true);range.insertNode(img);img.insertAdjacentText('afterend',' ')}else editor.append(img);selectCarImage(img);draggedCarImage=null;saveCarInfoQuiet()});
+editor.addEventListener('dragend',()=>{draggedCarImage=null;editor.classList.remove('drag-image-over')});
+selectedCarImage=null;carCaret=null;}
+let selectedCarImage=null,carCaret=null,draggedCarImage=null;
+function rememberCarCaret(){let sel=window.getSelection(),ed=$('#generalEditor');if(sel?.rangeCount&&ed?.contains(sel.anchorNode))carCaret=sel.getRangeAt(0).cloneRange()}
+function formatCarText(cmd,value){$('#generalEditor').focus();document.execCommand(cmd,false,value||null)}
+function selectCarImage(img){document.querySelectorAll('#generalEditor img.chosen').forEach(x=>x.classList.remove('chosen'));selectedCarImage=img;if(img){img.classList.add('chosen');img.draggable=true}$('#imageControls')?.classList.toggle('hide',!img);if($('#imageBorderToggle'))$('#imageBorderToggle').checked=!!img?.classList.contains('has-border')}
+function toggleCarImageBorder(on){if(!selectedCarImage)return;selectedCarImage.classList.toggle('has-border',on);saveCarInfoQuiet()}
+function setDrawTool(erase){drawMode=erase;$('#penButton').classList.toggle('on',!erase);$('#eraserButton').classList.toggle('on',erase)}
+function drawPoint(e){let r=drawCanvas.getBoundingClientRect();return [(e.clientX-r.left)*drawCanvas.width/r.width,(e.clientY-r.top)*drawCanvas.height/r.height]}
+function drawStart(e){if(!drawCtx)return;e.preventDefault();drawActive=true;drawCanvas.setPointerCapture(e.pointerId);let [x,y]=drawPoint(e);drawCtx.beginPath();drawCtx.moveTo(x,y);drawCtx.lineTo(x+.01,y+.01);drawCtx.strokeStyle=drawMode?'#ffffff':$('#drawColor').value;drawCtx.lineWidth=Number($('#drawSize').value)*(drawMode?4:1);drawCtx.stroke()}
+function drawMove(e){if(!drawActive)return;e.preventDefault();let [x,y]=drawPoint(e);drawCtx.lineTo(x,y);drawCtx.stroke()}
+function drawEnd(){drawActive=false}
+function clearDrawing(){if(confirm('Clear the drawing pad?')){drawCtx.fillStyle='white';drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height)}}
+function finishDrawing(){let ed=$('#generalEditor');if(!ed)return;let img=document.createElement('img');img.src=drawCanvas.toDataURL('image/png');img.className='inline-sketch';img.style.width='35%';img.draggable=true;img.alt='Driver sketch';let sel=window.getSelection();if(carCaret&&ed.contains(carCaret.commonAncestorContainer)){let r=carCaret.cloneRange();r.collapse(false);r.insertNode(img);r.setStartAfter(img);r.collapse(true);sel.removeAllRanges();sel.addRange(r)}else ed.append(img);selectCarImage(img);img.scrollIntoView({block:'nearest'});drawCtx.fillStyle='white';drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);saveCarInfoQuiet()}
+function sanitizeCarHtml(html){let doc=new DOMParser().parseFromString(html,'text/html');doc.querySelectorAll('script,style,iframe,object,embed,svg,form').forEach(x=>x.remove());doc.querySelectorAll('*').forEach(el=>{for(const attr of [...el.attributes]){if(attr.name.startsWith('on')||attr.name==='srcdoc'||(attr.name==='href'&&/^javascript:/i.test(attr.value)))el.removeAttribute(attr.name)}if(el.tagName==='IMG'&&!/^data:image\/(png|jpeg|webp);base64,/i.test(el.getAttribute('src')||''))el.remove()});return doc.body.innerHTML}
+function saveCarInfoQuiet(){try{let ed=$('#generalEditor');if(!ed||!infoCarId)return;let old=state.general[infoCarId];state.general[infoCarId]={text:ed.innerText,html:sanitizeCarHtml(ed.innerHTML)};save()}catch(e){console.warn('Car Info save failed',e)}}
+function saveCarInfo(){if(!infoCarId)return;try{let ed=$('#generalEditor');state.general[infoCarId]={text:ed.innerText,html:sanitizeCarHtml(ed.innerHTML)};save();navigate('general')}catch(e){alert('Unable to save. Browser storage may be full; try smaller drawings or export a backup.')}}
+function renameCar(id){let c=state.cars.find(x=>x.id===id);if(!c)return;modal('Rename car',`<label>Car name</label><input id="renameCarInput" value="${esc(c.name)}" maxlength="80"><div class="toolbar"><button class="primary" onclick="confirmRenameCar('${id}')">Save name</button><button class="light" onclick="closeModal()">Cancel</button></div>`);$('#renameCarInput').focus();$('#renameCarInput').select();$('#renameCarInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmRenameCar(id)})}function confirmRenameCar(id){let c=state.cars.find(x=>x.id===id),name=$('#renameCarInput')?.value.trim();if(!c||!name)return alert('Enter a car name');if(state.cars.some(x=>x.id!==id&&x.name.toLowerCase()===name.toLowerCase()))return alert('A car with this name already exists');c.name=name;save();closeModal();render()}
+function exportData(){let blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='driver-notes-backup.json';a.click();URL.revokeObjectURL(a.href)}async function importData(file){if(!file)return;try{let x=JSON.parse(await file.text());if(!Array.isArray(x.tracks)||!Array.isArray(x.cars))throw Error();if(!confirm('Replace current circuits and notes with the imported backup? (Video files are not included in JSON backups.)'))return;state=x;save();navigate('home')}catch(e){alert('Invalid backup file')}}document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>navigate(n.dataset.page));render();
+
+// Drag-and-drop maps: accepts local files, image URLs, and HTML image drags from Google Images.
+let dragDepth=0;
+function droppedImageUrl(dt){
+  const html=dt.getData('text/html')||'';
+  if(html){const holder=document.createElement('div');holder.innerHTML=html;
+    const img=holder.querySelector('img');if(img){const src=img.getAttribute('src')||'';
+      if(/^https?:\/\//i.test(src))return src;}}
+  const uri=(dt.getData('text/uri-list')||'').split('\n').find(x=>/^https?:\/\//i.test(x.trim()));
+  if(uri && /\.(png|jpe?g|webp|gif|svg)(\?|#|$)/i.test(uri))return uri.trim();
+  const plain=(dt.getData('text/plain')||'').trim();
+  if(/^https?:\/\//i.test(plain) && /\.(png|jpe?g|webp|gif|svg)(\?|#|$)/i.test(plain))return plain;
+  return '';
+}
+function setDroppedMapUrl(url){
+  const t=getTrack();if(!t)return;
+  t.map=url;t.mapSource='Dragged online image (internet may be required)';t.mapStatus='found';
+  try{save();render()}catch(e){alert('Could not save the image link.');}
+}
+document.addEventListener('dragover',e=>{
+  const map=document.querySelector('#map');if(!map||!e.dataTransfer)return;
+  if([...e.dataTransfer.types].some(x=>['Files','text/uri-list','text/html','text/plain'].includes(x))){
+    e.preventDefault();e.dataTransfer.dropEffect='copy';map.classList.add('drag-target');
+  }
+});
+document.addEventListener('dragleave',e=>{
+  if(e.relatedTarget===null)document.querySelector('#map')?.classList.remove('drag-target');
+});
+document.addEventListener('drop',e=>{
+  const map=document.querySelector('#map');if(!map)return;
+  e.preventDefault();map.classList.remove('drag-target');
+  const dt=e.dataTransfer;if(!dt)return;
+  const file=[...dt.files].find(f=>f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(f.name));
+  if(file){uploadMap(file);return;}
+  const url=droppedImageUrl(dt);
+  if(url){setDroppedMapUrl(url);return;}
+  alert('No image found. Try dragging the picture itself from Google Images, or save it and use Upload map image.');
+});
+</script><script>
+/* Free-position drawing interaction: drag to a text location, resize from the blue corner.
+   Image stays in normal document flow so surrounding text reflows. */
+(function(){
+let active=null,handle=null,operation=null,placeholder=null;
+const ed=()=>document.getElementById('generalEditor');
+function ensureHandle(){
+  if(!handle){handle=document.createElement('div');handle.id='sketchResizeHandle';handle.title='Drag to resize';handle.hidden=true;handle.addEventListener('pointerdown',e=>{
+    if(!active)return;e.preventDefault();e.stopPropagation();operation={type:'resize',id:e.pointerId,x:e.clientX,y:e.clientY,w:active.getBoundingClientRect().width};handle.setPointerCapture(e.pointerId);
+  });handle.addEventListener('pointermove',e=>{if(operation?.type!=='resize')return;e.preventDefault();let box=ed().getBoundingClientRect();let w=Math.max(65,Math.min(box.width*.9,operation.w+e.clientX-operation.x));active.style.width=w+'px';active.style.height='auto';positionHandle()});
+  handle.addEventListener('pointerup',()=>{if(operation?.type==='resize'){operation=null;saveCarInfoQuiet();positionHandle()}});
+  handle.addEventListener('pointercancel',()=>{operation=null;positionHandle()});}
+  if(ed()&&handle.parentNode!==ed())ed().append(handle);
+}
+function positionHandle(){if(!active||!ed()?.contains(active)){if(handle)handle.hidden=true;return;}ensureHandle();let r=active.getBoundingClientRect(),p=ed().getBoundingClientRect();handle.hidden=false;handle.style.left=(r.right-p.left+ed().scrollLeft-7)+'px';handle.style.top=(r.bottom-p.top+ed().scrollTop-7)+'px';}
+function choose(img){if(!ed())return;active=img;ed().querySelectorAll('img.inline-sketch').forEach(x=>{x.classList.toggle('chosen',x===img);x.draggable=false});ensureHandle();positionHandle();}
+function targetAt(x,y){let el=document.elementFromPoint(x,y);if(!el||!ed()?.contains(el))return null;let range=document.caretRangeFromPoint?.(x,y);if(!range&&document.caretPositionFromPoint){let p=document.caretPositionFromPoint(x,y);if(p){range=document.createRange();range.setStart(p.offsetNode,p.offset);range.collapse(true)}}return range}
+function moveTo(x,y){
+ const editor=ed();if(!editor||!active)return;
+ const bounds=editor.getBoundingClientRect();
+ const img=active;
+ // Use a floating image rather than a block: surrounding text flows beside it.
+ // Insert at the nearest line/paragraph to give continuous vertical placement.
+ const range=targetAt(x,y);
+ if(range&&editor.contains(range.startContainer)&&!img.contains(range.startContainer)){
+   range.collapse(true);
+   try{range.insertNode(img)}catch(_){editor.append(img)}
+ }else if(y>bounds.bottom-25){editor.append(img)}
+ const w=img.getBoundingClientRect().width;
+ const contentWidth=Math.max(w+12,editor.clientWidth-40);
+ const cx=x-bounds.left-20;
+ const center=cx-w/2;
+ // Float left/right with a variable margin. This allows a continuously adjustable
+ // horizontal position while preserving real CSS text wrapping on both sides where possible.
+ const toRight=center>contentWidth/2-w/2;
+ const inset=Math.max(0,Math.min(contentWidth-w-8,toRight?contentWidth-(center+w):center));
+ img.style.display='block';
+ img.style.clear='none';
+ img.style.float=toRight?'right':'left';
+ img.style.marginTop='4px';
+ img.style.marginBottom='10px';
+ img.style.marginLeft=toRight?'12px':inset+'px';
+ img.style.marginRight=toRight?inset+'px':'12px';
+ img.style.transform='';
+ // Avoid inserting the floating image into a heading or a nested inline element.
+ // The float remains part of the editable document and persists when saved.
+}
+
+document.addEventListener('pointerdown',e=>{
+ const editor=ed();if(!editor)return;let img=e.target.closest?.('#generalEditor img.inline-sketch');
+ if(!img){if(!e.target.closest?.('#sketchResizeHandle')){active=null;if(handle)handle.hidden=true;}return;}
+ e.preventDefault();e.stopPropagation();choose(img);operation={type:'move',id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};img.setPointerCapture(e.pointerId);
+},true);
+document.addEventListener('pointermove',e=>{
+ if(operation?.type!=='move'||!active||e.pointerId!==operation.id)return;
+ if(Math.hypot(e.clientX-operation.x,e.clientY-operation.y)>5)operation.moved=true;
+ if(operation.moved){e.preventDefault();ed()?.classList.add('sketch-moving');active.style.transform='translate('+(e.clientX-operation.x)+'px,'+(e.clientY-operation.y)+'px)';positionHandle()}
+},true);
+document.addEventListener('pointerup',e=>{if(operation?.type==='move'&&e.pointerId===operation.id){if(operation.moved){active.style.transform='';moveTo(e.clientX,e.clientY);saveCarInfoQuiet()}ed()?.classList.remove('sketch-moving');operation=null;positionHandle()}},true);
+document.addEventListener('pointercancel',()=>{if(active)active.style.transform='';operation=null;ed()?.classList.remove('sketch-moving')},true);
+document.addEventListener('click',e=>{let img=e.target.closest?.('#generalEditor img.inline-sketch');if(img){choose(img);setTimeout(positionHandle,0)}},true);
+document.addEventListener('scroll',()=>positionHandle(),true);
+window.addEventListener('resize',positionHandle);
+new MutationObserver(()=>{if(ed()){ed().querySelectorAll('img.inline-sketch').forEach(x=>x.draggable=false);if(active&&!ed().contains(active)){active=null;if(handle)handle.hidden=true}}}).observe(document.getElementById('view'),{subtree:true,childList:true});
+})();
+</script><style>
+body.dark-mode{background:#0d1523;color:#e8eef9}body.dark-mode .main{color:#e8eef9}body.dark-mode .card,body.dark-mode .modal{background:#19283c;border-color:#34445c;color:#e8eef9}body.dark-mode .muted,body.dark-mode .empty{color:#b3c2d5}body.dark-mode input,body.dark-mode textarea,body.dark-mode select,body.dark-mode .rich-notes{background:#102034;color:#f0f4fa;border-color:#405574}body.dark-mode button.light,body.dark-mode .chip{background:#304765;color:#e3efff}body.dark-mode .note{border-color:#41536b}body.dark-mode .map{background:#243954}body.dark-mode .note small{color:#bcc9d9}body.dark-mode .videoItem{border-color:#405574}
+.gallery-shell{position:relative;margin:20px 0 26px;overflow:hidden;border-radius:20px;background:#172c47;min-height:180px}.gallery-photo{width:100%;height:300px;object-fit:contain;display:block}.gallery-empty{padding:55px 20px;text-align:center;color:#dbe8f9}.gallery-controls{position:absolute;bottom:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;color:white;text-shadow:0 1px 3px #000}.gallery-controls button{background:#ffffffd9;color:#172c47;padding:7px 12px}.settings-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:12px 0}.settings-row input[type=checkbox]{width:22px;height:22px}.photo-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:15px}.photo-tile{position:relative}.photo-tile img{width:100%;height:100px;object-fit:cover;border-radius:10px}.photo-tile button{width:100%;margin-top:5px}.help-text{font-size:12px;color:#718198;line-height:1.6}
+</style>
+<script>
+/* Gallery photos are stored as Blobs in IndexedDB, not the small localStorage JSON. */
+const PREFS_KEY='driver-notes-settings-v1';let dnPrefs={dark:false,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')};let dnPhotos=[],dnSlide=0,dnGalleryTimer=null;
+function applyDriverTheme(){document.body.classList.toggle('dark-mode',!!dnPrefs.dark)}
+function persistDriverPrefs(){localStorage.setItem(PREFS_KEY,JSON.stringify(dnPrefs));applyDriverTheme()}
+function photoDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open('driver-notes-gallery-v1',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('photos'))req.result.createObjectStore('photos',{keyPath:'id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function photoAll(){let db=await photoDB();return new Promise((resolve,reject)=>{let r=db.transaction('photos').objectStore('photos').getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error)})}
+async function photoPut(item){let db=await photoDB();return new Promise((resolve,reject)=>{let tx=db.transaction('photos','readwrite');tx.objectStore('photos').put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function photoDelete(id){let db=await photoDB();return new Promise((resolve,reject)=>{let tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function refreshPhotos(){try{dnPhotos=await photoAll();dnPhotos.sort((a,b)=>a.created-b.created);dnSlide=Math.min(dnSlide,Math.max(0,dnPhotos.length-1));if(page==='home')renderGallery();if(page==='settings')renderPhotoList()}catch(e){console.warn('Gallery unavailable',e)}}
+function galleryMarkup(){return `<section class="gallery-shell slide-gallery" aria-label="Circuit photos"><div id="driverGallery"><div class="gallery-empty">🏁 Add your photos in Settings to create your slideshow.</div></div></section>`}
+let dnShownUrl=null;
+function renderGallery(){let box=document.getElementById('driverGallery');if(!box)return;if(!dnPhotos.length){box.innerHTML='<div class="gallery-empty">🏁 Add photos in Settings to create your slideshow.</div>';return}const p=dnPhotos[dnSlide];const url=URL.createObjectURL(p.file);const old=box.querySelector('.gallery-photo.current');const img=document.createElement('img');img.className='gallery-photo incoming';img.alt=p.name||'Racing photo';img.src=url;box.prepend(img);requestAnimationFrame(()=>requestAnimationFrame(()=>{img.classList.remove('incoming');img.classList.add('current');if(old){old.classList.remove('current');old.classList.add('outgoing');setTimeout(()=>{old.remove();if(dnShownUrl)URL.revokeObjectURL(dnShownUrl);dnShownUrl=url},850)}else{dnShownUrl=url}}));box.querySelector('.gallery-controls')?.remove()}
+function shiftGallery(dir){if(!dnPhotos.length)return;dnSlide=(dnSlide+dir+dnPhotos.length)%dnPhotos.length;renderGallery()}
+const dnOriginalHome=home;home=function(){dnOriginalHome();const grid=document.querySelector('#view .grid');if(grid){const stage=document.createElement('div');stage.className='home-stage';stage.innerHTML=galleryMarkup()+'<div class="home-circuit-list"><div class="home-circuit-heading"><h2>My Circuits</h2></div></div>';grid.parentNode.insertBefore(stage,grid);stage.querySelector('.home-circuit-list').append(grid)}renderGallery()};
+const dnOriginalRender=render;render=function(){if(page==='settings')return driverSettingsPage();return dnOriginalRender()};
+function driverSettingsPage(){$('#view').innerHTML=`<div class="flex between"><div><h1>Settings</h1><p class="muted">Personalize Driver Notes.</p></div></div><section class="card section"><h2>Appearance</h2><div class="settings-row"><div><b>Dark Mode</b><div class="muted">Switch between light and dark backgrounds.</div></div><label style="margin:0"><input type="checkbox" ${dnPrefs.dark?'checked':''} onchange="dnPrefs.dark=this.checked;persistDriverPrefs()" aria-label="Dark mode"></label></div></section><section class="card section"><h2>Share Driver Notes</h2><p class="muted">Share the website with another driver, or share the HTML file when using the local version.</p><div class="toolbar"><button class="primary" onclick="shareDriverApp()">↗ Share App</button><button class="light" onclick="downloadDriverSite()">↓ Download website file</button></div><p id="shareStatus" class="help-text">To share a working website link, Driver Notes must be published online. Sharing the HTML file does not share your personal notes.</p></section><section class="card section"><h2>Data & Backup</h2><div class="toolbar"><button class="light" onclick="exportData()">↓ Export notes backup</button><button class="light" onclick="document.getElementById('settingsImport').click()">↑ Import notes backup</button><input class="hide" id="settingsImport" type="file" accept="application/json" onchange="importData(this.files[0])"></div><p class="help-text">Keep regular backups. Removing browser data can delete local notes and videos.</p></section>`;renderPhotoList()}
+const dnPhotoUrls=new Map();
+function renderPhotoList(){let root=document.getElementById('galleryPhotoList');if(!root)return;for(const u of dnPhotoUrls.values())URL.revokeObjectURL(u);dnPhotoUrls.clear();root.replaceChildren();if(!dnPhotos.length){root.innerHTML='<div class="muted">No photos yet.</div>';return}const fragment=document.createDocumentFragment();dnPhotos.forEach(p=>{let url=URL.createObjectURL(p.file);dnPhotoUrls.set(p.id,url);let el=document.createElement('div');el.className='photo-tile';el.dataset.photoId=p.id;let im=document.createElement('img');im.src=url;im.alt=p.name||'Gallery photo';im.loading='lazy';let btn=document.createElement('button');btn.className='danger';btn.textContent='Remove';btn.onclick=async()=>{btn.disabled=true;btn.textContent='Removing…';try{await photoDelete(p.id);dnPhotos=dnPhotos.filter(x=>x.id!==p.id);dnSlide=Math.min(dnSlide,Math.max(0,dnPhotos.length-1));el.remove();URL.revokeObjectURL(url);dnPhotoUrls.delete(p.id);if(!dnPhotos.length)root.innerHTML='<div class="muted">No photos yet.</div>'}catch(e){btn.disabled=false;btn.textContent='Remove';alert('Could not remove photo. Please try again.')}};el.append(im,btn);fragment.append(el)});root.append(fragment)}
+async function uploadGalleryPhotos(files){let imgs=[...files].filter(f=>f.type.startsWith('image/')||/\.(heic|heif)$/i.test(f.name));if(!imgs.length)return alert('Please select image files.');const btn=document.querySelector('button[onclick*="galleryInput"]');if(btn){btn.disabled=true;btn.textContent='Adding photos…'}try{for(let f of imgs){let item={id:uid(),name:f.name,file:f,created:Date.now()+Math.random()};await photoPut(item);dnPhotos.push(item)}dnPhotos.sort((a,b)=>a.created-b.created);renderPhotoList()}catch(e){alert('Could not save some photos. Storage may be full.')}finally{if(btn){btn.disabled=false;btn.textContent='＋ Add photos from Library / Files'}}}
+function downloadDriverSite(){const clone=document.documentElement.cloneNode(true);const blob=new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html'});const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download='Driver_Notes.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+async function shareDriverApp(){const status=document.getElementById('shareStatus');const local=location.protocol==='file:'||location.protocol==='blob:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';if(local){status.textContent='This version is a local HTML file. Use Download website file to send the site to another driver. To share an installable link, publish it on HTTPS first.';return}try{const url=location.href;if(navigator.share){await navigator.share({title:'Driver Notes',text:'Driver Notes racing trackbook',url});status.textContent='Share sheet opened.'}else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);status.textContent='Website link copied to clipboard.'}else{window.prompt('Copy this website link:',url)}}catch(e){if(e.name!=='AbortError'){status.textContent='Could not open sharing. Copy the URL from your browser address bar.'}}}
+applyDriverTheme();
+</script>
+<style>
+/* Gallery on the left, large circuit cards on the right, remaining tracks below in two columns. */
+#view .home-stage{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:18px!important;align-items:start!important;margin-top:18px}
+#view .home-stage .gallery-shell,#view .home-stage #driverGallery{height:560px!important;min-height:560px!important;margin:0!important;border-radius:16px}
+#view .home-stage .gallery-shell{position:relative!important;overflow:hidden}
+#view .home-stage .gallery-photo{object-fit:cover!important}
+#view .home-stage .gallery-controls{display:none!important}
+#view .home-stage .home-circuit-list{min-width:0;display:contents!important}
+#view .home-stage .home-circuit-heading{grid-column:2;grid-row:1;margin:0 0 8px;display:none}
+#view .home-stage .home-circuit-list .grid{display:contents!important}
+#view .home-stage .trackCard{padding:17px 18px!important;min-height:76px!important;border-radius:12px!important;cursor:pointer;position:relative}
+#view .home-stage .trackCard h2{font-size:16px!important;line-height:1.35}
+#view .home-stage .trackCard .muted,#view .home-stage .trackCard p,#view .home-stage .trackCard button{display:none!important}
+#view .home-stage .trackCard .flex span{font-size:18px!important}
+#view .home-stage .trackCard:after{content:'→';position:absolute;right:15px;bottom:14px;color:#7c8ba2}
+#view .home-stage .trackCard.featured-circuit{grid-column:2!important}
+#view .home-stage .trackCard.remaining-circuit{grid-column:auto!important}
+#view .home-stage .gallery-shell{grid-column:1;grid-row:1 / span 6}
+#view .home-stage .trackCard:nth-of-type(n){margin:0}
+@media(max-width:800px){#view .home-stage{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important}#view .home-stage .gallery-shell,#view .home-stage #driverGallery{height:430px!important;min-height:430px!important}#view .home-stage .trackCard{min-height:65px!important;padding:12px!important}#view .home-stage .trackCard h2{font-size:13px!important}}
+@media(max-width:520px){#view .home-stage{grid-template-columns:1fr 1fr!important}#view .home-stage .gallery-shell{grid-column:1 / -1;grid-row:auto}#view .home-stage .trackCard.featured-circuit{grid-column:auto!important}#view .home-stage .gallery-shell,#view .home-stage #driverGallery{height:330px!important;min-height:330px!important}}
+</style>
+<script>
+(function(){
+ const previousHome=home;
+ home=function(){
+   previousHome();
+   const stage=document.querySelector('#view .home-stage');
+   if(!stage)return;
+   const cards=[...stage.querySelectorAll('.trackCard')];
+   // First six circuits beside the photograph; the remaining circuits flow below in two columns.
+   cards.forEach((card,i)=>{
+     card.classList.add(i<6?'featured-circuit':'remaining-circuit');
+     if(i<6){card.style.gridColumn='2';card.style.gridRow=String(i+1)}
+     else{card.style.gridColumn='';card.style.gridRow=''}
+   });
+   stage.querySelector('.gallery-controls')?.remove();
+ };
+ if(page==='home')home();
+})();
+</script>
+<style id="racing-circuit-card-style">
+/* Motorsport-inspired blue circuit cards; gallery layout and placement untouched. */
+#view .home-stage .trackCard {
+  --race-blue:#0757ba;
+  position:relative!important;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:76px!important;
+  padding:14px 50px 14px 27px!important;
+  border:1px solid #1c5cb3!important;
+  border-top:0!important;
+  border-radius:3px!important;
+  background:linear-gradient(115deg,#0d2c59 0%,#0b3d7c 52%,#071b39 100%)!important;
+  box-shadow:0 3px 9px #092d581c!important;
+  color:#fff!important;
+  transition:box-shadow .2s ease,filter .2s ease,transform .2s ease;
+}
+#view .home-stage .trackCard:nth-of-type(even){
+  background:linear-gradient(115deg,#e9f3ff 0%,#fff 65%,#d9e9ff 100%)!important;
+  border-color:#b6d0f2!important;
+  color:#092e61!important;
+}
+#view .home-stage .trackCard::before {
+  content:'';position:absolute;z-index:-1;left:0;top:0;bottom:0;width:39px;
+  background:linear-gradient(150deg,#37a2ff,#0756ba);
+  clip-path:polygon(0 0,100% 0,44% 100%,0 100%);
+}
+#view .home-stage .trackCard::after {
+  content:'›'!important;position:absolute;right:15px!important;top:50%!important;bottom:auto!important;
+  transform:translateY(-50%);font-size:29px;font-weight:400;color:#66b8ff!important;
+}
+#view .home-stage .trackCard h2 {
+  color:inherit!important;font-size:17px!important;line-height:1.22!important;
+  font-weight:900!important;letter-spacing:.025em;text-transform:uppercase;
+  max-width:100%;margin:0!important;
+}
+#view .home-stage .trackCard .flex {gap:5px!important;align-items:center!important}
+#view .home-stage .trackCard .flex span {display:none!important}
+#view .home-stage .trackCard:hover {transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 9px 22px #0a36602c!important}
+body.dark-mode #view .home-stage .trackCard:nth-of-type(even){background:linear-gradient(115deg,#123d77,#0c2850)!important;color:#f1f7ff!important;border-color:#356cb0!important}
+@media(max-width:800px){#view .home-stage .trackCard{padding:10px 28px 10px 18px!important;min-height:65px!important}#view .home-stage .trackCard h2{font-size:13px!important}#view .home-stage .trackCard::before{width:24px}#view .home-stage .trackCard::after{right:7px!important;font-size:22px}}
+</style>
+
+<style id="white-country-circuit-cards">
+/* White FIA-inspired cards, blue angled strip, country below circuit name. */
+#view .home-stage .trackCard,
+#view .home-stage .trackCard:nth-of-type(even),
+body.dark-mode #view .home-stage .trackCard,
+body.dark-mode #view .home-stage .trackCard:nth-of-type(even) {
+ background:#fff!important;color:#15243a!important;border:1px solid #d5e1f0!important;
+ border-radius:3px!important;padding:13px 42px 13px 57px!important;
+ min-height:76px!important;
+}
+#view .home-stage .trackCard::before{width:39px!important;z-index:0!important;background:linear-gradient(150deg,#3296f5,#0756ba)!important}
+#view .home-stage .trackCard .flex{position:relative;z-index:1}
+#view .home-stage .trackCard h2{color:#102947!important;font-size:17px!important}
+#view .home-stage .trackCard .muted.country-label{
+ display:block!important;position:relative;z-index:1;
+ color:#66778d!important;font-size:12px!important;font-weight:700!important;
+ letter-spacing:.035em;margin-top:5px!important;text-transform:uppercase;
+}
+#view .home-stage .trackCard p,#view .home-stage .trackCard button{display:none!important}
+#view .home-stage .trackCard::after{color:#1474c7!important}
+@media(max-width:800px){
+ #view .home-stage .trackCard,#view .home-stage .trackCard:nth-of-type(even){padding:11px 27px 11px 39px!important;min-height:72px!important}
+ #view .home-stage .trackCard::before{width:27px!important}
+ #view .home-stage .trackCard h2{font-size:13px!important}
+ #view .home-stage .trackCard .muted.country-label{font-size:10px!important}
+}
+</style>
+<script>
+(function(){
+ const beforeCountryHome=home;
+ home=function(){
+  beforeCountryHome();
+  document.querySelectorAll('#view .home-stage .trackCard').forEach(card=>{
+   const location=card.querySelector('.muted');
+   if(!location)return;
+   const raw=location.textContent.trim();
+   const country=raw.includes(',')?raw.split(',').pop().trim():raw;
+   location.textContent=country==='Circuit'?'':country;
+   location.classList.add('country-label');
+  });
+ };
+ if(page==='home')home();
+})();
+</script>
+
+<style id="precise-home-alignment">
+/* Keep the existing gallery and card design; align the seventh circuit precisely
+   with the bottom edge of the photo by making the first six rows fill it. */
+@media(min-width:801px){
+ #view .home-stage{grid-template-rows:repeat(6,calc((560px - 5 * 18px)/6))!important;grid-auto-rows:auto!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important}
+}
+@media(min-width:521px) and (max-width:800px){
+ #view .home-stage{grid-template-rows:repeat(6,calc((490px - 5 * 10px)/6))!important;grid-auto-rows:auto!important}
+ #view .home-stage .gallery-shell,#view .home-stage #driverGallery{height:490px!important;min-height:490px!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important}
+}
+</style>
+
+<style id="driver-notes-editorial-redesign">
+/* Paddock / motorsport editorial redesign. Data and app logic unchanged. */
+:root{font-family:Arial,Helvetica,sans-serif!important;background:#eef1f5!important;color:#172b45!important}
+body{background:#eef1f5!important;color:#172b45!important}
+.layout{grid-template-columns:224px minmax(0,1fr)!important}
+.side{background:#102b50!important;border-right:5px solid #d72d42!important;padding:32px 17px!important}
+.brand{font-family:Impact,'Arial Narrow',sans-serif!important;font-size:30px!important;letter-spacing:.025em!important;text-transform:uppercase!important;line-height:1!important;margin-bottom:13px!important}
+.sub{color:#b6c5d6!important;text-transform:uppercase!important;letter-spacing:.18em!important;font-size:10px!important;line-height:1.7!important}
+.nav{font-size:12px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.095em!important;border-radius:0!important;border-left:3px solid transparent!important;color:#d8e2ee!important;padding:15px 13px!important}
+.nav.active,.nav:hover{background:#194572!important;color:#fff!important;border-left-color:#d72d42!important}
+.main{max-width:1550px!important;padding:36px 42px!important}
+h1,h2,h3{font-family:Impact,'Arial Narrow',Arial,sans-serif!important;text-transform:uppercase!important;letter-spacing:.035em!important;font-weight:800!important}
+h1{font-size:40px!important;line-height:1.04!important}h2{font-size:23px!important}
+.muted{color:#67788e!important}
+.card,.modal{background:#ffffff!important;border:1px solid #d8dfe8!important;box-shadow:none!important;border-radius:2px!important}
+button,button.primary,button.light,button.danger,.chip,.pill,.tag{border-radius:2px!important;text-transform:uppercase!important;letter-spacing:.045em!important;font-size:11px!important}
+button.primary,.chip.on{background:#d72d42!important;color:#fff!important}
+button.light,.chip{background:#e6ebf2!important;color:#173354!important}
+button:hover{filter:brightness(.95)}
+input,textarea,select,.rich-notes{border-radius:2px!important;border-color:#bfcbd9!important}
+#view .home-stage{column-gap:20px!important;row-gap:12px!important}
+#view .home-stage .gallery-shell{border-radius:2px!important;border:0!important;background:#0c2d56!important;box-shadow:9px 9px 0 #d72d42!important;overflow:hidden!important}
+#view .home-stage #driverGallery{border-radius:0!important}
+#view .home-stage .trackCard,#view .home-stage .trackCard:nth-of-type(even),body.dark-mode #view .home-stage .trackCard,body.dark-mode #view .home-stage .trackCard:nth-of-type(even){background:#ffffff!important;color:#193554!important;border:1px solid #d5dfe9!important;border-left:0!important;border-radius:0!important;box-shadow:none!important;padding:12px 37px 12px 22px!important;min-height:72px!important;transition:background .2s,border-color .2s,transform .2s!important}
+#view .home-stage .trackCard::before{width:6px!important;background:#d72d42!important;clip-path:none!important;z-index:0!important}
+#view .home-stage .trackCard::after{content:'↗'!important;color:#d72d42!important;font-size:19px!important;right:12px!important}
+#view .home-stage .trackCard h2{font-family:Impact,'Arial Narrow',Arial,sans-serif!important;color:#15365b!important;font-size:19px!important;letter-spacing:.03em!important;line-height:1.1!important}
+#view .home-stage .trackCard .muted.country-label{font-family:Arial,sans-serif!important;font-size:10px!important;letter-spacing:.15em!important;color:#73859a!important;margin-top:6px!important}
+#view .home-stage .trackCard:hover{background:#edf4fd!important;border-color:#d72d42!important;transform:translateX(3px)!important;filter:none!important}
+#view .home-stage .trackCard p,#view .home-stage .trackCard button{display:none!important}
+.map{border-radius:2px!important;background:#e5ecf4!important;border-color:#c3cfde!important}
+.pin{background:#d72d42!important;border-radius:50%!important}
+.note{border-radius:2px!important;border-left:3px solid #d72d42!important}
+.back,.linkbtn{color:#c9253d!important}
+.modalBg{background:#0d2445d9!important}
+#view .home-circuit-heading h2{font-size:24px!important}
+/* Coordinated navy dark mode */
+body.dark-mode{background:#101d31!important;color:#edf3fc!important}
+body.dark-mode .main{background:#101d31!important}
+body.dark-mode .card,body.dark-mode .modal{background:#1a2e4c!important;color:#f4f7fc!important;border-color:#37516f!important}
+body.dark-mode #view .home-stage .trackCard,body.dark-mode #view .home-stage .trackCard:nth-of-type(even){background:#213b5c!important;color:#f6f9ff!important;border-color:#3e5c7e!important}
+body.dark-mode #view .home-stage .trackCard h2{color:#f6f9ff!important}
+body.dark-mode #view .home-stage .trackCard:hover{background:#29496d!important}
+body.dark-mode .muted{color:#b6c5d8!important}
+@media(max-width:900px){.layout{grid-template-columns:1fr!important}.side{border-right:0!important;border-bottom:4px solid #d72d42!important;padding:18px!important}.brand{font-size:24px!important}.nav{display:inline-block!important;width:auto!important;padding:10px!important}.main{padding:24px 17px!important}}
+@media(max-width:570px){h1{font-size:32px!important}#view .home-stage .trackCard h2{font-size:17px!important}}
+</style>
+<style id="editorial-blue-red-finishing">
+.side .brand{color:#fff!important}
+button.primary:hover,.chip.on:hover{background:#b91f35!important}
+#view .home-stage .trackCard:hover::before{background:#d72d42!important}
+#view .home-stage .trackCard::before{background:#1767b7!important}
+#view .home-stage .trackCard::after{color:#d72d42!important}
+#view .home-stage .gallery-shell{box-shadow:9px 9px 0 #1767b7!important}
+.nav.active,.nav:hover{border-left-color:#d72d42!important}
+</style>
+<style id="home-gallery-grid-fix">
+/* Match the six track rows exactly to the photo height, preventing overflow. */
+@media (min-width:801px){
+ #view .home-stage{grid-template-rows:repeat(6,minmax(0,calc((560px - 5 * 12px) / 6)))!important;grid-auto-rows:minmax(72px,auto)!important;align-items:stretch!important}
+ #view .home-stage .gallery-shell{grid-column:1!important;grid-row:1 / span 6!important;height:560px!important;min-height:0!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important;box-sizing:border-box!important}
+}
+@media (min-width:521px) and (max-width:800px){
+ #view .home-stage{grid-template-rows:repeat(6,minmax(0,calc((490px - 5 * 10px) / 6)))!important;grid-auto-rows:minmax(65px,auto)!important;align-items:stretch!important}
+ #view .home-stage .gallery-shell{grid-column:1!important;grid-row:1 / span 6!important;height:490px!important;min-height:0!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important;box-sizing:border-box!important}
+}
+</style>
+<script id="home-gallery-grid-placement">
+(function(){
+ const previous=home;
+ home=function(){
+  previous();
+  const stage=document.querySelector('#view .home-stage');
+  if(!stage)return;
+  const cards=[...stage.querySelectorAll('.trackCard')];
+  cards.forEach((card,i)=>{
+   if(i>=6){const j=i-6;card.style.gridColumn=String(j%2+1);card.style.gridRow=String(7+Math.floor(j/2));}
+  });
+ };
+ if(page==='home')home();
+})();
+</script>
+
+<style id="landscape-first-layout">
+/* Landscape-first desktop and tablet composition, preserving all app behaviour. */
+@media (min-width:901px) and (orientation:landscape){
+ .layout{grid-template-columns:clamp(174px,15vw,220px) minmax(0,1fr)!important}
+ .side{padding:24px 13px!important}
+ .main{max-width:none!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:24px clamp(18px,2.5vw,38px)!important}
+ #view .home-stage{--landscape-gallery-height:clamp(480px,66vh,600px);display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:repeat(6,minmax(0,calc((var(--landscape-gallery-height) - 60px) / 6)))!important;grid-auto-rows:minmax(72px,auto)!important;column-gap:clamp(12px,1.6vw,22px)!important;row-gap:12px!important;align-items:stretch!important}
+ #view .home-stage .gallery-shell{grid-column:1!important;grid-row:1 / span 6!important;height:var(--landscape-gallery-height)!important;min-height:0!important;width:100%!important;min-width:0!important}
+ #view .home-stage #driverGallery{height:100%!important;min-height:0!important;width:100%!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important;min-width:0!important;box-sizing:border-box!important}
+ #view .home-stage .trackCard{min-width:0!important}
+ #view .home-stage .trackCard h2{font-size:clamp(15px,1.35vw,20px)!important;overflow-wrap:anywhere}
+}
+@media (min-width:901px) and (max-width:1180px) and (orientation:landscape){
+ .main{padding:20px 18px!important}
+ #view .home-stage .trackCard{padding:9px 28px 9px 15px!important}
+ #view .home-stage .trackCard h2{font-size:15px!important}
+}
+@media (min-width:601px) and (max-width:900px) and (orientation:landscape){
+ .layout{grid-template-columns:155px minmax(0,1fr)!important}
+ .side{padding:18px 10px!important;border-bottom:0!important;border-right:4px solid #d72d42!important}
+ .brand{font-size:23px!important}
+ .nav{display:block!important;width:100%!important;box-sizing:border-box!important;padding:11px 8px!important}
+ .main{padding:18px 16px!important;min-width:0!important}
+ #view .home-stage{--landscape-gallery-height:490px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:repeat(6,minmax(0,calc((var(--landscape-gallery-height) - 50px)/6)))!important;row-gap:10px!important;column-gap:12px!important}
+ #view .home-stage .gallery-shell{height:var(--landscape-gallery-height)!important;min-height:0!important;grid-column:1!important;grid-row:1/span 6!important}
+ #view .home-stage #driverGallery{height:100%!important;min-height:0!important}
+ #view .home-stage .trackCard.featured-circuit{height:100%!important;min-height:0!important}
+ #view .home-stage .trackCard h2{font-size:13px!important;overflow-wrap:anywhere}
+}
+</style>
+
+<style id="gallery-clean-editorial-frame">
+/* Editorial gallery: preserve the existing landscape grid and dimensions. */
+#view .home-stage .gallery-shell{
+  box-shadow:none!important;
+  border:1px solid #cbd4df!important;
+  outline:none!important;
+  background:#101d30!important;
+  border-radius:2px!important;
+  padding:0!important;
+  transform:none!important;
+}
+#view .home-stage .gallery-shell::before,
+#view .home-stage .gallery-shell::after{box-shadow:none!important;}
+#view .home-stage #driverGallery{box-shadow:none!important;border:0!important;border-radius:0!important;}
+</style>
+
+<style id="onboard-drop-style">
+.onboard-dropzone{margin:14px 0 18px;padding:28px 18px;border:2px dashed #67a7e9;border-radius:10px;background:#edf6ff;text-align:center;cursor:pointer;transition:background .15s,border-color .15s;outline-offset:3px}
+.onboard-dropzone strong{display:block;font-size:17px;margin:7px 0}
+.onboard-dropzone .muted{line-height:1.6}
+.onboard-dropzone.drag-over,.onboard-dropzone:focus-visible{border-color:#00bdd8;background:#d9f6fc;outline:2px solid #00bdd8}
+.onboard-dropzone.uploading{opacity:.65;pointer-events:none}
+body.dark-mode .onboard-dropzone{background:#162d46;border-color:#4d87b9}
+body.dark-mode .onboard-dropzone.drag-over{background:#184659;border-color:#00bdd8}
+</style>
+<script id="onboard-drop-code">
+(function(){
+  const previousRenderVideos=renderVideos;
+  renderVideos=async function(){
+    // Install the drop target before video elements finish loading.
+    const root=document.getElementById('videoList');
+    if(root&&!document.getElementById('onboardDropZone')){
+      const zone=document.createElement('div');zone.id='onboardDropZone';zone.className='onboard-dropzone';
+      zone.tabIndex=0;zone.setAttribute('role','button');zone.setAttribute('aria-label','Drop an onboard video here or click to select a file');
+      zone.innerHTML='<div style="font-size:27px">🎥 ⤓</div><strong>Drop your onboard video here</strong><div class="muted">Drag & drop a video file, or click to browse your device.<br>Your videos stay saved in this browser.</div>';
+      root.parentNode.insertBefore(zone,root);
+      const upload=async file=>{
+        if(!file)return;
+        if(!(file.type.startsWith('video/')||/\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(file.name))){alert('Please drop a video file.');return;}
+        zone.classList.add('uploading');zone.querySelector('strong').textContent='Saving onboard video…';
+        try{await addVideo(file);}finally{zone.classList.remove('uploading');zone.querySelector('strong').textContent='Drop your onboard video here';}
+      };
+      zone.addEventListener('click',()=>document.getElementById('videoFile')?.click());
+      zone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('videoFile')?.click();}});
+      ['dragenter','dragover'].forEach(type=>zone.addEventListener(type,e=>{e.preventDefault();e.stopPropagation();zone.classList.add('drag-over');if(e.dataTransfer)e.dataTransfer.dropEffect='copy';}));
+      ['dragleave','dragend'].forEach(type=>zone.addEventListener(type,e=>{e.preventDefault();if(!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');}));
+      zone.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();zone.classList.remove('drag-over');upload([...e.dataTransfer.files].find(f=>f.type.startsWith('video/')||/\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(f.name))||e.dataTransfer.files[0]);});
+    }
+    return previousRenderVideos();
+  };
+  if(typeof page!=='undefined'&&page==='track')renderVideos();
+})();
+</script>
+
+<style id="dn-onboard-side-layout">
+/* Map + onboard at the top; notes span the full width below. */
+#view .dn-track-top{display:grid!important;width:100%!important;max-width:none!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:18px;align-items:start}
+#view .dn-track-top>section{min-width:0;margin:0!important}
+#view .dn-onboard-panel{min-width:0;overflow:hidden}
+#view .dn-onboard-panel .video{display:block;width:100%;max-width:100%;max-height:310px;object-fit:contain;background:#071a2b}
+#view .dn-onboard-panel .videoItem{min-width:0;overflow:hidden;margin-top:12px}
+#view .dn-onboard-panel .videoItem b{overflow-wrap:anywhere}
+#view .dn-track-notes{margin-top:18px!important}
+#view .dn-onboard-panel .onboard-dropzone{padding:20px 12px;margin:12px 0}
+.dn-upload-progress{padding:13px;margin:12px 0;border:1px solid #b7cfe6;border-radius:8px;background:#edf5fc;color:#193b60}
+.dn-upload-progress b{display:block;overflow-wrap:anywhere;font-size:13px}
+.dn-upload-progress progress{width:100%;height:11px;accent-color:#1769bd;margin:9px 0 3px}
+.dn-upload-progress .dn-progress-meta{font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.dn-upload-progress .dn-progress-meta span:last-child{text-align:right}
+@media(max-width:640px){#view .dn-track-top{grid-template-columns:1fr}}
+</style>
+<script id="dn-onboard-side-and-progress">
+(function(){
+ 'use strict';
+ const uploads=new Map();
+ let activeUploadId=null;
+ const niceBytes=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':(n/1024).toFixed(0)+' KB';
+ function progressView(){
+  const panel=document.querySelector('#view .dn-onboard-panel');if(!panel)return;
+  let root=panel.querySelector('#dnUploadProgress');
+  if(!root){root=document.createElement('div');root.id='dnUploadProgress';const list=panel.querySelector('#videoList');if(list)panel.insertBefore(root,list);else panel.append(root)}
+  const entries=[...uploads.values()];
+  root.innerHTML=entries.map(x=>'<div class="dn-upload-progress"><b>'+esc(x.name)+'</b><progress max="100" value="'+x.pct+'"></progress><div class="dn-progress-meta"><span>'+x.pct+'% · '+esc(x.phase)+'</span><span>'+niceBytes(x.loaded)+' / '+niceBytes(x.total)+'</span></div></div>').join('');
+  root.style.display=entries.length?'block':'none';
+ }
+ function layout(){
+  if(page!=='track')return;
+  const view=document.getElementById('view');if(!view)return;
+  const top=view.querySelector('.two');if(!top)return;
+  const map=top.querySelector('section.card:has(#map)')||[...top.children].find(x=>x.querySelector('#map'));
+  const notes=top.querySelector('section.card:has(#notesList)')||[...top.children].find(x=>x.querySelector('#notesList'));
+  const onboard=view.querySelector('section.card:has(#videoList)');
+  if(!map||!notes||!onboard)return;
+  top.classList.add('dn-track-top');
+  onboard.classList.add('dn-onboard-panel');
+  notes.classList.add('dn-track-notes');
+  // Explicitly move BOTH map and onboard into the same grid; put notes after it.
+  if(map.parentElement!==top)top.append(map);
+  if(onboard.parentElement!==top)top.append(onboard);
+  if(notes.parentElement===top||notes.previousElementSibling!==top)top.insertAdjacentElement('afterend',notes);
+  progressView();
+ }
+ const oldTrackPage=trackPage;
+ trackPage=function(){oldTrackPage();layout();};
+ const oldRenderVideos=renderVideos;
+ renderVideos=async function(){
+  layout();
+  const result=await oldRenderVideos.apply(this,arguments);
+  progressView();return result;
+ };
+ // IndexedDB does not report granular write progress. Read the file in small
+ // asynchronous chunks to provide real preparation progress, then report the
+ // final database commit as a separate indeterminate step.
+ const oldStoreVideo=storeVideo;
+ storeVideo=async function(id,file){
+  const total=file.size||0;
+  const progress={name:file.name||'Onboard video',pct:0,loaded:0,total,phase:'Preparing video'};
+  uploads.set(id,progress);activeUploadId=id;progressView();
+  try{
+   const chunks=[],chunkSize=2*1024*1024;
+   for(let start=0;start<total;start+=chunkSize){
+    chunks.push(await file.slice(start,Math.min(total,start+chunkSize)).arrayBuffer());
+    progress.loaded=Math.min(total,start+chunkSize);
+    progress.pct=Math.min(95,Math.round(progress.loaded/total*95));
+    progressView();
+    // Let other controls, track notes and navigation remain responsive.
+    await new Promise(resolve=>setTimeout(resolve,0));
+   }
+   progress.phase='Saving to browser storage';progress.pct=95;progressView();
+   const assembled=new File(chunks,file.name,{type:file.type||'video/mp4',lastModified:file.lastModified||Date.now()});
+   await oldStoreVideo(id,assembled);
+   progress.phase='Saved';progress.pct=100;progress.loaded=total;progressView();
+  }catch(e){progress.phase='Could not save video';progressView();throw e;}
+  finally{uploads.delete(id);if(activeUploadId===id)activeUploadId=null;progressView();}
+ };
+ // Preserve any telemetry dataset creation logic already wrapping addVideo.
+ // Video playback appears automatically when the database commit finishes.
+ // Keep layout correct after every page change and asynchronous onboard render.
+ const originalRender=render;
+ render=function(){const result=originalRender.apply(this,arguments);if(page==='track')queueMicrotask(layout);return result;};
+ if(page==='track')queueMicrotask(layout);
+})();
+</script>
+<style id="dn-video-tiles-style">
+#videoList .dn-video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:12px;margin-top:14px}
+#videoList .dn-video-tile{min-width:0;padding:8px;background:var(--card,#fff);border:1px solid #d7e0ed;border-radius:8px}
+#videoList .dn-video-preview{display:block;position:relative;aspect-ratio:1/1;width:100%;padding:0;overflow:hidden;border:0;border-radius:5px;background:#152940;cursor:pointer}
+#videoList .dn-video-thumb{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+#videoList .dn-play{position:absolute;z-index:1;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#000a;color:white;font-size:19px}
+#videoList .dn-video-title{font-size:13px;font-weight:750;line-height:1.3;margin-top:8px;overflow-wrap:anywhere}
+#videoList .dn-video-size{font-size:11px;margin-top:3px}
+#videoList .dn-video-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+#videoList .dn-video-actions button{font-size:11px;padding:5px 7px;flex:1}
+.dn-video-overlay{position:fixed;inset:0;background:#030810f5;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px}
+.dn-player-bar{display:flex;align-items:center;gap:10px;color:white;width:min(1400px,100%);padding:8px 0}
+.dn-player-bar strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dn-player-video{display:block;width:min(1400px,100%);height:calc(100vh - 90px);object-fit:contain;background:black}
+@media(max-width:800px){#videoList .dn-video-grid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr))}}
+</style>
+<style id="dn-professional-dark-racing">
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif!important;color:#e9f0f8!important;background:#091320!important;--card:#101e30;--accent:#e11d3c;--border:#2b3b51}
+html,body{background:#091320!important;color:#e9f0f8!important}
+.layout{grid-template-columns:245px minmax(0,1fr)!important;background:#091320!important;min-height:100vh}
+.side{background:linear-gradient(165deg,#101d30 0%,#0a1423 70%,#070f1a 100%)!important;border-right:1px solid #2a3547!important;padding:29px 15px!important;position:sticky;top:0;height:100vh;overflow-y:auto}
+.dn-wordmark{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:3px 10px 22px;margin:0 0 21px!important;border-bottom:1px solid #29374b;font-family:Impact,"Arial Narrow",Arial,sans-serif;font-stretch:condensed;letter-spacing:1.7px;font-style:italic;font-size:30px!important;line-height:.98!important;font-weight:950!important;color:#fff!important;text-transform:uppercase}
+.dn-wordmark span:last-child{color:#f13c54}
+.side .nav{border-radius:6px!important;color:#aebfd3!important;text-transform:uppercase;letter-spacing:.7px;font-size:12px!important;font-weight:800!important;margin:7px 0!important;padding:15px 13px!important;border-left:3px solid transparent!important}
+.side .nav.active,.side .nav:hover{background:#c91132!important;color:white!important;border-left-color:#ff6378!important}
+.main{max-width:1680px!important;padding:34px 34px 60px!important;background:radial-gradient(ellipse at 75% 0%,#15253b 0%,#0b1626 42%,#091320 85%)!important}
+h1,h2,h3{color:#f5f8ff!important;letter-spacing:.25px}
+h1{font-family:Impact,"Arial Narrow",Arial,sans-serif!important;font-weight:900!important;letter-spacing:1.1px!important;text-transform:uppercase;font-size:clamp(30px,3vw,43px)!important}
+h2{font-family:Impact,"Arial Narrow",Arial,sans-serif!important;text-transform:uppercase;letter-spacing:.9px;font-size:23px!important}
+.muted,.sub{color:#91a5bc!important}
+.card,.note,.videoItem{background:#101e30!important;border:1px solid #293a50!important;border-radius:8px!important;box-shadow:0 12px 28px #0002!important;color:#e8f0f9!important}
+.card{padding:22px!important}
+.note{background:#0c192a!important;border-left:3px solid #db2243!important;margin-bottom:12px!important}
+.note.selected{background:#182940!important;border-color:#ef3755!important}
+.note small{color:#a7b9cd!important}
+button{border-radius:5px!important;transition:background .15s,transform .15s,border-color .15s}
+button:hover{filter:brightness(1.12)}
+button.primary,.chip.on,.pin{background:#db1c3c!important;color:white!important}
+button.light,.chip,.back{background:#1c3048!important;color:#e3efff!important}
+button.danger{background:#39202b!important;color:#ff8293!important}
+input,textarea,select{background:#0a1727!important;color:#f2f6fc!important;border:1px solid #34475e!important;border-radius:5px!important}
+input::placeholder,textarea::placeholder{color:#8196ae!important}
+label{color:#c8d8e9!important}
+.map{background:linear-gradient(140deg,#0b1726,#13243a)!important;border:1px solid #30445d!important;border-radius:6px!important}
+.map .placeholder{color:#91a7bf!important}
+.pin{border:2px solid #fff!important;box-shadow:0 3px 12px #0008!important}
+.pin.selected{background:#ff5b70!important}
+.pin.free{background:#d69b2e!important}
+.trackCard{border-top:3px solid #e52b48!important}
+.trackCard:hover{border-color:#ef3a57!important}
+.pill{background:#143c32!important;color:#82dec0!important}
+.tag,.tip{background:#3b301a!important;color:#eacb8b!important}
+.empty{color:#93a6bd!important}
+#view .dn-track-top{gap:18px!important}
+#view .dn-track-top>section{min-width:0}
+#view .dn-onboard-panel .onboard-dropzone{border:1px dashed #60738c!important;background:#0b192b!important;color:#b4c9df!important;border-radius:7px!important}
+#view .dn-onboard-panel .onboard-dropzone.drag-over{background:#18314c!important;border-color:#e63250!important}
+#videoList .dn-video-tile{background:#0c192a!important;border:1px solid #304056!important;border-radius:6px!important}
+#videoList .dn-video-preview{border-radius:4px!important}
+#videoList .dn-video-title{color:#edf4ff!important}
+#videoList .dn-video-size{color:#8da2b8!important}
+.dn-upload-progress{background:#15283e!important;color:#f3f7ff!important;border-color:#344b65!important}
+.dn-upload-progress progress{accent-color:#e32948!important}
+.modalBg{background:#030911dd!important}
+.modal{background:#142238!important;color:#e9f0f8!important;border:1px solid #3a4c62!important;border-radius:10px!important}
+.section{margin-top:24px!important}
+.toolbar{margin:24px 0!important}
+a{color:#ff6b80}
+@media(max-width:900px){.layout{grid-template-columns:1fr!important}.side{height:auto!important;position:relative!important;padding:15px!important}.dn-wordmark{display:inline-flex!important;margin:0 20px 10px 0!important;padding:0!important;border:0!important;font-size:23px!important}.main{padding:18px!important}}
+@media(max-width:700px){#view .dn-track-top{grid-template-columns:1fr!important}}
+</style>
+<style id="dn-day-night-v2">
+/* Dark racing circuit cards, including formerly white alternating tiles. */
+#view .home-stage .trackCard,#view .home-stage .trackCard:nth-of-type(even),body.dark-mode #view .home-stage .trackCard,body.dark-mode #view .home-stage .trackCard:nth-of-type(even){background:linear-gradient(115deg,#14253a,#101d2e)!important;border:1px solid #30435b!important;color:#f0f5ff!important;box-shadow:0 5px 18px #0003!important}
+#view .home-stage .trackCard::before{background:linear-gradient(155deg,#f04360,#9d102b)!important}
+#view .home-stage .trackCard h2{color:#f0f5ff!important}
+#view .home-stage .trackCard .muted.country-label{color:#a3b7d0!important}
+#view .home-stage .trackCard::after{color:#f04a67!important}
+/* Gallery belongs to sidebar, below Settings, not in the home content. */
+.side .dn-sidebar-gallery{margin:28px 0 0!important;height:230px!important;min-height:230px!important;border:1px solid #324157!important;border-radius:7px!important;overflow:hidden!important;position:relative!important;background:#091421!important}
+.side .dn-sidebar-gallery #driverGallery{height:100%!important;min-height:0!important}
+.side .dn-sidebar-gallery .gallery-photo{height:100%!important;width:100%!important;object-fit:cover!important}
+.side .dn-sidebar-gallery .gallery-empty{font-size:12px;padding:32px 12px!important;color:#a8b9cc!important}
+#view .home-stage{grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important}
+#view .home-stage .home-circuit-list{display:contents!important}
+#view .home-stage .trackCard.featured-circuit,#view .home-stage .trackCard.remaining-circuit{grid-column:auto!important;grid-row:auto!important}
+.dn-theme-switch{display:inline-flex;gap:3px;padding:4px;border:1px solid #36485f;border-radius:8px;background:#0b1726}
+.dn-theme-switch button{padding:11px 21px!important;border-radius:5px!important;background:transparent!important;color:#adbed3!important;min-width:120px}
+.dn-theme-switch button[aria-pressed="true"]{background:#d91c3e!important;color:white!important}
+/* Day mode overrides the dark racing theme, with legible light panels. */
+body.dn-day,body.dn-day .layout{background:#edf2f8!important;color:#17273d!important}
+body.dn-day .main{background:linear-gradient(145deg,#f8fafd,#e8eff7)!important;color:#17273d!important}
+body.dn-day .side{background:linear-gradient(170deg,#e3ebf6,#d5e0ef)!important;border-right:1px solid #c0ccda!important;color:#182a42!important}
+body.dn-day .dn-wordmark span:first-child{color:#17283e!important}
+body.dn-day .side .nav{color:#36506d!important}
+body.dn-day .side .nav.active,body.dn-day .side .nav:hover{color:white!important;background:#d51e3c!important}
+body.dn-day h1,body.dn-day h2,body.dn-day h3{color:#182940!important}
+body.dn-day .card,body.dn-day .note,body.dn-day .videoItem{background:#fff!important;color:#17283e!important;border-color:#cdd9e7!important;box-shadow:0 5px 20px #102d4710!important}
+body.dn-day .muted,body.dn-day .sub,body.dn-day .empty{color:#61768e!important}
+body.dn-day input,body.dn-day select,body.dn-day textarea{background:#fff!important;color:#14263c!important;border-color:#c5d1df!important}
+body.dn-day button.light,body.dn-day .chip,body.dn-day .back{background:#dfe9f5!important;color:#1b4776!important}
+body.dn-day .map{background:#e7eef7!important;border-color:#c9d7e6!important}
+body.dn-day .map .placeholder{color:#637c98!important}
+body.dn-day .note small{color:#6a7c92!important}
+body.dn-day .modal{background:#fff!important;color:#1b2b43!important;border-color:#d5dfeb!important}
+body.dn-day .dn-theme-switch{background:#e3eaf4;border-color:#c4d0df}
+body.dn-day .dn-theme-switch button{color:#405872!important}
+body.dn-day .dn-theme-switch button[aria-pressed="true"]{color:white!important}
+body.dn-day #view .home-stage .trackCard,body.dn-day #view .home-stage .trackCard:nth-of-type(even){background:#fff!important;color:#1b2d45!important;border-color:#d0dce9!important}
+body.dn-day #view .home-stage .trackCard h2{color:#1b2d45!important}
+body.dn-day #view .home-stage .trackCard .muted.country-label{color:#6b7f97!important}
+body.dn-day #view .dn-onboard-panel .onboard-dropzone{background:#f2f6fc!important;color:#3b5a7d!important;border-color:#a9bbd2!important}
+body.dn-day #videoList .dn-video-tile{background:#f6f9fd!important;border-color:#cbd8e8!important}
+body.dn-day #videoList .dn-video-title{color:#17283e!important}
+body.dn-day .dn-upload-progress{background:#e9f0f9!important;color:#1d334e!important;border-color:#bdcddd!important}
+@media(max-width:900px){.side .dn-sidebar-gallery{height:160px!important;max-width:270px!important;margin-top:12px!important}}
+@media(max-width:520px){#view .home-stage{grid-template-columns:1fr!important}}
+</style>
+<script id="dn-day-night-behavior">
+(function(){
+ // Persist user-selected mode. Older dark preference is retained only until first explicit choice.
+ const saved=localStorage.getItem('driver-notes-day-night-v2');
+ let mode=saved==='day'?'day':'night';
+ function theme(){document.body.classList.toggle('dn-day',mode==='day');document.body.classList.toggle('dark-mode',mode==='night');}
+ window.setDriverDayNight=function(next){mode=next==='day'?'day':'night';localStorage.setItem('driver-notes-day-night-v2',mode);theme();document.querySelectorAll('[data-dn-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dnMode===mode)));};
+ const oldApply=applyDriverTheme;
+ applyDriverTheme=function(){theme()};
+ function moveGallery(){
+  const sidebar=document.querySelector('.side');const gallery=document.querySelector('#view .gallery-shell')||document.querySelector('.side .dn-sidebar-gallery');
+  if(!sidebar||!gallery)return;
+  gallery.classList.add('dn-sidebar-gallery');sidebar.appendChild(gallery);
+  if(typeof renderGallery==='function')renderGallery();
+ }
+ const oldHome=home;
+ home=function(){oldHome();moveGallery();const stage=document.querySelector('#view .home-stage');if(stage){stage.querySelectorAll('.trackCard').forEach(card=>{card.style.removeProperty('grid-column');card.style.removeProperty('grid-row');});}};
+ const oldSettings=driverSettingsPage;
+ driverSettingsPage=function(){oldSettings();const appearance=[...document.querySelectorAll('#view .card')].find(x=>x.querySelector('h2')?.textContent.trim()==='Appearance');if(appearance){appearance.innerHTML='<h2>Appearance</h2><p class="muted">Choose your preferred racing workspace.</p><div class="dn-theme-switch" role="group" aria-label="Day or night appearance"><button type="button" data-dn-mode="day" aria-pressed="'+(mode==='day')+'" onclick="setDriverDayNight(\'day\')">☀ Giorno</button><button type="button" data-dn-mode="night" aria-pressed="'+(mode==='night')+'" onclick="setDriverDayNight(\'night\')">☾ Notte</button></div>';}}
+ const oldRender=render;
+ render=function(){oldRender();theme();};
+ theme();if(page==='home')home();
+})();
+</script>
+<style id="dn-final-layout-fix">
+/* Keep the track map and onboard library in the SAME two-column row. */
+#view .dn-fixed-track-row{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:start;gap:20px;width:100%;margin-top:12px}
+#view .dn-fixed-track-row>section{min-width:0;width:100%;margin:0!important;align-self:stretch}
+#view .dn-fixed-track-notes{display:block!important;width:100%;margin-top:20px!important}
+#view .dn-fixed-track-row .dn-onboard-panel{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;grid-column:2!important;grid-row:1!important}
+#view .dn-fixed-track-row .dn-map-panel{grid-column:1!important;grid-row:1!important}
+.side .dn-sidebar-gallery.dn-no-photos{display:none!important}
+#view .home-stage{display:block!important}
+#view .home-stage .home-circuit-list{display:block!important;width:100%}
+#view .home-stage .home-circuit-list>.grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))!important;gap:16px!important}
+#view .home-stage .trackCard{grid-column:auto!important;grid-row:auto!important;min-width:0}
+@media(max-width:780px){#view .dn-fixed-track-row{grid-template-columns:minmax(0,1fr)!important}#view .dn-fixed-track-row .dn-map-panel,#view .dn-fixed-track-row .dn-onboard-panel{grid-column:1!important;grid-row:auto!important}}
+</style>
+<script id="dn-final-layout-behavior">
+(function(){
+ 'use strict';
+ // Sorting only for display: all existing circuit IDs, notes and links stay intact.
+ const previousHome=home;
+ home=function(){
+   state.tracks.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base',numeric:true}));
+   previousHome();
+   updatePhotoVisibility();
+ };
+ function fixTrackLayout(){
+   if(page!=='track')return;
+   const view=document.getElementById('view');if(!view)return;
+   const map=view.querySelector('#map');
+   const videos=view.querySelector('#videoList');
+   const notes=view.querySelector('#notesList');
+   if(!map||!videos||!notes)return;
+   const mapSection=map.closest('section.card');
+   const videoSection=videos.closest('section.card');
+   const notesSection=notes.closest('section.card');
+   if(!mapSection||!videoSection||!notesSection)return;
+   let row=view.querySelector('.dn-fixed-track-row');
+   if(!row){row=document.createElement('div');row.className='dn-fixed-track-row';
+     const previous=mapSection.parentElement;
+     previous.parentElement.insertBefore(row,previous);
+   }
+   mapSection.classList.add('dn-map-panel');
+   videoSection.classList.add('dn-onboard-panel');
+   notesSection.classList.add('dn-fixed-track-notes');
+   row.appendChild(mapSection);
+   row.appendChild(videoSection);
+   row.insertAdjacentElement('afterend',notesSection);
+   // Remove now-empty original grid to avoid a phantom row.
+   for(const node of [...view.querySelectorAll('.two')])if(!node.children.length)node.remove();
+ }
+ const previousTrackPage=trackPage;
+ trackPage=function(){previousTrackPage();fixTrackLayout();};
+ // Called after the video list has been updated, too.
+ const previousRenderVideos=renderVideos;
+ renderVideos=async function(){const result=await previousRenderVideos.apply(this,arguments);fixTrackLayout();return result;};
+ function updatePhotoVisibility(){
+   const gallery=document.querySelector('.side .dn-sidebar-gallery');
+   if(!gallery)return;
+   const hasPhotos=typeof dnPhotos!=='undefined'&&Array.isArray(dnPhotos)&&dnPhotos.length>0;
+   gallery.classList.toggle('dn-no-photos',!hasPhotos);
+ }
+ const previousRenderGallery=renderGallery;
+ renderGallery=function(){const result=previousRenderGallery.apply(this,arguments);updatePhotoVisibility();return result;};
+ const previousRender=render;
+ render=function(){previousRender();if(page==='track')fixTrackLayout();updatePhotoVisibility();};
+ // Initial page and later image-library loading both update the sidebar.
+ updatePhotoVisibility();
+ if(page==='home')home();
+ if(page==='track')fixTrackLayout();
+})();
+</script>
+
+<style id="dn-remove-gallery-final">
+/* Photos and slideshow are no longer part of Driver Notes. */
+.gallery-shell,.dn-sidebar-gallery,.gallery-photo,.gallery-controls,.photo-list,.photo-tile,#driverGallery{display:none!important}
+#view .home-stage{display:block!important}
+#view .home-stage .home-circuit-list{display:block!important}
+#view .home-stage .home-circuit-list>.grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))!important;gap:16px!important}
+#view .trackCard{grid-column:auto!important;grid-row:auto!important}
+</style>
+<script id="dn-remove-gallery-behavior">
+(function(){
+ // Use the original circuits page directly, bypassing every slideshow wrapper.
+ home=function(){
+   state.tracks.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base',numeric:true}));
+   dnOriginalHome();
+   document.querySelectorAll('.side .dn-sidebar-gallery').forEach(e=>e.remove());
+ };
+ // No photo upload, gallery or photo settings. Retain day/night, backups and sharing.
+ const oldSettings=driverSettingsPage;
+ driverSettingsPage=function(){oldSettings();document.querySelectorAll('#view .card').forEach(card=>{if(card.querySelector('h2')?.textContent.trim()==='Home Photos')card.remove()});};
+ // Keep any old photo blobs untouched so existing user data is not destroyed silently.
+ if(page==='home')home();
+ document.querySelectorAll('.side .dn-sidebar-gallery').forEach(e=>e.remove());
+})();
+</script>
+
+<style id="dn-larger-map-balanced-columns">
+/* Give the map more space without squeezing the video uploader. */
+#view .dn-track-top{grid-template-columns:minmax(0, 1.38fr) minmax(0, 1fr)!important;gap:18px!important;align-items:stretch!important}
+#view .dn-track-top>section{min-width:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important}
+#view .dn-track-top .dn-onboard-panel{overflow:hidden!important}
+#view .dn-track-top .dn-onboard-panel *{max-width:100%;box-sizing:border-box}
+@media(max-width:850px){#view .dn-track-top{grid-template-columns:minmax(0,1fr)!important}}
+</style>
+
+<style id="dn-real-62-38-layout">
+/* The actual track layout uses .dn-fixed-track-row, NOT .dn-track-top. */
+#view .dn-fixed-track-row {
+ display:grid!important;
+ grid-template-columns:minmax(0, 1.62fr) minmax(0, 1fr)!important;
+ gap:18px!important;
+ width:100%!important;
+ align-items:stretch!important;
+}
+#view .dn-fixed-track-row>.dn-map-panel,
+#view .dn-fixed-track-row>.dn-onboard-panel {
+ min-width:0!important;max-width:none!important;width:100%!important;
+ box-sizing:border-box!important;overflow:hidden!important;
+}
+#view .dn-fixed-track-row>.dn-map-panel{grid-column:1!important;grid-row:1!important}
+#view .dn-fixed-track-row>.dn-onboard-panel{grid-column:2!important;grid-row:1!important}
+#view .dn-fixed-track-row .map,
+#view .dn-fixed-track-row #map {max-width:100%!important;width:100%!important;box-sizing:border-box!important}
+#view .dn-fixed-track-row .dn-onboard-panel .dn-video-grid{grid-template-columns:repeat(auto-fill,minmax(105px,1fr))!important}
+@media(max-width:780px){
+ #view .dn-fixed-track-row{grid-template-columns:minmax(0,1fr)!important}
+ #view .dn-fixed-track-row>.dn-map-panel,
+ #view .dn-fixed-track-row>.dn-onboard-panel{grid-column:1!important;grid-row:auto!important}
+}
+</style>
+
+<style id="dn-hover-borders-and-light-stats-fix">
+/* Home: hover selects the circuit by its outline only, not by changing the card fill. */
+#view .trackCard {
+  border:2px solid transparent!important;
+  border-top:2px solid transparent!important;
+  transition:border-color .16s ease,box-shadow .16s ease!important;
+  transform:none!important;
+}
+#view .trackCard:hover,
+#view .trackCard:focus-visible {
+  border-color:#ec304b!important;
+  border-top-color:#ec304b!important;
+  transform:none!important;
+  filter:none!important;
+  box-shadow:0 0 0 1px rgba(236,48,75,.16)!important;
+}
+/* Previous themes modified both card background and pseudo-elements on hover. */
+#view .trackCard::before,
+#view .trackCard::after { display:none!important; }
+body.dark-mode #view .trackCard:hover,
+body.dark-mode #view .trackCard:focus-visible {
+  background-color:#19283c!important;
+  background-image:none!important;
+}
+body.dn-day #view .trackCard:hover,
+body.dn-day #view .trackCard:focus-visible,
+body:not(.dark-mode):not(.dn-night) #view .trackCard:hover,
+body:not(.dark-mode):not(.dn-night) #view .trackCard:focus-visible {
+  background-color:#fff!important;
+  background-image:none!important;
+}
+/* Day theme: all four counters and their captions must have visible contrast. */
+body.dn-day #view .statsGrid .statValue,
+body:not(.dark-mode):not(.dn-night) #view .statsGrid .statValue {
+  color:#1a2b43!important;
+}
+body.dn-day #view .statsGrid .statLabel,
+body:not(.dark-mode):not(.dn-night) #view .statsGrid .statLabel {
+  color:#40566f!important;
+}
+body.dark-mode #view .statsGrid .statValue {color:#f3f7ff!important}
+body.dark-mode #view .statsGrid .statLabel {color:#b6c6d9!important}
+</style>
+
+<style id="dn-notes-library-styles">
+#view .dn-library-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(265px,.75fr);gap:18px;align-items:start;margin-top:20px}
+#view .dn-library-editor{min-height:270px;resize:vertical;line-height:1.65;font-size:15px}
+#view .dn-library-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:16px}
+#view .dn-library-item{border:1px solid #30455f;border-radius:7px;padding:14px;margin-bottom:10px;background:#0c192a;cursor:pointer;transition:border-color .15s ease}
+#view .dn-library-item:hover,#view .dn-library-item:focus-visible{border-color:#ef405c}
+#view .dn-library-item h3{font-family:inherit!important;font-size:15px!important;margin:0 0 6px;letter-spacing:0;text-transform:none!important}
+#view .dn-library-item .muted{white-space:pre-wrap;overflow-wrap:anywhere}
+#view .dn-library-list{max-height:70vh;overflow:auto;padding-right:3px}
+body.dn-day #view .dn-library-item{background:#f8fafd;border-color:#cbd8e8}
+body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focus-visible{border-color:#dc2947}
+#view .dn-library-empty{padding:18px 10px;text-align:center;color:#91a5bc;font-size:13px}
+@media(max-width:800px){#view .dn-library-grid{grid-template-columns:1fr}}
+</style>
+<script id="dn-personal-notes-library">
+(function(){
+  'use strict';
+  // Notes live in the existing state and therefore participate in its JSON backup.
+  if(!Array.isArray(state.personalNotes))state.personalNotes=[];
+  let editingNoteId=null;
+  function noteDate(n){const d=new Date(n.updatedAt||n.createdAt||Date.now());return isNaN(d.getTime())?'Saved':d.toLocaleDateString();}
+  function notesPage(){
+    const notes=state.personalNotes||[];
+    const current=notes.find(n=>n.id===editingNoteId);
+    document.getElementById('view').innerHTML=`
+      <div class="flex between"><div><h1>Notes</h1><p class="muted">Your personal racing notebook · Saved locally on this device</p></div><button class="light" onclick="driverNewPersonalNote()">＋ New note</button></div>
+      <div class="dn-library-grid">
+        <section class="card"><h2>${current?'Edit note':'Write a note'}</h2>
+          <label for="dnPersonalTitle">Title</label><input id="dnPersonalTitle" placeholder="e.g. Race weekend reminders" maxlength="160" value="${esc(current?.title||'')}">
+          <label for="dnPersonalBody">Notes</label><textarea id="dnPersonalBody" class="dn-library-editor" placeholder="Write your notes here...">${esc(current?.text||'')}</textarea>
+          <div class="dn-library-toolbar"><button class="primary" onclick="driverSavePersonalNote()">✓ ${current?'Save changes':'Save note'}</button><button class="light" onclick="driverNewPersonalNote()">Clear / New</button>${current?'<button class="danger" onclick="driverDeletePersonalNote()">Delete note</button>':''}</div>
+          <p class="muted" id="dnPersonalStatus">Notes stay saved in this browser and are included in the JSON backup from Settings.</p>
+        </section>
+        <section class="card"><h2>Saved Notes <span class="muted">(${notes.length})</span></h2><div class="dn-library-list">
+        ${notes.length?[...notes].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).map(n=>`<div class="dn-library-item" role="button" tabindex="0" onclick="driverOpenPersonalNote('${n.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();driverOpenPersonalNote('${n.id}')}" aria-label="Open ${esc(n.title||'Untitled note')}"><h3>${esc(n.title||'Untitled note')}</h3><div class="muted">${esc((n.text||'').slice(0,125))}${(n.text||'').length>125?'…':''}</div><div class="muted" style="margin-top:9px;font-size:11px">${esc(noteDate(n))}</div></div>`).join(''):'<div class="dn-library-empty">No saved notes yet.<p>Create your first note using the editor.</p></div>'}
+        </div></section>
+      </div>`;
+  }
+  window.driverOpenPersonalNote=function(id){editingNoteId=id;notesPage();document.getElementById('dnPersonalTitle')?.focus();};
+  window.driverNewPersonalNote=function(){editingNoteId=null;notesPage();document.getElementById('dnPersonalTitle')?.focus();};
+  window.driverSavePersonalNote=function(){
+    const title=document.getElementById('dnPersonalTitle')?.value.trim();
+    const text=document.getElementById('dnPersonalBody')?.value.trim();
+    if(!title){alert('Please enter a title for the note.');document.getElementById('dnPersonalTitle')?.focus();return;}
+    if(!text){alert('Please write some notes before saving.');document.getElementById('dnPersonalBody')?.focus();return;}
+    const old=state.personalNotes.find(n=>n.id===editingNoteId);
+    const now=Date.now();
+    const item=old?{...old,title,text,updatedAt:now}:{id:uid(),title,text,createdAt:now,updatedAt:now};
+    if(old)state.personalNotes.splice(state.personalNotes.indexOf(old),1,item);
+    else state.personalNotes.push(item);
+    try{save();}catch(e){if(old)state.personalNotes.splice(state.personalNotes.indexOf(item),1,old);else state.personalNotes.pop();alert('Unable to save. Browser storage might be full.');return;}
+    editingNoteId=item.id;notesPage();
+    const status=document.getElementById('dnPersonalStatus');if(status)status.textContent='✓ Note saved successfully.';
+  };
+  window.driverDeletePersonalNote=function(){
+    const current=state.personalNotes.find(n=>n.id===editingNoteId);
+    if(!current||!confirm('Delete this saved note?'))return;
+    state.personalNotes=state.personalNotes.filter(n=>n.id!==editingNoteId);
+    try{save();}catch(e){state.personalNotes.push(current);alert('Unable to delete this note.');return;}
+    editingNoteId=null;notesPage();
+  };
+  const notesButton=document.querySelector('.side .nav[data-page="notes"]');
+  if(notesButton)notesButton.onclick=()=>navigate('notes');
+  const previousRender=render;
+  render=function(){if(page==='notes')return notesPage();return previousRender.apply(this,arguments);};
+})();
+</script>
+</body></html>

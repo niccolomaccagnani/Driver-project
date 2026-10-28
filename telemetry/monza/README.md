@@ -57,3 +57,7 @@ I dati Monza iniziali della precedente estrazione sono conservati. Le partenze s
 Acceleratore e freno sono percentuali stimate dalle barre grafiche, non misure della centralina. Le letture numeriche incerte restano escluse. Non vengono interpolati valori mancanti e i tratti con intervalli fra campioni superiori a 0,15 s non vengono collegati nel disegno. I dati restano una prima estrazione da video con controlli a campione.
 
 [Sorgenti, rigenerazione e verifiche nel browser](viewer/README.md).
+
+Salvataggio singoli set: in **Dati**, scegli blu o arancione, dai un nome e premi **Salva singolo set JSON**. Il formato `driving-notes-dataset` v1 contiene `lap` (campioni e riferimento temporale) e `video` (nome e metadati, senza filmato). Apri un set nel blu e un altro nell’arancione per confrontarli. Il salvataggio del confronto completo resta disponibile.
+
+**Collega onboard al giro** associa il video originale ai dati già presenti; non esegue estrazione automatica della telemetria da video nuovi. Un nuovo onboard richiede dati estratti JSON o CSV. Alla riapertura del set il nome dell’onboard è ricordato, ma il file va riselezionato dal Mac.

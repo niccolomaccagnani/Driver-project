@@ -232,24 +232,53 @@
         </div>
       </details>
       <details class="card" id="dataDetails">
-        <summary>Salva o apri dati</summary>
+        <summary>Set di dati e confronti</summary>
         <p>
-          Salva un confronto completo con dati, allineamento, cursore e
-          disposizione dei canali. Puoi riaprire un file JSON oppure importare
-          dati CSV. I video originali vanno selezionati di nuovo dal Mac.
+          Un set contiene i dati di un solo giro e il riferimento al suo
+          onboard. Salva separatamente i giri, poi apri un set nel blu e un
+          altro nell’arancione per confrontarli.
         </p>
         <div class="row">
-          <button id="saveSession" class="primary">Salva confronto JSON</button
+          <label
+            >Giro da salvare
+            <select id="datasetTarget">
+              <option value="0">Blu</option>
+              <option value="1">Arancione</option>
+            </select></label
+          >
+          <label
+            >Nome del set <input id="datasetName" type="text" maxlength="100"
+          /></label>
+          <button id="connectDatasetVideo">Collega onboard al giro</button>
+          <button id="saveDataset" class="primary">
+            Salva singolo set JSON
+          </button>
+        </div>
+        <p id="datasetVideoStatus" class="help" aria-live="polite"></p>
+        <p class="help">
+          Collega l’onboard originale da cui provengono i dati. Il collegamento
+          serve alla riproduzione e all’allineamento: questa pagina non estrae
+          nuovi valori dal video. Per un nuovo onboard occorre prima estrarre la
+          telemetria e aprire il relativo JSON o CSV.
+        </p>
+        <p class="help">
+          Per confrontare due set: apri il primo scegliendo blu, poi apri il
+          secondo scegliendo arancione. Puoi anche conservare l’intero
+          confronto.
+        </p>
+        <div class="row">
+          <button id="saveSession" class="primary">
+            Salva confronto completo JSON</button
           ><label class="file-button"
             >Apri JSON o CSV<input
               id="openDataFile"
               type="file"
               accept=".json,.csv,application/json,text/csv" /></label
           ><label
-            >Se il file contiene un giro:
+            >Apri un singolo set nel:
             <select id="importTarget">
-              <option value="1">sostituisci arancione</option>
-              <option value="0">sostituisci blu</option>
+              <option value="1">giro arancione</option>
+              <option value="0">giro blu</option>
             </select></label
           ><button id="resetData">Ricarica dati Monza</button>
         </div>

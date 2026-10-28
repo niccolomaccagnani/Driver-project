@@ -54,6 +54,21 @@ async def check():
   await upload('saved.json',saved)
   restored=await page.evaluate('monzaViewer.comparisonSnapshot()');assert restored==snapshot
   assert await page.evaluate('!videoA.getAttribute("src")&&!videoB.getAttribute("src")')
+  # Save exactly one dataset, then reopen it in either comparison slot.
+  await page.select_option('#datasetTarget','0');await page.fill('#datasetName','Monza prova')
+  async with page.expect_download() as d:await page.click('#saveDataset')
+  single_saved=pathlib.Path(await (await d.value).path()).read_bytes();single_json=json.loads(single_saved)
+  assert single_json['format']=='driving-notes-dataset' and 'laps' not in single_json
+  assert single_json['lap']['rows']==original[0]['rows'] and single_json['lap']['name']=='Monza prova'
+  assert single_json['video']['name']==fixture.name and 'blob:' not in single_saved.decode()
+  await page.select_option('#importTarget','1');await upload('one-lap.json',single_saved)
+  assert await page.evaluate('monzaViewer.laps[0]')==original[0]
+  assert await page.evaluate('monzaViewer.laps[1].rows')==original[0]['rows']
+  assert await page.evaluate('monzaViewer.videoBindings[1].name')==fixture.name
+  assert not await page.evaluate('videoB.getAttribute("src")')
+  await page.select_option('#importTarget','0');await upload('one-lap.json',single_saved)
+  assert await page.locator('#lapNameA').inner_text()=='Monza prova'
+  await upload('saved.json',saved)
   # A malformed file must not partly replace current data.
   invalid={**decoded,'channels':[{'id':'speed','center':'bad','span':.5}]}
   await upload('invalid.json',json.dumps(invalid).encode())

@@ -811,24 +811,53 @@ select {
         </div>
       </details>
       <details class="card" id="dataDetails">
-        <summary>Salva o apri dati</summary>
+        <summary>Set di dati e confronti</summary>
         <p>
-          Salva un confronto completo con dati, allineamento, cursore e
-          disposizione dei canali. Puoi riaprire un file JSON oppure importare
-          dati CSV. I video originali vanno selezionati di nuovo dal Mac.
+          Un set contiene i dati di un solo giro e il riferimento al suo
+          onboard. Salva separatamente i giri, poi apri un set nel blu e un
+          altro nell’arancione per confrontarli.
         </p>
         <div class="row">
-          <button id="saveSession" class="primary">Salva confronto JSON</button
+          <label
+            >Giro da salvare
+            <select id="datasetTarget">
+              <option value="0">Blu</option>
+              <option value="1">Arancione</option>
+            </select></label
+          >
+          <label
+            >Nome del set <input id="datasetName" type="text" maxlength="100"
+          /></label>
+          <button id="connectDatasetVideo">Collega onboard al giro</button>
+          <button id="saveDataset" class="primary">
+            Salva singolo set JSON
+          </button>
+        </div>
+        <p id="datasetVideoStatus" class="help" aria-live="polite"></p>
+        <p class="help">
+          Collega l’onboard originale da cui provengono i dati. Il collegamento
+          serve alla riproduzione e all’allineamento: questa pagina non estrae
+          nuovi valori dal video. Per un nuovo onboard occorre prima estrarre la
+          telemetria e aprire il relativo JSON o CSV.
+        </p>
+        <p class="help">
+          Per confrontare due set: apri il primo scegliendo blu, poi apri il
+          secondo scegliendo arancione. Puoi anche conservare l’intero
+          confronto.
+        </p>
+        <div class="row">
+          <button id="saveSession" class="primary">
+            Salva confronto completo JSON</button
           ><label class="file-button"
             >Apri JSON o CSV<input
               id="openDataFile"
               type="file"
               accept=".json,.csv,application/json,text/csv" /></label
           ><label
-            >Se il file contiene un giro:
+            >Apri un singolo set nel:
             <select id="importTarget">
-              <option value="1">sostituisci arancione</option>
-              <option value="0">sostituisci blu</option>
+              <option value="1">giro arancione</option>
+              <option value="0">giro blu</option>
             </select></label
           ><button id="resetData">Ricarica dati Monza</button>
         </div>
@@ -1759,14 +1788,12 @@ $("unlockCursor").onclick = () => {
   schedule();
 };
 function updateVideoNote() {
-  $("videoFilesNote").textContent = videoBindings.some(Boolean)
-    ? videoBindings
-        .map(
-          (v, i) =>
-            `${i ? "Arancione" : "Blu"}: ${v ? v.name : "seleziona il video"}`,
-        )
-        .join(" · ")
-    : "Seleziona i video originali dal Mac; non sono incorporati nei file di dati.";
+  $("videoFilesNote").textContent = videoBindings
+    .map((v, i) => {
+      const connected = Boolean(sourceURLs[i ? "B" : "A"]);
+      return `${i ? "Arancione" : "Blu"}: ${connected ? "collegato · " + v.name : v ? "riseleziona " + v.name : "seleziona l’onboard originale"}`;
+    })
+    .join(" · ");
 }
 function seekVideoToCursor(i) {
   const video = $(i ? "videoB" : "videoA");
@@ -1814,7 +1841,9 @@ $("alignVideos").onclick = () => {
   const a = $("videoA"),
     b = $("videoB");
   if (!a.videoWidth || !b.videoWidth) {
-    message("Apri entrambi i video per allineare i fotogrammi.");
+    message(
+      "Seleziona gli onboard originali nei campi Video blu e Video arancione qui sotto. I dati sono caricati, ma i file video restano sul Mac.",
+    );
     return;
   }
   const ta = a.currentTime - laps[0].sourceStart,
@@ -2046,14 +2075,20 @@ function restoreComparison(
 ) {
   if (
     input?.format &&
-    (input.format !== "driving-notes-comparison" || input.version !== 1)
+    (!["driving-notes-comparison", "driving-notes-dataset"].includes(
+      input.format,
+    ) ||
+      input.version !== 1)
   )
     throw Error("Formato o versione del confronto non supportato.");
-  const incoming = Array.isArray(input?.laps)
-    ? input.laps
-    : input?.rows
-      ? [input]
-      : null;
+  const incoming =
+    input?.format === "driving-notes-dataset"
+      ? [input.lap]
+      : Array.isArray(input?.laps)
+        ? input.laps
+        : input?.rows
+          ? [input]
+          : null;
   if (!incoming || incoming.length < 1 || incoming.length > 2)
     throw Error("Il JSON deve contenere uno o due giri con rows.");
   const validated = incoming.map(validateLap),
@@ -2109,6 +2144,16 @@ function restoreComparison(
   }
   if (single) {
     laps[target] = validated[0];
+    const binding = input.video;
+    if (binding && typeof binding.name === "string")
+      videoBindings[target] = {
+        name: binding.name.slice(0, 250),
+        size: Number.isFinite(binding.size) ? binding.size : null,
+        lastModified: Number.isFinite(binding.lastModified)
+          ? binding.lastModified
+          : null,
+      };
+    state.lapVisible[target] = true;
     if (target === 0) {
       const orange = lapShift(1);
       state.referenceOffset = 0;
@@ -2164,6 +2209,7 @@ function restoreComparison(
   updateDatasetLabels();
   updateAlignmentStatus();
   updateVideoNote();
+  updateDatasetEditor();
   remember();
   schedule();
   $("dataStatus").textContent =
@@ -2222,6 +2268,53 @@ Object.assign(window.monzaViewer, {
   parseCSV,
 });
 updateDatasetLabels();
+
+function datasetSnapshot(i, name = laps[i].name) {
+  if (i !== 0 && i !== 1) throw Error("Seleziona un giro valido.");
+  const lap = validateLap({ ...laps[i], name }, i);
+  return {
+    format: "driving-notes-dataset",
+    version: 1,
+    lap,
+    video: structuredClone(videoBindings[i]),
+  };
+}
+function updateDatasetEditor() {
+  const i = Number($("datasetTarget").value),
+    video = videoBindings[i];
+  $("datasetName").value = laps[i].name;
+  $("datasetVideoStatus").textContent = video
+    ? `Onboard: ${video.name} · ${sourceURLs[i ? "B" : "A"] ? "collegato" : "da riselezionare dal Mac"}. Il video non viene incorporato nel set.`
+    : "Nessun onboard collegato a questo giro. Puoi salvare anche i soli dati.";
+}
+$("datasetTarget").onchange = updateDatasetEditor;
+$("connectDatasetVideo").onclick = () => {
+  const key = Number($("datasetTarget").value) ? "B" : "A";
+  $("videoDetails").open = true;
+  $("file" + key).click();
+};
+["A", "B"].forEach((key) =>
+  $("file" + key).addEventListener("change", updateDatasetEditor),
+);
+$("saveDataset").onclick = () => {
+  const i = Number($("datasetTarget").value),
+    name = $("datasetName").value.trim();
+  if (!name) {
+    $("dataStatus").textContent = "Scrivi un nome per il set.";
+    return;
+  }
+  const snapshot = datasetSnapshot(i, name);
+  const filename =
+    name.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "giro";
+  download(
+    new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }),
+    filename + ".json",
+  );
+  $("dataStatus").textContent =
+    `Set «${name}» salvato: ${snapshot.lap.rows.length.toLocaleString("it-IT")} campioni di un solo giro. Aprilo nel blu o nell’arancione per un confronto.`;
+};
+Object.assign(window.monzaViewer, { datasetSnapshot });
+updateDatasetEditor();
 
     </script>
   </body>

@@ -195,14 +195,20 @@ function restoreComparison(
 ) {
   if (
     input?.format &&
-    (input.format !== "driving-notes-comparison" || input.version !== 1)
+    (!["driving-notes-comparison", "driving-notes-dataset"].includes(
+      input.format,
+    ) ||
+      input.version !== 1)
   )
     throw Error("Formato o versione del confronto non supportato.");
-  const incoming = Array.isArray(input?.laps)
-    ? input.laps
-    : input?.rows
-      ? [input]
-      : null;
+  const incoming =
+    input?.format === "driving-notes-dataset"
+      ? [input.lap]
+      : Array.isArray(input?.laps)
+        ? input.laps
+        : input?.rows
+          ? [input]
+          : null;
   if (!incoming || incoming.length < 1 || incoming.length > 2)
     throw Error("Il JSON deve contenere uno o due giri con rows.");
   const validated = incoming.map(validateLap),
@@ -258,6 +264,16 @@ function restoreComparison(
   }
   if (single) {
     laps[target] = validated[0];
+    const binding = input.video;
+    if (binding && typeof binding.name === "string")
+      videoBindings[target] = {
+        name: binding.name.slice(0, 250),
+        size: Number.isFinite(binding.size) ? binding.size : null,
+        lastModified: Number.isFinite(binding.lastModified)
+          ? binding.lastModified
+          : null,
+      };
+    state.lapVisible[target] = true;
     if (target === 0) {
       const orange = lapShift(1);
       state.referenceOffset = 0;
@@ -313,6 +329,7 @@ function restoreComparison(
   updateDatasetLabels();
   updateAlignmentStatus();
   updateVideoNote();
+  updateDatasetEditor();
   remember();
   schedule();
   $("dataStatus").textContent =
@@ -371,3 +388,50 @@ Object.assign(window.monzaViewer, {
   parseCSV,
 });
 updateDatasetLabels();
+
+function datasetSnapshot(i, name = laps[i].name) {
+  if (i !== 0 && i !== 1) throw Error("Seleziona un giro valido.");
+  const lap = validateLap({ ...laps[i], name }, i);
+  return {
+    format: "driving-notes-dataset",
+    version: 1,
+    lap,
+    video: structuredClone(videoBindings[i]),
+  };
+}
+function updateDatasetEditor() {
+  const i = Number($("datasetTarget").value),
+    video = videoBindings[i];
+  $("datasetName").value = laps[i].name;
+  $("datasetVideoStatus").textContent = video
+    ? `Onboard: ${video.name} · ${sourceURLs[i ? "B" : "A"] ? "collegato" : "da riselezionare dal Mac"}. Il video non viene incorporato nel set.`
+    : "Nessun onboard collegato a questo giro. Puoi salvare anche i soli dati.";
+}
+$("datasetTarget").onchange = updateDatasetEditor;
+$("connectDatasetVideo").onclick = () => {
+  const key = Number($("datasetTarget").value) ? "B" : "A";
+  $("videoDetails").open = true;
+  $("file" + key).click();
+};
+["A", "B"].forEach((key) =>
+  $("file" + key).addEventListener("change", updateDatasetEditor),
+);
+$("saveDataset").onclick = () => {
+  const i = Number($("datasetTarget").value),
+    name = $("datasetName").value.trim();
+  if (!name) {
+    $("dataStatus").textContent = "Scrivi un nome per il set.";
+    return;
+  }
+  const snapshot = datasetSnapshot(i, name);
+  const filename =
+    name.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "giro";
+  download(
+    new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }),
+    filename + ".json",
+  );
+  $("dataStatus").textContent =
+    `Set «${name}» salvato: ${snapshot.lap.rows.length.toLocaleString("it-IT")} campioni di un solo giro. Aprilo nel blu o nell’arancione per un confronto.`;
+};
+Object.assign(window.monzaViewer, { datasetSnapshot });
+updateDatasetEditor();

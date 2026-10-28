@@ -905,14 +905,12 @@ $("unlockCursor").onclick = () => {
   schedule();
 };
 function updateVideoNote() {
-  $("videoFilesNote").textContent = videoBindings.some(Boolean)
-    ? videoBindings
-        .map(
-          (v, i) =>
-            `${i ? "Arancione" : "Blu"}: ${v ? v.name : "seleziona il video"}`,
-        )
-        .join(" · ")
-    : "Seleziona i video originali dal Mac; non sono incorporati nei file di dati.";
+  $("videoFilesNote").textContent = videoBindings
+    .map((v, i) => {
+      const connected = Boolean(sourceURLs[i ? "B" : "A"]);
+      return `${i ? "Arancione" : "Blu"}: ${connected ? "collegato · " + v.name : v ? "riseleziona " + v.name : "seleziona l’onboard originale"}`;
+    })
+    .join(" · ");
 }
 function seekVideoToCursor(i) {
   const video = $(i ? "videoB" : "videoA");
@@ -960,7 +958,9 @@ $("alignVideos").onclick = () => {
   const a = $("videoA"),
     b = $("videoB");
   if (!a.videoWidth || !b.videoWidth) {
-    message("Apri entrambi i video per allineare i fotogrammi.");
+    message(
+      "Seleziona gli onboard originali nei campi Video blu e Video arancione qui sotto. I dati sono caricati, ma i file video restano sul Mac.",
+    );
     return;
   }
   const ta = a.currentTime - laps[0].sourceStart,

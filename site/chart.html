@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Telemetria</title>
+    <style>
+      /*STYLE*/
+      .channel-values {
+        flex-wrap: wrap;
+      }
+      .channel-values small {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .channel-values span {
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="toolbar">
+        <div class="row" id="alignmentActions">
+          <button
+            id="modeDataset"
+            aria-pressed="false"
+            aria-keyshortcuts="Alt+S"
+          >
+            Sposta dati · Alt+S
+          </button>
+          <button id="openAlignment" class="primary">Allinea dal video</button>
+          <span id="alignmentStatus" class="help"></span>
+        </div>
+        <div class="row">
+          <button id="resetView">Giro intero</button
+          ><button id="exportView">Esporta PNG</button>
+        </div>
+        <div id="message" role="status"></div>
+      </section>
+      <section
+        class="workspace"
+        aria-label="Confronto telemetria su un unico grafico"
+      >
+        <aside class="channel-panel">
+          <div class="panel-heading">
+            <h2>Canali</h2>
+            <span class="help">Dataset selezionato</span>
+          </div>
+          <div id="channelList" class="channel-list"></div>
+          <div class="channel-settings">
+            <div class="panel-heading">
+              <h3 id="activeName">Velocità</h3>
+              <button id="resetChannel" class="small">Ripristina</button>
+            </div>
+            <div class="controls-grid">
+              <label class="slider-label"
+                >Ampiezza <output id="scaleValue">58%</output
+                ><input
+                  id="channelScale"
+                  type="range"
+                  min="5"
+                  max="280"
+                  step="1"
+                  value="58" /></label
+              ><label class="slider-label"
+                >Posizione verticale <output id="positionValue">34%</output
+                ><input
+                  id="channelPosition"
+                  type="range"
+                  min="-100"
+                  max="200"
+                  step="1"
+                  value="34"
+              /></label>
+            </div>
+            <div class="row">
+              <button
+                id="channelSmaller"
+                aria-label="Riduci ampiezza del canale selezionato"
+              >
+                Ampiezza −</button
+              ><button
+                id="channelLarger"
+                aria-label="Aumenta ampiezza del canale selezionato"
+              >
+                Ampiezza +
+              </button>
+            </div>
+            <p class="help">
+              Trascina la sua scala a sinistra del grafico per spostarlo. La
+              rotella sulla scala cambia l’ampiezza; le maniglie alle estremità
+              la regolano direttamente.
+            </p>
+          </div>
+          <button id="resetLayout" class="reset-layout">
+            Ripristina tutti i canali
+          </button>
+        </aside>
+        <div class="plot-card">
+          <div class="plot-heading">
+            <div class="mode-switch">
+              <button id="modeZoom" aria-pressed="true">
+                Seleziona intervallo</button
+              ><button id="modeMove" aria-pressed="false">Sposta canale</button>
+            </div>
+            <div class="cursor-controls">
+              <span id="cursorReadout" class="time-readout">0,000 s</span
+              ><button id="unlockCursor" class="small" disabled>
+                Libera cursore
+              </button>
+            </div>
+          </div>
+          <canvas
+            id="plot"
+            tabindex="0"
+            aria-label="Grafico unico di velocità, giri motore, marcia, acceleratore e freno. Scale indipendenti a sinistra."
+          ></canvas>
+          <div class="plot-footer">
+            <span class="help" id="interactionHint" aria-live="polite"
+              >Clic: fissa il cursore · Trascina: ingrandisci · Maiusc +
+              trascina: scorri · Doppio clic: giro intero</span
+            ><span class="help">Scale verticali indipendenti</span>
+          </div>
+        </div>
+      </section>
+      <details class="card" id="videoDetails">
+        <summary>Video di allineamento · chiudi/apri</summary>
+        <div class="videoGrid">
+          <div>
+            <label>Riferimento<select id="pairA"></select></label>
+            <h3 id="videoNameA"></h3>
+            <video id="videoA" controls playsinline preload="metadata"></video>
+            <div class="row">
+              <button data-step-video="0" data-direction="-1">
+                Fotogramma −</button
+              ><button data-step-video="0" data-direction="1">
+                Fotogramma +
+              </button>
+            </div>
+          </div>
+          <div>
+            <label>Confronto<select id="pairB"></select></label>
+            <h3 id="videoNameB"></h3>
+            <video id="videoB" controls playsinline preload="metadata"></video>
+            <div class="row">
+              <button data-step-video="1" data-direction="-1">
+                Fotogramma −</button
+              ><button data-step-video="1" data-direction="1">
+                Fotogramma +
+              </button>
+            </div>
+          </div>
+        </div>
+        <p id="videoStatus" role="status"></p>
+      </details>
+      <p class="help">
+        Asse X: tempo dall’inizio dell’onboard o dal riferimento del set
+        importato. Canali non leggibili lasciati vuoti. Nessun giro di prova
+        precaricato.
+      </p>
+    </main>
+    <script>
+      /*SCRIPT*/
+    </script>
+  </body>
+</html>

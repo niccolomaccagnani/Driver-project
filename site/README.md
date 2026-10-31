@@ -16,9 +16,9 @@ Per ritrovare l’archivio personale usa lo stesso browser e la stessa origine d
 
 ## Lettura dei video: limiti concreti
 
-L’OCR cerca valori numerici con etichette HUD riconoscibili, anche negli angoli inferiori ingranditi. Velocità (`KM/H`, `SPEED`), RPM, marcia e percentuali di acceleratore/freno vengono letti quando riconoscibili. Per un display con RPM e velocità sovrapposti e allineati, viene cercata anche la singola cifra della marcia nel centro, con una soglia di confidenza più alta. I pedali mostrati soltanto come barre non vengono stimati in questa versione e sono segnalati come mancanti.
+L’OCR cerca valori numerici con etichette HUD riconoscibili, anche negli angoli inferiori ingranditi. Velocità (`KM/H`, `SPEED`), RPM, marcia e percentuali di acceleratore/freno vengono letti quando riconoscibili. Per un display con RPM e velocità sovrapposti e allineati, viene cercata anche la singola cifra della marcia nel centro, con una soglia di confidenza più alta. Il motore 3 misura anche le barre di acceleratore e freno: lunghezza riempita / lunghezza della pista completa × 100. La stessa procedura viene applicata a ogni onboard, con geometria e colore ricavati dal suo display; nessun nome di file, circuito o valore massimo raggiunto viene usato per calibrare il 100%.
 
-Per altri display, **Regola lettura** permette di disegnare aree intorno alle cifre e rigenerare il set. Le aree si riferiscono al video selezionato. Se il video non contiene la velocità, selezionare un’area non può ricostruirla.
+Per altri display, **Regola lettura** permette di disegnare aree intorno alle cifre oppure scegliere **Barra percentuale · pedali** e selezionare l’intera pista, compresa la parte vuota. Puoi indicare verso e riempimento chiaro/scuro. Questa calibrazione viene ricordata per quell’onboard e riutilizzata nelle rigenerazioni; **Azzera aree** la cancella. Le aree si riferiscono al video selezionato. Se il video non contiene la velocità, selezionare un’area non può ricostruirla.
 
 Il campionamento è a **30 Hz** lungo l’onboard completo, senza identificazione automatica di giri multipli. Se il video contiene già un solo giro tagliato, il suo inizio è lo zero. La frequenza del video viene stimata dai callback dei fotogrammi quando disponibili; in assenza di informazioni il passo di allineamento usa 1/30 s. Non è una decodifica dei timestamp di ogni fotogramma del contenitore, quindi con video a frequenza variabile il passo resta approssimativo. Le letture OCR non sono dati ECU e non sono garantite per qualsiasi sovraimpressione. I valori incerti o fuori intervallo restano `null`, senza interpolazione né zeri aggiunti. Nessun riempimento o smoothing artificiale viene applicato.
 
@@ -37,14 +37,15 @@ File principali:
 
 - `source.html`: sito originale dell’utente, conservato senza modifiche.
 - `telemetry.js`: archivio, coda, caricamenti, libreria, slot e colori.
-- `extractor.js`: ricerca HUD e lettura locale tramite Tesseract.js/WASM.
+- `extractor.js`: ricerca HUD, sincronizzazione con il fotogramma decodificato e lettura locale tramite Tesseract.js/WASM.
+- `bars.js`: riconoscimento della pista, calibrazione del contrasto e misura dei pedali come percentuale grafica.
 - `chart.html` / `chart.js`: grafico con un numero variabile di dataset e allineamento video.
 - `vendor/`: runtime, modello e licenze; vedere `vendor/NOTICE.md` per versioni e modifica locale.
 - `build.py`: genera l’HTML autonomo e lo ZIP. Non incorpora `telemetry/monza/viewer/telemetry-data.json` né il vecchio viewer di prova.
 
 Rigenera con `python site/build.py`. Esegui `site/tests/browser_check.py` con Python, Playwright, Pillow, Chromium e ffmpeg disponibili. Le prove creano video HUD sintetici con valori noti e verificano **tutti i valori estratti dal vero OCR**, segnalazioni dei canali mancanti, code su archivio esistente e nuovi upload, quattro set, colori, Alt+S, coppia di onboard al cursore, avanzamento fotogrammi, persistenza, nome manuale, esportazione del sito e layout mobile. Nessuna richiesta esterna per runtime o modelli.
 
-Una prova aggiuntiva su un breve estratto dell’onboard originale ha letto velocità, RPM e marcia; acceleratore e freno a barre sono stati correttamente segnalati come non letti. I video personali non sono aggiunti al pacchetto di distribuzione.
+Una prova aggiuntiva sul breve estratto disponibile dell’onboard originale ha letto velocità, RPM e marcia; con il motore 3 ha misurato anche acceleratore 100% e freno 0%, coerenti con le barre visibili. I video personali non sono aggiunti al pacchetto di distribuzione.
 
 ## Correzione lettura, motore 2
 
@@ -55,3 +56,15 @@ Il motore 2 usa tre istanti di calibrazione, controlla la coerenza della posizio
 **Rigenera dal video**, accanto a ciascun set salvato, applica il nuovo motore al suo onboard già archiviato e aggiorna il set conservandone nome, identificativo e una copia della lettura precedente esportabile. Le analisi automatiche del vecchio motore vengono ricalcolate. I JSON nuovi contengono `lap.extraction` con versione, aree, istanti di calibrazione e contatori dei campioni letti/scartati/riprovati. La percentuale in libreria misura i campioni accettati, non l’accuratezza rispetto al video.
 
 Esegui anche `site/tests/accuracy_check.py`: verifica 60 valori noti attraverso cambi di larghezza e i casi di parsing ambiguo. Il risultato è in `site/tests/accuracy-report.json`. Il set e l’onboard dell’utente relativi ad Abu Dhabi non erano disponibili nell’ambiente: queste correzioni generali non costituiscono una validazione di quel giro specifico. Per diagnosticare quel caso occorrono il JSON esportato e il filmato sorgente.
+
+## Barre percentuali · motore 3
+
+Il lettore cerca le etichette di acceleratore/freno, individua piste rettangolari colorate oppure con bordo e verifica la geometria in più fotogrammi. Funziona con barre orizzontali e verticali, versi opposti, colori diversi e con la comune sfumatura crescente delle barre con etichetta a sinistra. Le unità sono **percentuali grafiche stimate**, non pressione freno o segnali ricevuti dall’ECU.
+
+La lunghezza totale è quella della pista visibile: un video in cui l’acceleratore arriva solo al 60% rimane al 60%. I testi sovrapposti vengono esclusi dalla misura del colore e piccole interruzioni spaziali vengono risolte usando il colore ai lati; non si interpolano i valori nel tempo. Le letture a barre sono identificate come `method: "bar-percentage"` nel JSON.
+
+Se manca una pista completa riconoscibile, il sistema segnala il canale invece di chiamare 100% il massimo segmento colorato osservato. Barre senza etichette, con riempimenti centrati/non lineari, colori ambigui o sfumature non riconoscibili possono richiedere la calibrazione manuale della pista e del verso; nessuna lettura universale di qualsiasi grafica è garantita. Se il display è coperto o il colore/bordo atteso scompare, il campione resta vuoto, senza uno zero fittizio.
+
+Le analisi automatiche precedenti vengono rigenerate dal nuovo motore; per aggiornare un set nominato usa **Rigenera dal video**. Nome e copia precedente vengono conservati. La misura è inclusa nella stessa coda che analizza gli onboard già presenti e i nuovi caricamenti.
+
+`site/tests/bars_check.py` genera clip H.264 con quattro layout, tre risoluzioni, sei colori, gradienti, etichette sovrapposte, barre vuote/piene/parziali e versi opposti, poi confronta le percentuali estratte con quelle note. Verifica anche un massimo del 60%, la rejection di un segmento senza scala totale visibile, l’overlay coperto e la calibrazione manuale. I risultati sono in `site/tests/bars-report.json`. I test numerici e del sito completo restano separati.

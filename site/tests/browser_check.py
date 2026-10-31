@@ -102,7 +102,7 @@ async def check():
   await wait_db("async()=>{const s=await driverTelemetry.store('sets','getAll');return s.some(x=>x.data.lap.name==='Set rinominato'&&x.data.lap.rows[0][3]===120&&x.previousData);}")
   after=await page.evaluate("driverTelemetry.store('sets','getAll')");assert len(after)==len(saved)
   updated=next(s for s in after if s['id']==named['id']);assert updated['previousData']['lap']['rows'][0][3]==10
-  assert updated['data']['video']['siteVideoId']=='existing' and updated['data']['lap']['extraction']['engineVersion']==2
+  assert updated['data']['video']['siteVideoId']=='existing' and updated['data']['lap']['extraction']['engineVersion']==3
   await page.locator('#dnLibrary summary').click()
   print('PASS: four colored datasets; editable colors; selected-only Alt+S shift; auto-open videos at cursor; frame following; persistence; manual naming.',flush=True)
   # UI shows an empty plot rather than test data on a fresh load; mobile has no horizontal overflow.

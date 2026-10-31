@@ -1,6 +1,6 @@
 {
   "fixture": "changing digit widths, labelled HUD, 10 fps, 1.2 s",
-  "engineVersion": 2,
+  "engineVersion": 3,
   "expected": [
     [
       98,

@@ -20,10 +20,10 @@
     <label style="margin:0;display:flex;gap:8px;align-items:center"><input id="dnAutomatic" type="checkbox" checked style="width:auto">Analizza automaticamente i video esistenti e i nuovi caricamenti</label></div>
     <p id="dnOCRProgress" role="status" aria-live="polite">Preparazione dell’archivio…</p><progress id="dnOCRBar" max="1" value="0" style="width:100%"></progress>
     <p class="muted">I set automatici usano il nome dell’onboard. I canali non leggibili vengono segnalati, senza inventare valori.
-    Il campionamento è a 30 Hz. I valori sono letture OCR del display, non telemetria ECU. L’analisi continua finché il sito resta aperto.</p>
+    Il campionamento è a 30 Hz. I valori numerici sono letture OCR; i pedali a barre sono percentuali visive della pista completa. L’analisi continua finché il sito resta aperto.</p>
     <details id="dnCalibration"><summary>Regola lettura · se un valore visibile non viene riconosciuto</summary>
-      <p class="muted">Apri l’anteprima, scegli un canale e trascina un rettangolo intorno alle sole cifre. Per pedali rappresentati solo da barre non vengono stimati valori numerici.</p>
-      <div class="toolbar"><button id="dnPreview" class="light">Apri anteprima del video</button><label>Canale<select id="dnROIChannel"><option value="speed">Velocità</option><option value="rpm">Giri motore</option><option value="gear">Marcia</option><option value="throttle">Acceleratore %</option><option value="brake">Freno %</option></select></label><button id="dnClearROI" class="light">Azzera aree</button></div>
+      <p class="muted">Apri l’anteprima e scegli un canale. Per i numeri seleziona solo le cifre; per una barra seleziona tutta la pista, compresa la parte vuota, e scegli Barra percentuale. La stessa area viene seguita per tutto il video.</p>
+      <div class="toolbar"><button id="dnPreview" class="light">Apri anteprima del video</button><label>Canale<select id="dnROIChannel"><option value="speed">Velocità</option><option value="rpm">Giri motore</option><option value="gear">Marcia</option><option value="throttle">Acceleratore %</option><option value="brake">Freno %</option></select></label><label>Tipo lettura<select id="dnROIType"><option value="numeric">Numero</option><option value="bar">Barra percentuale · pedali</option></select></label><label>Verso riempimento<select id="dnBarDirection"><option value="auto">Automatico</option><option value="left">Da sinistra</option><option value="right">Da destra</option><option value="bottom">Dal basso</option><option value="top">Dall’alto</option></select></label><label>Tono riempimento<select id="dnBarTone"><option value="bright">Chiaro / colorato</option><option value="dark">Scuro su fondo chiaro</option></select></label><button id="dnClearROI" class="light">Azzera aree</button></div>
       <video id="dnPreviewVideo" controls muted playsinline style="width:100%;max-height:250px"></video>
       <canvas id="dnROICanvas" style="width:100%;max-width:100%;touch-action:none;cursor:crosshair"></canvas><p id="dnROIStatus" class="muted"></p>
     </details>
@@ -201,6 +201,15 @@
         const info = document.createElement("p");
         info.className = "muted";
         info.textContent = `${item.trackName || "Pista non indicata"} · ${item.data.lap.rows.length.toLocaleString("it-IT")} campioni · ${item.data.lap.sampleRate || "?"} Hz${item.missing?.length ? " · Non letti: " + item.missing.join(", ") : ""}`;
+        const barChannels = DriverOCR.fields
+          .filter(
+            (f) =>
+              item.data.lap.extraction?.channels?.[f.id]?.method ===
+              "bar-percentage",
+          )
+          .map((f) => f.name);
+        if (barChannels.length)
+          info.textContent += " · Barre grafiche: " + barChannels.join(", ");
         const coverage = document.createElement("p");
         coverage.className = "muted";
         coverage.textContent = item.coverage
@@ -331,7 +340,9 @@
       manual,
       targetSet,
       regions:
-        manual && regionVideo === entry.id ? structuredClone(regions) : null,
+        regionVideo === entry.id && Object.keys(regions).length
+          ? structuredClone(regions)
+          : null,
     });
     queued.add(entry.id);
     pump();
@@ -391,13 +402,19 @@
         updated: Date.now(),
       };
       try {
+        const priorJob = await store("analyses", "get", entry.id);
+        const calibration =
+          task.regions ||
+          (priorJob?.size === entry.size ? priorJob.manualRegions : null) ||
+          null;
+        job.manualRegions = calibration;
         await store("analyses", "put", job);
         await refreshLibrary();
         const file = await loadVideo(entry.id);
         if (!file) throw Error("File non disponibile in questo browser.");
         const result = await DriverOCR.analyze(file, {
           signal: controller.signal,
-          regions: task.regions,
+          regions: calibration,
           onProgress: (p) => {
             status(
               `${entry.name} · ${p.phase}${p.total ? " · " + p.time.toFixed(1) + " / " + p.total.toFixed(1) + " s" : ""} · ${queue.length} in coda`,
@@ -644,7 +661,24 @@
       };
     drag = null;
     if (r.w < 0.003 || r.h < 0.003) return;
-    regions[el("dnROIChannel").value] = r;
+    const id = el("dnROIChannel").value;
+    if (el("dnROIType").value === "bar") {
+      if (id !== "throttle" && id !== "brake") {
+        status("La lettura a barra è disponibile per acceleratore e freno.");
+        return;
+      }
+      Object.assign(r, {
+        kind: "bar",
+        axis:
+          r.w * preview.videoWidth >= r.h * preview.videoHeight
+            ? "horizontal"
+            : "vertical",
+        direction: el("dnBarDirection").value,
+        tone: el("dnBarTone").value,
+        manual: true,
+      });
+    }
+    regions[id] = r;
     drawPreview();
     el("dnROIStatus").textContent =
       "Aree impostate: " +
@@ -654,9 +688,20 @@
   canvas.onpointercancel = () => {
     drag = null;
   };
-  el("dnClearROI").onclick = () => {
+  el("dnClearROI").onclick = async () => {
     regions = {};
     drawPreview();
+    if (regionVideo) {
+      try {
+        const job = await store("analyses", "get", regionVideo);
+        if (job) {
+          delete job.manualRegions;
+          await store("analyses", "put", job);
+        }
+      } catch (error) {
+        status(error.message);
+      }
+    }
   };
   document.addEventListener("keydown", (event) => {
     if (

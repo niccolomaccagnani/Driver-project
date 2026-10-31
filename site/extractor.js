@@ -17,10 +17,15 @@
     {
       id: "throttle",
       name: "Acceleratore",
-      label: /\b(?:throttle|gas|accelerator|accel)\b/i,
+      label: /\b(?:throttle|gas|accelerator|accel|acceleratore|thr|tps)\b/i,
       max: 100,
     },
-    { id: "brake", name: "Freno", label: /\b(?:brake|freno)\b/i, max: 100 },
+    {
+      id: "brake",
+      name: "Freno",
+      label: /\b(?:brake|freno|brk|bps)\b/i,
+      max: 100,
+    },
   ];
   let workerPromise = null,
     worker = null,
@@ -151,13 +156,53 @@
   function mergeRegions(samples) {
     const result = {};
     for (const field of fields) {
-      const items = samples.filter((s) => s.id === field.id),
-        groups = [];
+      let items = samples.filter((s) => s.id === field.id);
+      const bars = items.filter((s) => s.region.kind === "bar"),
+        numeric = items.filter((s) => s.region.kind !== "bar");
+      if (bars.length && new Set(numeric.map((s) => s.time)).size < 2) {
+        const outlines = bars.filter((s) => s.region.track === "outlined"),
+          candidates = outlines.length ? outlines : bars,
+          groups = [];
+        for (const sample of candidates) {
+          const r = sample.region;
+          let group = groups.find((g) => {
+            const a = g[0].region;
+            return (
+              a.axis === r.axis &&
+              Math.abs(a.x - r.x) < Math.max(0.004, a.w * 0.04) &&
+              Math.abs(a.y - r.y) < Math.max(0.004, a.h * 0.04) &&
+              Math.abs(a.w - r.w) < Math.max(0.004, a.w * 0.04) &&
+              Math.abs(a.h - r.h) < Math.max(0.004, a.h * 0.04)
+            );
+          });
+          if (!group) {
+            group = [];
+            groups.push(group);
+          }
+          group.push(sample);
+        }
+        groups.sort(
+          (a, b) =>
+            new Set(b.map((s) => s.time)).size -
+            new Set(a.map((s) => s.time)).size,
+        );
+        const chosen = groups[0];
+        if (!chosen) continue;
+        const support = new Set(chosen.map((s) => s.time)).size;
+        if (groups[1] && new Set(groups[1].map((s) => s.time)).size === support)
+          continue;
+        const model = DriverBars.calibrate(chosen.map((s) => s.region));
+        if (model) result[field.id] = { ...model, support };
+        continue;
+      }
+      items = numeric;
+      const groups = [];
       for (const sample of items) {
         const r = sample.region;
         let group = groups.find((g) => {
           const a = g[0].region;
           return (
+            a.kind === r.kind &&
             Math.abs(a.x + a.w / 2 - r.x - r.w / 2) <
               Math.max(a.w, r.w) * 0.7 &&
             Math.abs(a.y + a.h / 2 - r.y - r.h / 2) < Math.max(a.h, r.h) * 0.75
@@ -182,6 +227,11 @@
         (groups[1] && new Set(groups[1].map((s) => s.time)).size === support)
       )
         continue;
+      if (chosen[0].region.kind === "bar") {
+        const model = DriverBars.calibrate(chosen.map((s) => s.region));
+        if (model) result[field.id] = { ...model, support };
+        continue;
+      }
       const regions = chosen.map((s) => s.region),
         x = Math.min(...regions.map((r) => r.x)),
         y = Math.min(...regions.map((r) => r.y));
@@ -205,7 +255,7 @@
     }
     return result;
   }
-  function detect(data, width, height) {
+  function detect(data, width, height, image = null) {
     const found = {},
       ls = lines(data),
       all = ls.flatMap((line) => line.words || []);
@@ -372,6 +422,20 @@
           };
       }
     }
+    if (image) {
+      const labels = [];
+      for (const field of fields.filter(
+        (f) => (f.id === "throttle" || f.id === "brake") && !found[f.id],
+      ))
+        for (const word of all)
+          if (word.bbox && field.label.test(word.text || ""))
+            labels.push({ id: field.id, bbox: word.bbox });
+      if (labels.length) {
+        const bars = DriverBars.detect(image, labels);
+        for (const id of ["throttle", "brake"])
+          if (!found[id] && bars[id]) found[id] = bars[id];
+      }
+    }
     return found;
   }
   function preprocess(ctx, w, h, contentWidth, contentHeight) {
@@ -416,7 +480,20 @@
       return;
     await timeout(
       new Promise((resolve, reject) => {
-        const done = () => {
+        let landed = false,
+          decoded = false,
+          callback = null,
+          settle = null;
+        const target = Math.min(video.duration - 0.000001, time + 0.00001),
+          interval = 1 / (video._driverFrameRate || 30);
+        const cleanup = () => {
+          video.removeEventListener("seeked", onSeeked);
+          video.removeEventListener("error", fail);
+          signal?.removeEventListener("abort", abort);
+          clearTimeout(settle);
+          if (callback !== null) video.cancelVideoFrameCallback?.(callback);
+        };
+        const finish = () => {
             cleanup();
             resolve();
           },
@@ -428,20 +505,32 @@
             cleanup();
             reject(new DOMException("Analisi interrotta", "AbortError"));
           };
-        const cleanup = () => {
-          video.removeEventListener("seeked", done);
-          video.removeEventListener("error", fail);
-          signal?.removeEventListener("abort", abort);
+        const frame = (_now, meta) => {
+          if (
+            meta.mediaTime >= target - interval + 0.000001 &&
+            meta.mediaTime <= target + interval * 0.2
+          ) {
+            decoded = true;
+            if (landed) finish();
+          } else callback = video.requestVideoFrameCallback(frame);
         };
-        video.addEventListener("seeked", done, { once: true });
+        const onSeeked = () => {
+          landed = true;
+          if (decoded) finish();
+          else settle = setTimeout(finish, 60);
+        };
+        video.addEventListener("seeked", onSeeked, { once: true });
         video.addEventListener("error", fail, { once: true });
         signal?.addEventListener("abort", abort, { once: true });
-        video.currentTime = time;
+        if (video.requestVideoFrameCallback)
+          callback = video.requestVideoFrameCallback(frame);
+        video.currentTime = target;
       }),
       15000,
       "Impossibile leggere il fotogramma.",
     );
   }
+
   async function estimateFPS(video, signal) {
     if (!video.requestVideoFrameCallback) return 30;
     return new Promise((resolve) => {
@@ -510,9 +599,9 @@
       );
       if (!Number.isFinite(video.duration) || video.duration <= 0)
         throw Error("Durata video non valida.");
-      const fpsPromise = estimateFPS(video, signal);
       const engine = await getWorker();
-      const sourceFPS = await fpsPromise;
+      const sourceFPS = await estimateFPS(video, signal);
+      video._driverFrameRate = sourceFPS;
       onProgress({ phase: "Ricerca dei valori HUD", progress: 0 });
       let rois = regions ? structuredClone(regions) : {},
         roiSamples = [];
@@ -561,7 +650,40 @@
               {},
               { text: true, blocks: true },
             );
-            const found = detect(data, canvas.width, canvas.height);
+            const raw = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const found = detect(data, canvas.width, canvas.height, raw);
+            if (!found.throttle || !found.brake) {
+              const contrast = document.createElement("canvas");
+              contrast.width = canvas.width;
+              contrast.height = canvas.height;
+              const pixels = new ImageData(
+                new Uint8ClampedArray(raw.data),
+                raw.width,
+                raw.height,
+              );
+              for (let i = 0; i < pixels.data.length; i += 4) {
+                const r = pixels.data[i],
+                  g = pixels.data[i + 1],
+                  b = pixels.data[i + 2],
+                  white =
+                    Math.min(r, g, b) >= 150 &&
+                    Math.max(r, g, b) - Math.min(r, g, b) < 85;
+                pixels.data[i] =
+                  pixels.data[i + 1] =
+                  pixels.data[i + 2] =
+                    white ? 0 : 255;
+                pixels.data[i + 3] = 255;
+              }
+              contrast.getContext("2d").putImageData(pixels, 0, 0);
+              const labels = await engine.recognize(
+                  contrast,
+                  {},
+                  { text: true, blocks: true },
+                ),
+                extra = detect(labels.data, canvas.width, canvas.height, raw);
+              for (const id of ["throttle", "brake"])
+                if (!found[id] && extra[id]) found[id] = extra[id];
+            }
             for (const [key, r] of Object.entries(found)) {
               rois[key] = {
                 ...r,
@@ -585,6 +707,58 @@
         }
       if (!regions || !Object.keys(regions).length)
         rois = mergeRegions(roiSamples);
+      const manualBars = Object.entries(rois).filter(
+        ([, r]) => r.kind === "bar",
+      );
+      if (manualBars.length) {
+        const samples = Object.fromEntries(manualBars.map(([id]) => [id, []]));
+        canvas.width = width;
+        canvas.height = height;
+        for (const t of [
+          ...new Set([
+            0,
+            Math.min(video.duration * 0.15, 2),
+            Math.min(video.duration * 0.5, 8),
+          ]),
+        ]) {
+          await seek(video, t, signal);
+          ctx.drawImage(video, 0, 0, width, height);
+          const image = ctx.getImageData(0, 0, width, height);
+          for (const [id, r] of manualBars)
+            samples[id].push(
+              DriverBars.sample(image, {
+                ...r,
+                manual: !!r.manual,
+                track: r.track || "manual",
+              }),
+            );
+        }
+        for (const [id] of manualBars) {
+          const model = DriverBars.calibrate(samples[id]);
+          if (model) rois[id] = model;
+          else delete rois[id];
+        }
+      }
+      for (const [id, r] of Object.entries(rois).filter(
+        ([, r]) => r.kind === "bar" && !r.boundsProven,
+      )) {
+        const companion = Object.entries(rois).find(
+          ([other, a]) =>
+            other !== id &&
+            a.kind === "bar" &&
+            a.boundsProven &&
+            a.axis === r.axis &&
+            (r.axis === "horizontal"
+              ? Math.abs(a.x - r.x) < Math.max(0.005, r.w * 0.04) &&
+                Math.abs(a.w - r.w) < r.w * 0.04
+              : Math.abs(a.y - r.y) < Math.max(0.005, r.h * 0.04) &&
+                Math.abs(a.h - r.h) < r.h * 0.04),
+        );
+        if (companion) {
+          r.boundsProven = true;
+          r.boundsFrom = companion[0];
+        } else delete rois[id];
+      }
       if (!Object.keys(rois).length)
         return {
           lap: null,
@@ -594,7 +768,10 @@
           reason:
             "Nessun valore HUD riconoscibile. Velocità, giri, marcia e pedali non trovati: apri «Regola lettura» per indicare le aree numeriche, se presenti nel video.",
         };
-      const active = fields.filter((f) => rois[f.id]),
+      const active = fields.filter(
+          (f) => rois[f.id] && rois[f.id].kind !== "bar",
+        ),
+        barFields = fields.filter((f) => rois[f.id]?.kind === "bar"),
         rows = [],
         counts = Object.fromEntries(fields.map((f) => [f.id, 0])),
         retries = Object.fromEntries(fields.map((f) => [f.id, 0]));
@@ -603,7 +780,9 @@
       crop.width = 420;
       crop.height = 80;
       canvas.width = 460;
-      canvas.height = active.length * 100;
+      canvas.height = Math.max(1, active.length * 100);
+      const barCanvas = document.createElement("canvas"),
+        barContext = barCanvas.getContext("2d", { willReadFrequently: true });
       await engine.setParameters({
         tessedit_char_whitelist: "",
         tessedit_pageseg_mode: "6",
@@ -645,11 +824,9 @@
           drawCrop(rois[field.id]);
           ctx.drawImage(crop, 20, index * 100 + 10);
         });
-        const { data } = await engine.recognize(
-          canvas,
-          {},
-          { text: true, blocks: true },
-        );
+        const { data } = active.length
+          ? await engine.recognize(canvas, {}, { text: true, blocks: true })
+          : { data: { blocks: [] } };
         const values = Object.fromEntries(fields.map((f) => [f.id, null]));
         for (const field of active) {
           const index = active.indexOf(field),
@@ -724,6 +901,33 @@
           }
         }
 
+        for (const field of barFields) {
+          const model = rois[field.id],
+            sw = model.w * video.videoWidth,
+            sh = model.h * video.videoHeight;
+          barCanvas.width = Math.max(2, Math.round(sw));
+          barCanvas.height = Math.max(2, Math.round(sh));
+          barContext.drawImage(
+            video,
+            model.x * video.videoWidth,
+            model.y * video.videoHeight,
+            sw,
+            sh,
+            0,
+            0,
+            barCanvas.width,
+            barCanvas.height,
+          );
+          const reading = DriverBars.read(
+            barContext.getImageData(0, 0, barCanvas.width, barCanvas.height),
+            model,
+          );
+          if (reading !== null) {
+            values[field.id] = reading;
+            counts[field.id]++;
+          }
+        }
+
         rows.push([frame, t, t, ...fields.map((f) => values[f.id])]);
         onProgress({
           phase: "Lettura dei fotogrammi",
@@ -739,7 +943,7 @@
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 2,
+        engineVersion: 3,
         calibrationTimes: [...new Set(roiSamples.map((s) => s.time))],
         regions: structuredClone(rois),
         channels: Object.fromEntries(
@@ -747,6 +951,12 @@
             f.id,
             {
               accepted: counts[f.id],
+              method:
+                rois[f.id]?.kind === "bar"
+                  ? "bar-percentage"
+                  : rois[f.id]
+                    ? "ocr"
+                    : "missing",
               missing: rows.length - counts[f.id],
               retried: retries[f.id],
             },
@@ -794,7 +1004,7 @@
     fields,
     getWorker,
     release,
-    version: 2,
+    version: 3,
     readWords,
     mergeRegions,
   };

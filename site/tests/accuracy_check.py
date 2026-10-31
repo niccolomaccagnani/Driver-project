@@ -22,10 +22,10 @@ async def check():
   rows=result['lap']['rows'];expected=[[98+i,980+i*20,4,80,0] for i in range(12)]
   assert [r[3:] for r in rows]==expected,rows
   assert result['coverage']==dict.fromkeys(['speed','rpm','gear','throttle','brake'],1)
-  assert result['quality']['engineVersion']==2 and len(result['quality']['calibrationTimes'])==3
+  assert result['quality']['engineVersion']==3 and len(result['quality']['calibrationTimes'])==3
   assert result['lap']['extraction']==result['quality']
   assert not errors,errors
-  (ROOT/'tests/accuracy-report.json').write_text(json.dumps({'fixture':'changing digit widths, labelled HUD, 10 fps, 1.2 s','engineVersion':2,'expected':expected,'observed':[r[3:] for r in rows],'incorrect':0,'missing':0,'scope':'Controlled regression clip; the user’s Abu Dhabi dataset and onboard were not available.'},indent=2)+'\n')
+  (ROOT/'tests/accuracy-report.json').write_text(json.dumps({'fixture':'changing digit widths, labelled HUD, 10 fps, 1.2 s','engineVersion':3,'expected':expected,'observed':[r[3:] for r in rows],'incorrect':0,'missing':0,'scope':'Controlled regression clip; the user’s Abu Dhabi dataset and onboard were not available.'},indent=2)+'\n')
   await browser.close()
  server.shutdown()
  print('PASS: 60/60 values exact across 2→3 and 3→4 digit changes; clocks, partial strings and separate numeric groups rejected; adjacent digits and explicit RPM units read; diagnostics retained. Abu Dhabi still requires the user files.')

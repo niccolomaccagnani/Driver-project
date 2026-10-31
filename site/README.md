@@ -45,3 +45,13 @@ File principali:
 Rigenera con `python site/build.py`. Esegui `site/tests/browser_check.py` con Python, Playwright, Pillow, Chromium e ffmpeg disponibili. Le prove creano video HUD sintetici con valori noti e verificano **tutti i valori estratti dal vero OCR**, segnalazioni dei canali mancanti, code su archivio esistente e nuovi upload, quattro set, colori, Alt+S, coppia di onboard al cursore, avanzamento fotogrammi, persistenza, nome manuale, esportazione del sito e layout mobile. Nessuna richiesta esterna per runtime o modelli.
 
 Una prova aggiuntiva su un breve estratto dell’onboard originale ha letto velocità, RPM e marcia; acceleratore e freno a barre sono stati correttamente segnalati come non letti. I video personali non sono aggiunti al pacchetto di distribuzione.
+
+## Correzione lettura, motore 2
+
+Il precedente ritaglio dipendeva dalla larghezza delle cifre nel primo fotogramma. Una prova riproducibile ha mostrato `98 → 100` letto come `98 → 10`, e `980 → 1020` letto come `980 → 102`. Inoltre il ridimensionamento a dimensioni frazionarie poteva produrre un bordo nero artificiale, riconosciuto come un carattere e responsabile di letture scartate.
+
+Il motore 2 usa tre istanti di calibrazione, controlla la coerenza della posizione del display e riserva spazio al numero completo. Mantiene intere le unità adiacenti, usa dimensioni intere per il ritaglio e riprova i valori non letti con riconoscimento per singola riga. Il parser rifiuta timer, suffissi sconosciuti e gruppi di cifre lontani; considera anche la confidenza di ogni simbolo per non scartare numeri chiari penalizzati dal punteggio del dizionario OCR. Nessuna interpolazione o riempimento dei vuoti.
+
+**Rigenera dal video**, accanto a ciascun set salvato, applica il nuovo motore al suo onboard già archiviato e aggiorna il set conservandone nome, identificativo e una copia della lettura precedente esportabile. Le analisi automatiche del vecchio motore vengono ricalcolate. I JSON nuovi contengono `lap.extraction` con versione, aree, istanti di calibrazione e contatori dei campioni letti/scartati/riprovati. La percentuale in libreria misura i campioni accettati, non l’accuratezza rispetto al video.
+
+Esegui anche `site/tests/accuracy_check.py`: verifica 60 valori noti attraverso cambi di larghezza e i casi di parsing ambiguo. Il risultato è in `site/tests/accuracy-report.json`. Il set e l’onboard dell’utente relativi ad Abu Dhabi non erano disponibili nell’ambiente: queste correzioni generali non costituiscono una validazione di quel giro specifico. Per diagnosticare quel caso occorrono il JSON esportato e il filmato sorgente.

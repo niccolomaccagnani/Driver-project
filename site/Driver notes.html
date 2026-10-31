@@ -1275,13 +1275,22 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
     return result;
   }
   function value(text, field) {
-    const clean = text
-      .trim()
-      .replace(/(?<=\d)[,](?=\d{3}\b)/g, "")
-      .replace(",", ".");
-    const match = clean.match(/\d+(?:\.\d+)?/);
-    if (!match) return null;
-    const n = Number(match[0]);
+    let clean = String(text).trim().toUpperCase(),
+      factor = 1;
+    if (field.id === "speed")
+      clean = clean.replace(/\s*(?:KM\s*\/?\s*H|KMH|KPH|KM\/?|K)$/, "");
+    else if (field.id === "rpm") {
+      clean = clean.replace(/\s*RPM$/, "");
+      if (/K$/.test(clean)) {
+        factor = 1000;
+        clean = clean.slice(0, -1);
+      } else if (/^\d{1,2}[., ]\d{3}$/.test(clean))
+        clean = clean.replace(/[., ]/, "");
+    } else if (field.id === "throttle" || field.id === "brake")
+      clean = clean.replace(/\s*%$/, "");
+    clean = clean.trim();
+    if (!/^\d+(?:[.,]\d+)?$/.test(clean)) return null;
+    const n = Number(clean.replace(",", ".")) * factor;
     return Number.isFinite(n) &&
       n >= 0 &&
       n <= field.max &&
@@ -1289,25 +1298,188 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
       ? n
       : null;
   }
+  function clipRegion(region) {
+    const x = Math.max(0, Math.min(1, region.x)),
+      y = Math.max(0, Math.min(1, region.y));
+    return {
+      ...region,
+      x,
+      y,
+      w: Math.max(0, Math.min(1 - x, region.w)),
+      h: Math.max(0, Math.min(1 - y, region.h)),
+    };
+  }
+  function numericConfidence(word) {
+    const base = word.confidence ?? 0;
+    if (!/^[0-9O.,]+$/.test(word.text.trim()) || !word.symbols?.length)
+      return base;
+    // Dictionary word scores penalize numeric strings; require every individual glyph to be clear.
+    const glyphs = word.symbols.filter((s) => s.text.trim());
+    return glyphs.length
+      ? Math.max(base, Math.min(...glyphs.map((s) => s.confidence ?? 0)))
+      : base;
+  }
+  function readWords(words, field, threshold = 60, scale = 1) {
+    if (!words.length) return null;
+    const sorted = [...words].sort((a, b) => a.bbox.x0 - b.bbox.x0);
+    if (sorted.some((w) => numericConfidence(w) < threshold)) return null;
+    for (let i = 1; i < sorted.length; i++) {
+      const a = sorted[i - 1],
+        b = sorted[i],
+        height = Math.min(a.bbox.y1 - a.bbox.y0, b.bbox.y1 - b.bbox.y0);
+      const overlap =
+        Math.min(a.bbox.y1, b.bbox.y1) - Math.max(a.bbox.y0, b.bbox.y0);
+      const glyph = Math.max(
+        (a.bbox.x1 - a.bbox.x0) / Math.max(1, a.text.trim().length),
+        (b.bbox.x1 - b.bbox.x0) / Math.max(1, b.text.trim().length),
+      );
+      if (
+        overlap < height * 0.4 ||
+        b.bbox.x0 - a.bbox.x1 > Math.max(5, glyph * 1.1)
+      )
+        return null;
+    }
+    const text = sorted.map((w) => w.text).join("");
+    let n = value(text, field);
+    // A numeric crop can confuse round zero glyphs with O; do not repair arbitrary text.
+    if (n === null && /^[0-9O.,]+$/.test(text))
+      n = value(text.replace(/O/g, "0"), field);
+    if (n !== null && scale !== 1 && !/K\s*(?:RPM)?$/i.test(text)) n *= scale;
+    return n !== null && n <= field.max ? n : null;
+  }
+  function mergeRegions(samples) {
+    const result = {};
+    for (const field of fields) {
+      const items = samples.filter((s) => s.id === field.id),
+        groups = [];
+      for (const sample of items) {
+        const r = sample.region;
+        let group = groups.find((g) => {
+          const a = g[0].region;
+          return (
+            Math.abs(a.x + a.w / 2 - r.x - r.w / 2) <
+              Math.max(a.w, r.w) * 0.7 &&
+            Math.abs(a.y + a.h / 2 - r.y - r.h / 2) < Math.max(a.h, r.h) * 0.75
+          );
+        });
+        if (!group) {
+          group = [];
+          groups.push(group);
+        }
+        group.push(sample);
+      }
+      groups.sort(
+        (a, b) =>
+          new Set(b.map((s) => s.time)).size -
+            new Set(a.map((s) => s.time)).size || b.length - a.length,
+      );
+      if (!groups.length) continue;
+      const chosen = groups[0],
+        support = new Set(chosen.map((s) => s.time)).size;
+      if (
+        support < 2 ||
+        (groups[1] && new Set(groups[1].map((s) => s.time)).size === support)
+      )
+        continue;
+      const regions = chosen.map((s) => s.region),
+        x = Math.min(...regions.map((r) => r.x)),
+        y = Math.min(...regions.map((r) => r.y));
+      const alternatives = [];
+      for (const r of regions.map((r) => r.tight || r))
+        if (
+          !alternatives.some(
+            (a) => Math.abs(a.x - r.x) < 0.002 && Math.abs(a.w - r.w) < 0.002,
+          )
+        )
+          alternatives.push(clipRegion(r));
+      result[field.id] = clipRegion({
+        ...regions[0],
+        x,
+        y,
+        w: Math.max(...regions.map((r) => r.x + r.w)) - x,
+        h: Math.max(...regions.map((r) => r.y + r.h)) - y,
+        alternatives: alternatives.slice(0, 4),
+        support,
+      });
+    }
+    return result;
+  }
   function detect(data, width, height) {
     const found = {},
       ls = lines(data),
       all = ls.flatMap((line) => line.words || []);
-    const roi = (word) => {
+    const roi = (word, field, labelWords = []) => {
       const b = word.bbox,
-        pad = 4;
-      return {
-        x: Math.max(0, b.x0 - pad) / width,
-        y: Math.max(0, b.y0 - 5) / height,
-        w: Math.min(width - b.x0 + pad, b.x1 - b.x0 + 2 * pad) / width,
-        h: Math.min(height - b.y0 + 5, b.y1 - b.y0 + 10) / height,
-      };
+        pad = 4,
+        tight = clipRegion({
+          x: (b.x0 - pad) / width,
+          y: (b.y0 - 5) / height,
+          w: (b.x1 - b.x0 + 2 * pad) / width,
+          h: (b.y1 - b.y0 + 10) / height,
+        });
+      const numeric = word.text.match(/\d+(?:[.,]\d+)?/)?.[0] || "",
+        digits = numeric.replace(/[.,]/g, "").length;
+      const capacity = field.id === "rpm" ? 5 : field.id === "gear" ? 1 : 3;
+      const extra =
+        (Math.max(0, capacity - digits) * (b.x1 - b.x0)) /
+        Math.max(1, numeric.length);
+      const nearby = labelWords
+        .filter(
+          (w) =>
+            w.bbox &&
+            Math.min(w.bbox.y1, b.y1) - Math.max(w.bbox.y0, b.y0) >
+              (b.y1 - b.y0) * 0.4,
+        )
+        .sort(
+          (a, c) =>
+            Math.min(Math.abs(a.bbox.x1 - b.x0), Math.abs(a.bbox.x0 - b.x1)) -
+            Math.min(Math.abs(c.bbox.x1 - b.x0), Math.abs(c.bbox.x0 - b.x1)),
+        );
+      const alignment =
+        nearby[0]?.bbox.x1 <= b.x0
+          ? "left"
+          : nearby[0]?.bbox.x0 >= b.x1
+            ? "right"
+            : "center";
+      const left =
+        alignment === "left" ? 0 : alignment === "right" ? extra : extra / 2;
+      const region = clipRegion({
+        ...tight,
+        x: tight.x - left / width,
+        w: tight.w + extra / width,
+        tight,
+        scale: field.id === "rpm" && /K$/i.test(word.text) ? 1000 : 1,
+      });
+      // Keep a neighbouring unit complete; cutting a percent sign can look like an extra digit.
+      const unitPattern =
+        field.id === "speed"
+          ? /^(?:KM\/?H|KPH)$/i
+          : field.id === "rpm"
+            ? /^RPM$/i
+            : /^%$/;
+      const suffix = all.find(
+        (w) =>
+          w !== word &&
+          w.bbox &&
+          unitPattern.test(w.text.trim()) &&
+          w.bbox.x0 >= b.x1 - 2 &&
+          w.bbox.x0 - b.x1 <
+            Math.max(10, ((b.x1 - b.x0) / Math.max(1, digits)) * 1.6) &&
+          Math.min(w.bbox.y1, b.y1) - Math.max(w.bbox.y0, b.y0) >
+            (b.y1 - b.y0) * 0.4,
+      );
+      if (suffix)
+        region.w = Math.min(
+          1 - region.x,
+          Math.max(region.w, (suffix.bbox.x1 + pad + extra) / width - region.x),
+        );
+      return region;
     };
     for (const field of fields) {
       const labelled = ls.filter((line) => field.label.test(line.text || "")),
         candidates = [];
       const valid = (word) =>
-        (word.confidence ?? 0) >= 45 &&
+        numericConfidence(word) >= 45 &&
         word.bbox &&
         value(word.text, field) !== null &&
         !(/[:/]/.test(word.text) && !field.label.test(word.text));
@@ -1353,7 +1525,12 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
         }
       }
       const unique = [...new Set(candidates)];
-      if (unique.length === 1) found[field.id] = roi(unique[0]);
+      if (unique.length === 1)
+        found[field.id] = roi(
+          unique[0],
+          field,
+          all.filter((w) => field.label.test(w.text || "")),
+        );
     }
     // A central gear digit is accepted only between two aligned, independently labelled RPM/speed values.
     if (!found.gear && found.rpm && found.speed) {
@@ -1379,7 +1556,11 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
             Math.abs(x - (centerA + centerB) / 2) < Math.max(a.w, b.w) * 0.6
           );
         });
-        if (middle.length === 1) found.gear = roi(middle[0]);
+        if (middle.length === 1)
+          found.gear = roi(
+            middle[0],
+            fields.find((f) => f.id === "gear"),
+          );
         else if (!middle.length)
           found.gear = {
             x: Math.max(0, (centerA + centerB) / 2 - Math.max(a.w, b.w) * 0.65),
@@ -1533,7 +1714,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
       const sourceFPS = await fpsPromise;
       onProgress({ phase: "Ricerca dei valori HUD", progress: 0 });
       let rois = regions ? structuredClone(regions) : {},
-        detectedTimes = [];
+        roiSamples = [];
       const width = Math.min(1920, video.videoWidth),
         height = Math.round((video.videoHeight * width) / video.videoWidth);
       canvas.width = width;
@@ -1587,13 +1768,22 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
                 y: window.y + r.y * window.h,
                 w: r.w * window.w,
                 h: r.h * window.h,
+                tight: r.tight
+                  ? {
+                      x: window.x + r.tight.x * window.w,
+                      y: window.y + r.tight.y * window.h,
+                      w: r.tight.w * window.w,
+                      h: r.tight.h * window.h,
+                    }
+                  : undefined,
               };
-              detectedTimes.push(t);
+              roiSamples.push({ id: key, time: t, region: rois[key] });
             }
-            if (rois.speed && rois.rpm && rois.gear) break;
+            if (Object.keys(found).length === 5) break;
           }
-          if (Object.keys(rois).length >= 3) break;
         }
+      if (!regions || !Object.keys(regions).length)
+        rois = mergeRegions(roiSamples);
       if (!Object.keys(rois).length)
         return {
           lap: null,
@@ -1605,7 +1795,8 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
         };
       const active = fields.filter((f) => rois[f.id]),
         rows = [],
-        counts = Object.fromEntries(fields.map((f) => [f.id, 0]));
+        counts = Object.fromEntries(fields.map((f) => [f.id, 0])),
+        retries = Object.fromEntries(fields.map((f) => [f.id, 0]));
       const crop = document.createElement("canvas"),
         cx = crop.getContext("2d", { willReadFrequently: true });
       crop.width = 420;
@@ -1613,9 +1804,31 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
       canvas.width = 460;
       canvas.height = active.length * 100;
       await engine.setParameters({
-        tessedit_char_whitelist: "0123456789.,",
+        tessedit_char_whitelist: "",
         tessedit_pageseg_mode: "6",
       });
+      function drawCrop(region) {
+        const r = clipRegion(region),
+          sw = r.w * video.videoWidth,
+          sh = r.h * video.videoHeight,
+          scale = Math.min(400 / sw, 65 / sh),
+          targetWidth = Math.max(1, Math.floor(sw * scale)),
+          targetHeight = Math.max(1, Math.floor(sh * scale));
+        cx.fillStyle = "white";
+        cx.fillRect(0, 0, 420, 80);
+        cx.drawImage(
+          video,
+          r.x * video.videoWidth,
+          r.y * video.videoHeight,
+          sw,
+          sh,
+          10,
+          7,
+          targetWidth,
+          targetHeight,
+        );
+        preprocess(cx, 420, 80, targetWidth, targetHeight);
+      }
       const total = Math.max(2, Math.ceil(video.duration * sampleRate));
       for (let frame = 0; frame < total; frame++) {
         if (signal?.aborted)
@@ -1628,24 +1841,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         active.forEach((field, index) => {
-          const r = rois[field.id];
-          cx.fillStyle = "white";
-          cx.fillRect(0, 0, 420, 80);
-          const sw = r.w * video.videoWidth,
-            sh = r.h * video.videoHeight,
-            scale = Math.min(400 / sw, 65 / sh);
-          cx.drawImage(
-            video,
-            r.x * video.videoWidth,
-            r.y * video.videoHeight,
-            sw,
-            sh,
-            10,
-            7,
-            sw * scale,
-            sh * scale,
-          );
-          preprocess(cx, 420, 80, sw * scale, sh * scale);
+          drawCrop(rois[field.id]);
           ctx.drawImage(crop, 20, index * 100 + 10);
         });
         const { data } = await engine.recognize(
@@ -1663,25 +1859,70 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
                   w.bbox &&
                   Math.floor((w.bbox.y0 + w.bbox.y1) / 2 / 100) === index,
               );
-          const text = words
-            .map((w) => w.text)
-            .join("")
-            .trim();
-          // Reject multiple numeric groups, low confidence and out-of-range readings.
-          if (
-            !words.length ||
-            words.some(
-              (w) => (w.confidence ?? 0) < (rois[field.id].inferred ? 70 : 45),
-            ) ||
-            !/^[\d.,]+$/.test(text)
-          )
-            continue;
-          const n = value(text, field);
-          if (n !== null) {
+          const scale = rois[field.id].scale || 1;
+          let n = readWords(
+            words,
+            field,
+            rois[field.id].inferred ? 70 : 60,
+            scale,
+          );
+          if (n === null) {
+            retries[field.id]++;
+            const votes = [];
+            const initial = readWords(words, field, 45, scale);
+            if (initial !== null) votes.push(initial);
+            // Isolated line reads retain the full field width: a narrow retry must not truncate a digit.
+            drawCrop(rois[field.id]);
+            for (const mode of ["7", "13"]) {
+              await engine.setParameters({
+                tessedit_pageseg_mode: mode,
+                tessedit_char_whitelist:
+                  mode === "13"
+                    ? "0123456789.," +
+                      (field.id === "speed"
+                        ? "KMHkmh/Pp"
+                        : field.id === "rpm"
+                          ? "RPMrpmKk"
+                          : field.id === "gear"
+                            ? ""
+                            : "%")
+                    : "",
+              });
+              const retry = await engine.recognize(
+                  crop,
+                  {},
+                  { text: true, blocks: true },
+                ),
+                retryWords = lines(retry.data).flatMap(
+                  (line) => line.words || [],
+                );
+              n = readWords(
+                retryWords,
+                field,
+                rois[field.id].inferred ? 70 : 65,
+                scale,
+              );
+              if (n !== null) break;
+              const candidate = readWords(retryWords, field, 45, scale);
+              if (candidate !== null) {
+                if (votes.includes(candidate)) {
+                  n = candidate;
+                  break;
+                }
+                votes.push(candidate);
+              }
+            }
+            await engine.setParameters({
+              tessedit_pageseg_mode: "6",
+              tessedit_char_whitelist: "",
+            });
+          }
+          if (n !== null && n <= field.max) {
             values[field.id] = n;
             counts[field.id]++;
           }
         }
+
         rows.push([frame, t, t, ...fields.map((f) => values[f.id])]);
         onProgress({
           phase: "Lettura dei fotogrammi",
@@ -1696,7 +1937,23 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
       const missing = fields
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
+      const quality = {
+        engineVersion: 2,
+        calibrationTimes: [...new Set(roiSamples.map((s) => s.time))],
+        regions: structuredClone(rois),
+        channels: Object.fromEntries(
+          fields.map((f) => [
+            f.id,
+            {
+              accepted: counts[f.id],
+              missing: rows.length - counts[f.id],
+              retried: retries[f.id],
+            },
+          ]),
+        ),
+      };
       return {
+        quality,
         lap:
           counts && Object.values(counts).some(Boolean)
             ? {
@@ -1706,6 +1963,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
                 sampleRate,
                 sourceFPS,
                 fpsEstimated: true,
+                extraction: quality,
                 rows,
               }
             : null,
@@ -1735,7 +1993,9 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
     fields,
     getWorker,
     release,
-    version: 1,
+    version: 2,
+    readWords,
+    mergeRegions,
   };
 })();
 
@@ -1950,7 +2210,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
           ? DriverOCR.fields
               .map(
                 (f) =>
-                  `${f.name}: ${Math.round((item.coverage[f.id] || 0) * 100)}% leggibile`,
+                  `${f.name}: ${Math.round((item.coverage[f.id] || 0) * 100)}% campioni accettati`,
               )
               .join(" · ")
           : "";
@@ -1986,8 +2246,46 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
           });
           await refreshLibrary();
         };
-        actions.append(rename, exportButton, remove);
-        row.append(title, info, coverage, actions);
+        const regenerate = document.createElement("button");
+        regenerate.className = "light";
+        regenerate.textContent = "Rigenera dal video";
+        regenerate.onclick = () => {
+          const binding = item.data.video,
+            candidates = entries().filter(
+              (v) =>
+                v.name === binding?.name &&
+                (!binding.size || v.size === binding.size),
+            );
+          const entry =
+            entries().find((v) => v.id === binding?.siteVideoId) ||
+            (candidates.length === 1 ? candidates[0] : null);
+          if (!entry) {
+            status(
+              "L’onboard originale di questo set non è disponibile nel sito. Ricaricalo nella pagina del circuito.",
+            );
+            return;
+          }
+          enqueue(entry, false, { id: item.id, name: item.data.lap.name });
+        };
+        const quality = document.createElement("p");
+        quality.className = "muted";
+        quality.textContent =
+          (item.data.lap.extraction?.engineVersion || 0) < DriverOCR.version
+            ? "Lettura precedente: usa Rigenera dal video per applicare le correzioni."
+            : "Le percentuali indicano i campioni accettati dall’OCR, non l’accuratezza rispetto al video.";
+        actions.append(regenerate, rename, exportButton, remove);
+        if (item.previousData) {
+          const previous = document.createElement("button");
+          previous.className = "light";
+          previous.textContent = "Esporta lettura precedente";
+          previous.onclick = () =>
+            download(
+              item.previousData,
+              `${item.data.lap.name}-precedente.json`,
+            );
+          actions.append(previous);
+        }
+        row.append(title, info, coverage, quality, actions);
         root.append(row);
       }
       for (const job of jobs.filter((j) => j.status !== "done")) {
@@ -2023,9 +2321,9 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
       (candidates.length === 1 ? candidates[0].id : null);
     return id ? await loadVideo(id) : null;
   }
-  function enqueue(entry, manual = false) {
+  function enqueue(entry, manual = false, targetSet = null) {
     if (queued.has(entry.id)) {
-      if (manual)
+      if (manual || targetSet)
         status(
           "Questo onboard è già in analisi o in coda. Attendi il completamento.",
         );
@@ -2034,6 +2332,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
     queue.push({
       id: entry.id,
       manual,
+      targetSet,
       regions:
         manual && regionVideo === entry.id ? structuredClone(regions) : null,
     });
@@ -2110,7 +2409,7 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
           },
         });
         if (result.lap) {
-          let name = entry.name;
+          let name = task.targetSet?.name || entry.name;
           if (task.manual) {
             const answer = prompt(
               "Con quale nome vuoi salvare il set?",
@@ -2137,15 +2436,50 @@ body.dn-day #view .dn-library-item:hover,body.dn-day #view .dn-library-item:focu
             },
           };
           // Reanalysis replaces the automatic result; manually named sets remain independent.
+          const savedId =
+            task.targetSet?.id || (task.manual ? uid() : "auto:" + entry.id);
+          const previous = await store("sets", "get", savedId);
+          if (task.targetSet && !previous) {
+            job.status = "cancelled";
+            job.message =
+              "Set eliminato durante l’analisi: nessun dato riscritto.";
+            await store("analyses", "put", job);
+            continue;
+          }
+          if (task.targetSet) {
+            name = previous.data.lap.name;
+            data.lap.name = name;
+          }
           await store("sets", "put", {
-            id: task.manual ? uid() : "auto:" + entry.id,
+            id: savedId,
+            previousData: previous?.data || null,
             data,
             trackId: entry.track.id,
             trackName: entry.track.name,
             updated: Date.now(),
             missing: result.missing,
             coverage: result.coverage,
+            quality: result.quality,
           });
+          if (ready) {
+            const api = chart(),
+              savedView = {
+                min: api.state.min,
+                max: api.state.max,
+                cursor: api.state.cursor,
+                cursorLocked: api.state.cursorLocked,
+                dataset: api.state.dataset,
+              };
+            slots.forEach((slot, index) => {
+              if (slot.id === savedId) {
+                const shift = api.laps[index]?.shift || 0;
+                api.setSlot(index, data, slot.color);
+                api.laps[index].shift = shift;
+              }
+            });
+            Object.assign(api.state, savedView);
+            api.drawAll();
+          }
           job.status = "done";
           job.message = `Set salvato: ${name}${result.reason ? " · " + result.reason : ""}`;
         } else {

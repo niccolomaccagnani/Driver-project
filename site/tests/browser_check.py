@@ -91,6 +91,19 @@ async def check():
   page.on('dialog',name_dialog);await page.click('#dnGenerate')
   await wait_db("async()=>{const s=await driverTelemetry.store('sets','getAll');return s.some(x=>x.data.lap.name==='Set rinominato');}")
   assert dialogs==['Onboard esistente.mp4'];page.remove_listener('dialog',name_dialog)
+  # Regenerate an existing named set in place, preserving the old reading and the onboard.
+  saved=await page.evaluate("driverTelemetry.store('sets','getAll')");named=next(s for s in saved if s['data']['lap']['name']=='Set rinominato')
+  named['data']['lap']['rows'][0][3]=10;named['data']['lap']['extraction']['engineVersion']=1
+  await page.evaluate("item=>driverTelemetry.store('sets','put',item)",named);await page.evaluate('driverTelemetry.refreshLibrary()')
+  await page.locator('#dnLibrary summary').click()
+  row=page.locator('#dnLibraryItems .note').filter(has=page.locator('strong',has_text='Set rinominato'))
+  assert 'Lettura precedente' in await row.inner_text()
+  await row.get_by_role('button',name='Rigenera dal video',exact=True).click()
+  await wait_db("async()=>{const s=await driverTelemetry.store('sets','getAll');return s.some(x=>x.data.lap.name==='Set rinominato'&&x.data.lap.rows[0][3]===120&&x.previousData);}")
+  after=await page.evaluate("driverTelemetry.store('sets','getAll')");assert len(after)==len(saved)
+  updated=next(s for s in after if s['id']==named['id']);assert updated['previousData']['lap']['rows'][0][3]==10
+  assert updated['data']['video']['siteVideoId']=='existing' and updated['data']['lap']['extraction']['engineVersion']==2
+  await page.locator('#dnLibrary summary').click()
   print('PASS: four colored datasets; editable colors; selected-only Alt+S shift; auto-open videos at cursor; frame following; persistence; manual naming.',flush=True)
   # UI shows an empty plot rather than test data on a fresh load; mobile has no horizontal overflow.
   await page.evaluate('scrollTo(0,0)');await page.screenshot(path=str(ROOT/'telemetria-preview.png'))

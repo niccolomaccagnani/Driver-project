@@ -207,7 +207,7 @@
           ? DriverOCR.fields
               .map(
                 (f) =>
-                  `${f.name}: ${Math.round((item.coverage[f.id] || 0) * 100)}% leggibile`,
+                  `${f.name}: ${Math.round((item.coverage[f.id] || 0) * 100)}% campioni accettati`,
               )
               .join(" · ")
           : "";
@@ -243,8 +243,46 @@
           });
           await refreshLibrary();
         };
-        actions.append(rename, exportButton, remove);
-        row.append(title, info, coverage, actions);
+        const regenerate = document.createElement("button");
+        regenerate.className = "light";
+        regenerate.textContent = "Rigenera dal video";
+        regenerate.onclick = () => {
+          const binding = item.data.video,
+            candidates = entries().filter(
+              (v) =>
+                v.name === binding?.name &&
+                (!binding.size || v.size === binding.size),
+            );
+          const entry =
+            entries().find((v) => v.id === binding?.siteVideoId) ||
+            (candidates.length === 1 ? candidates[0] : null);
+          if (!entry) {
+            status(
+              "L’onboard originale di questo set non è disponibile nel sito. Ricaricalo nella pagina del circuito.",
+            );
+            return;
+          }
+          enqueue(entry, false, { id: item.id, name: item.data.lap.name });
+        };
+        const quality = document.createElement("p");
+        quality.className = "muted";
+        quality.textContent =
+          (item.data.lap.extraction?.engineVersion || 0) < DriverOCR.version
+            ? "Lettura precedente: usa Rigenera dal video per applicare le correzioni."
+            : "Le percentuali indicano i campioni accettati dall’OCR, non l’accuratezza rispetto al video.";
+        actions.append(regenerate, rename, exportButton, remove);
+        if (item.previousData) {
+          const previous = document.createElement("button");
+          previous.className = "light";
+          previous.textContent = "Esporta lettura precedente";
+          previous.onclick = () =>
+            download(
+              item.previousData,
+              `${item.data.lap.name}-precedente.json`,
+            );
+          actions.append(previous);
+        }
+        row.append(title, info, coverage, quality, actions);
         root.append(row);
       }
       for (const job of jobs.filter((j) => j.status !== "done")) {
@@ -280,9 +318,9 @@
       (candidates.length === 1 ? candidates[0].id : null);
     return id ? await loadVideo(id) : null;
   }
-  function enqueue(entry, manual = false) {
+  function enqueue(entry, manual = false, targetSet = null) {
     if (queued.has(entry.id)) {
-      if (manual)
+      if (manual || targetSet)
         status(
           "Questo onboard è già in analisi o in coda. Attendi il completamento.",
         );
@@ -291,6 +329,7 @@
     queue.push({
       id: entry.id,
       manual,
+      targetSet,
       regions:
         manual && regionVideo === entry.id ? structuredClone(regions) : null,
     });
@@ -367,7 +406,7 @@
           },
         });
         if (result.lap) {
-          let name = entry.name;
+          let name = task.targetSet?.name || entry.name;
           if (task.manual) {
             const answer = prompt(
               "Con quale nome vuoi salvare il set?",
@@ -394,15 +433,50 @@
             },
           };
           // Reanalysis replaces the automatic result; manually named sets remain independent.
+          const savedId =
+            task.targetSet?.id || (task.manual ? uid() : "auto:" + entry.id);
+          const previous = await store("sets", "get", savedId);
+          if (task.targetSet && !previous) {
+            job.status = "cancelled";
+            job.message =
+              "Set eliminato durante l’analisi: nessun dato riscritto.";
+            await store("analyses", "put", job);
+            continue;
+          }
+          if (task.targetSet) {
+            name = previous.data.lap.name;
+            data.lap.name = name;
+          }
           await store("sets", "put", {
-            id: task.manual ? uid() : "auto:" + entry.id,
+            id: savedId,
+            previousData: previous?.data || null,
             data,
             trackId: entry.track.id,
             trackName: entry.track.name,
             updated: Date.now(),
             missing: result.missing,
             coverage: result.coverage,
+            quality: result.quality,
           });
+          if (ready) {
+            const api = chart(),
+              savedView = {
+                min: api.state.min,
+                max: api.state.max,
+                cursor: api.state.cursor,
+                cursorLocked: api.state.cursorLocked,
+                dataset: api.state.dataset,
+              };
+            slots.forEach((slot, index) => {
+              if (slot.id === savedId) {
+                const shift = api.laps[index]?.shift || 0;
+                api.setSlot(index, data, slot.color);
+                api.laps[index].shift = shift;
+              }
+            });
+            Object.assign(api.state, savedView);
+            api.drawAll();
+          }
           job.status = "done";
           job.message = `Set salvato: ${name}${result.reason ? " · " + result.reason : ""}`;
         } else {

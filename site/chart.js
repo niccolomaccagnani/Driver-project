@@ -84,6 +84,7 @@ const state = {
   offset: 0,
   referenceOffset: 0,
   cursorLocked: false,
+  scalesLocked: false,
   cursor: 0,
   active: "speed",
   mode: "zoom",
@@ -108,6 +109,7 @@ function remember() {
         "driver-notes-chart-layout-v2",
         JSON.stringify({
           active: state.active,
+          locked: state.scalesLocked,
           channels: channels.map(({ id, center, span, visible }) => ({
             id,
             center,
@@ -132,7 +134,102 @@ try {
     }
   }
   if (channels.some((c) => c.id === saved?.active)) state.active = saved.active;
+  state.scalesLocked = saved?.locked === true;
 } catch {}
+const SCALE_PRESET_KEY = "driver-notes-scale-preset-v1";
+let savedScalePreset = null;
+function scaleSnapshot() {
+  return {
+    format: "driving-notes-scales",
+    version: 1,
+    active: state.active,
+    channels: channels.map(({ id, center, span, visible }) => ({
+      id,
+      center,
+      span,
+      visible,
+    })),
+  };
+}
+function validateScales(input) {
+  if (
+    input?.format !== "driving-notes-scales" ||
+    input.version !== 1 ||
+    !Array.isArray(input.channels) ||
+    input.channels.length !== channels.length
+  )
+    throw Error("Formato scale non valido.");
+  const ids = new Set();
+  for (const c of input.channels) {
+    if (
+      !channels.some((ch) => ch.id === c.id) ||
+      ids.has(c.id) ||
+      !Number.isFinite(c.center) ||
+      !Number.isFinite(c.span) ||
+      c.center < -1 ||
+      c.center > 2 ||
+      c.span < 0.05 ||
+      c.span > 2.8 ||
+      typeof c.visible !== "boolean"
+    )
+      throw Error("Formato scale non valido.");
+    ids.add(c.id);
+  }
+  return structuredClone(input);
+}
+try {
+  savedScalePreset = validateScales(
+    JSON.parse(localStorage.getItem(SCALE_PRESET_KEY)),
+  );
+} catch {}
+function setScalesLocked(locked) {
+  state.scalesLocked = !!locked;
+  state.drag = null;
+  if (locked && state.mode === "move") setMode("zoom");
+  updateControls();
+  schedule();
+  remember();
+  try {
+    const current = scaleSnapshot();
+    localStorage.setItem(
+      "driver-notes-chart-layout-v2",
+      JSON.stringify({ ...current, locked: state.scalesLocked }),
+    );
+  } catch {
+    message(
+      "Blocco attivo in questa sessione; il browser non consente di conservarlo.",
+    );
+  }
+}
+$("saveScales").onclick = () => {
+  const snapshot = scaleSnapshot();
+  setScalesLocked(true);
+  try {
+    localStorage.setItem(SCALE_PRESET_KEY, JSON.stringify(snapshot));
+    savedScalePreset = snapshot;
+    message("Formato delle scale salvato e bloccato in questo browser.");
+  } catch {
+    message(
+      "Scale bloccate per questa sessione. Impossibile salvare il formato nel browser.",
+    );
+  }
+  updateControls();
+};
+$("toggleScales").onclick = () => setScalesLocked(!state.scalesLocked);
+$("restoreScales").onclick = () => {
+  if (state.scalesLocked || !savedScalePreset) return;
+  const preset = validateScales(savedScalePreset);
+  preset.channels.forEach((c) =>
+    Object.assign(
+      channels.find((ch) => ch.id === c.id),
+      c,
+    ),
+  );
+  if (channels.some((ch) => ch.id === preset.active))
+    state.active = preset.active;
+  setScalesLocked(true);
+  message("Formato salvato ripristinato e bloccato.");
+};
 function activeChannel() {
   return channels.find((c) => c.id === state.active);
 }
@@ -143,6 +240,7 @@ function selectChannel(ch) {
   remember();
 }
 function setChannel(ch, changes) {
+  if (state.scalesLocked) return false;
   if (Number.isFinite(changes.center)) ch.center = clamp(changes.center, -1, 2);
   if (Number.isFinite(changes.span)) ch.span = clamp(changes.span, 0.05, 2.8);
   if (typeof changes.visible === "boolean") ch.visible = changes.visible;
@@ -167,11 +265,30 @@ for (const ch of channels) {
   $("channelList").append(card);
 }
 function updateControls() {
+  for (const id of [
+    "channelScale",
+    "channelPosition",
+    "channelSmaller",
+    "channelLarger",
+    "resetChannel",
+    "resetLayout",
+    "modeMove",
+  ])
+    $(id).disabled = state.scalesLocked;
+  $("toggleScales").textContent = state.scalesLocked
+    ? "Sblocca scale"
+    : "Blocca scale";
+  $("toggleScales").setAttribute("aria-pressed", String(state.scalesLocked));
+  $("scaleStatus").textContent = state.scalesLocked
+    ? "Scale bloccate: ampiezza, posizione e canali fissi."
+    : "Scale modificabili.";
+  $("restoreScales").disabled = state.scalesLocked || !savedScalePreset;
   const selected = activeChannel();
   for (const ch of channels) {
     ch.card.classList.toggle("active", ch === selected);
     ch.card.classList.toggle("hidden", !ch.visible);
     ch.checkbox.checked = ch.visible;
+    ch.checkbox.disabled = state.scalesLocked;
     ch.card
       .querySelector("button")
       .setAttribute("aria-pressed", String(ch === selected));
@@ -202,6 +319,7 @@ $("channelLarger").onclick = () =>
 $("resetChannel").onclick = () =>
   setChannel(activeChannel(), activeChannel().defaults);
 $("resetLayout").onclick = () => {
+  if (state.scalesLocked) return;
   channels.forEach((ch) => Object.assign(ch, ch.defaults, { visible: true }));
   updateControls();
   schedule();
@@ -367,7 +485,7 @@ function drawScene(c, w, h, exporting = false) {
     }
     const upper = channelY(ch, ch.max, g),
       lower = channelY(ch, ch.min, g);
-    if (ch === selected)
+    if (ch === selected && !state.scalesLocked)
       for (const y of [upper, lower])
         if (y >= g.top && y <= g.bottom) {
           c.fillStyle = ch.color;
@@ -426,7 +544,12 @@ function drawScene(c, w, h, exporting = false) {
         if (
           !previous ||
           r[2] - previous.time >
-            Math.max(0.15, 1.6 / (laps[lap].sampleRate || 10))
+            Math.max(
+              0.15,
+              laps[lap].frameMode === "native"
+                ? 1.6 * (laps[lap].maxFrameInterval || 0.1)
+                : 1.6 / (laps[lap].sampleRate || 10),
+            )
         )
           c.moveTo(X(t), channelY(ch, value, g));
         else if (ch.step) {
@@ -541,6 +664,7 @@ cv.addEventListener(
       ruler = rulerAt(p.x),
       g = cv._g;
     if (ruler) {
+      if (state.scalesLocked) return;
       e.preventDefault();
       selectChannel(ruler.ch);
       const factor = Math.exp(clamp(-e.deltaY * 0.002, -0.7, 0.7)),
@@ -563,6 +687,7 @@ cv.addEventListener("pointerdown", (e) => {
   cv.setPointerCapture(e.pointerId);
   if (ruler) {
     selectChannel(ruler.ch);
+    if (state.scalesLocked) return;
     if (p.y < g.top) return;
     let mode = "channelMove";
     if (ruler.ch === activeChannel() && Math.abs(p.x - ruler.axis) < 13) {
@@ -635,7 +760,9 @@ cv.addEventListener("pointermove", (e) => {
   }
   const ruler = rulerAt(p.x);
   cv.style.cursor = ruler
-    ? "grab"
+    ? state.scalesLocked
+      ? "pointer"
+      : "grab"
     : state.mode === "dataset"
       ? "ew-resize"
       : state.mode === "move"
@@ -693,6 +820,7 @@ cv.addEventListener("keydown", (e) => {
   }
 });
 function setMode(mode) {
+  if (state.scalesLocked && mode === "move") mode = "zoom";
   state.drag = null;
   state.mode = mode;
   for (const [id, name] of [
@@ -859,8 +987,14 @@ document.querySelectorAll("[data-step-video]").forEach(
         fps = lap.sourceFPS || 30;
       video.pause();
       seeking[side] = null;
+      const next =
+        lap.frameMode === "native"
+          ? direction > 0
+            ? lap.rows.find((r) => r[1] > video.currentTime + 0.00001)
+            : lap.rows.findLast((r) => r[1] < video.currentTime - 0.00001)
+          : null;
       video.currentTime = clamp(
-        video.currentTime + direction / fps,
+        next ? next[1] : video.currentTime + direction / fps,
         0,
         video.duration,
       );
@@ -974,6 +1108,8 @@ window.telemetryChart = {
   fullView,
   setMode,
   setChannel,
+  scaleSnapshot,
+  setScalesLocked,
   drawAll,
   configure(options) {
     resolveVideo = options.resolveVideo;

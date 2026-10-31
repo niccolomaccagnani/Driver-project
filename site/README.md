@@ -20,7 +20,11 @@ L’OCR cerca valori numerici con etichette HUD riconoscibili, anche negli angol
 
 Per altri display, **Regola lettura** permette di disegnare aree intorno alle cifre oppure scegliere **Barra percentuale · pedali** e selezionare l’intera pista, compresa la parte vuota. Puoi indicare verso e riempimento chiaro/scuro. Questa calibrazione viene ricordata per quell’onboard e riutilizzata nelle rigenerazioni; **Azzera aree** la cancella. Le aree si riferiscono al video selezionato. Se il video non contiene la velocità, selezionare un’area non può ricostruirla.
 
-Il campionamento è a **30 Hz** lungo l’onboard completo, senza identificazione automatica di giri multipli. Se il video contiene già un solo giro tagliato, il suo inizio è lo zero. La frequenza del video viene stimata dai callback dei fotogrammi quando disponibili; in assenza di informazioni il passo di allineamento usa 1/30 s. Non è una decodifica dei timestamp di ogni fotogramma del contenitore, quindi con video a frequenza variabile il passo resta approssimativo. Le letture OCR non sono dati ECU e non sono garantite per qualsiasi sovraimpressione. I valori incerti o fuori intervallo restano `null`, senza interpolazione né zeri aggiunti. Nessun riempimento o smoothing artificiale viene applicato.
+La modalità predefinita **Ogni fotogramma originale** legge MP4/MOV non frammentati attraverso l’indice dei campioni e WebCodecs, in ordine di presentazione. Ogni fotogramma decodificato produce una riga con il suo timestamp originale, anche nei video a frequenza variabile; frame mancanti nella decodifica fanno fallire il salvataggio invece di produrre un set incompleto. Le edit list semplici e la rotazione del contenitore vengono rispettate. Il decoder conserva una coda limitata e legge il file per blocchi, senza caricare l’onboard completo in memoria.
+
+La modalità richiede un browser con WebCodecs e un codec supportato (H.264 verificato nei test; altri codec dipendono dal browser e dal sistema). Per contenitori frammentati, montaggi con edit list complesse o codec non disponibili, il messaggio invita a scegliere **Compatibilità · campionamento a 30 Hz** oppure una copia MP4 compatibile: non viene effettuato un fallback silenzioso. La modalità compatibile resta un campionamento temporale e non garantisce una riga per fotogramma originale.
+
+Non vengono identificati automaticamente più giri nello stesso onboard: un video già tagliato su un giro usa il proprio inizio come zero. Le letture OCR e le stime delle barre possono essere errate o mancanti anche quando la decodifica è completa. I campioni non letti restano `null`; il conteggio completo dei frame non è una misura dell’accuratezza dei valori.
 
 Mantieni aperto il sito durante l’analisi; la durata dipende da lunghezza, risoluzione e Mac. Puoi interrompere l’analisi o disattivare la coda automatica. I risultati completati non vengono rianalizzati a ogni ricaricamento; un lavoro interrotto viene ripreso dall’inizio al successivo avvio automatico. Una rilettura manuale resta sempre disponibile.
 
@@ -37,7 +41,9 @@ File principali:
 
 - `source.html`: sito originale dell’utente, conservato senza modifiche.
 - `telemetry.js`: archivio, coda, caricamenti, libreria, slot e colori.
-- `extractor.js`: ricerca HUD, sincronizzazione con il fotogramma decodificato e lettura locale tramite Tesseract.js/WASM.
+- `extractor.js`: ricerca HUD e lettura di ogni frame nativo tramite Tesseract.js/WASM o misura delle barre.
+- `frames.js`: indice MP4/MOV, timestamp, edit list semplici, rotazione, WebCodecs e accesso al singolo frame.
+- `inspection.js`: immagine originale, ritagli, valori salvati e tabella CSV di verifica.
 - `bars.js`: riconoscimento della pista, calibrazione del contrasto e misura dei pedali come percentuale grafica.
 - `chart.html` / `chart.js`: grafico con un numero variabile di dataset e allineamento video.
 - `vendor/`: runtime, modello e licenze; vedere `vendor/NOTICE.md` per versioni e modifica locale.
@@ -68,3 +74,19 @@ Se manca una pista completa riconoscibile, il sistema segnala il canale invece d
 Le analisi automatiche precedenti vengono rigenerate dal nuovo motore; per aggiornare un set nominato usa **Rigenera dal video**. Nome e copia precedente vengono conservati. La misura è inclusa nella stessa coda che analizza gli onboard già presenti e i nuovi caricamenti.
 
 `site/tests/bars_check.py` genera clip H.264 con quattro layout, tre risoluzioni, sei colori, gradienti, etichette sovrapposte, barre vuote/piene/parziali e versi opposti, poi confronta le percentuali estratte con quelle note. Verifica anche un massimo del 60%, la rejection di un segmento senza scala totale visibile, l’overlay coperto e la calibrazione manuale. I risultati sono in `site/tests/bars-report.json`. I test numerici e del sito completo restano separati.
+
+## Formato delle scale e verifica visiva · motore 4
+
+**Salva e blocca scale** conserva ampiezza, posizione e visibilità dei canali nel browser. Con il blocco attivo, trascinamento delle scale, rotella, maniglie, doppio clic sulle scale, cursori, reset, visibilità e tasti di modifica non cambiano il formato. **Sblocca scale** riattiva le modifiche; **Ripristina formato salvato** riprende il preset e lo blocca. Il blocco e il layout corrente sopravvivono al ricaricamento. Zoom temporale, cursore e allineamento dei dataset restano indipendenti dal blocco verticale. Se il browser rifiuta la scrittura locale, il messaggio distingue il blocco della sessione dal salvataggio permanente.
+
+**Verifica letture**, nella libreria, apre il set nella vista **Verifica letture fotogramma per fotogramma**. Mostra l’immagine originale decodificata, le aree usate, velocità, RPM, marcia, gas e freno salvati per quella riga. I pulsanti frame e il cursore della verifica permettono di scorrere tutti i campioni; **Esporta tabella completa CSV** conserva le righe e lascia vuoti i valori non letti. Il video arriva dall’archivio del sito. Per vecchi set campionati l’interfaccia lo dichiara e mostra il frame al tempo del campione; rigenerando in modalità originale si ottiene una riga per ogni frame effettivo.
+
+Nel JSON, `frameMode`, `frameDurations`, `fpsEstimated` e `extraction.frames` documentano provenienza, conteggio e tipo di lettura. L’allineamento per frame dei set nativi usa i timestamp delle righe, anziché un passo fisso ricavato dalla frequenza media.
+
+Prove aggiuntive:
+
+- `site/tests/native_frames_check.py`: confronto indipendente con ffprobe di tutti i timestamp e del conteggio su MP4 a 60 fps e VFR con B-frame; marcatori binari nei pixel verificano l’ordine effettivo delle immagini e l’accesso casuale. Report `site/tests/native-frames-report.json`.
+- `site/tests/scales_check.py`: tentativi reali di trascinare, usare rotella/doppio clic/tastiera/reset con scale bloccate; persistenza, sblocco e ripristino; zoom temporale indipendente.
+- `site/tests/browser_check.py`: verifica anche immagine e ritagli del frame selezionato, valori affiancati ed esportazione CSV con tutte le righe native.
+
+Queste prove verificano il procedimento e i video di controllo disponibili. Non certificano la lettura del set di Abu Dhabi, che non è stato condiviso nell’ambiente. La nuova vista serve a controllare gli errori sul video presente nel browser dell’utente, senza confondere «tutti i frame decodificati» con «tutti i valori riconosciuti correttamente».

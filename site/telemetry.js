@@ -16,11 +16,12 @@
   section.innerHTML = `<h1>Telemetria</h1><p class="muted">Scegli un onboard, genera il suo set e confrontalo con gli altri giri.</p>
   <section class="card section"><h2>Genera dati dall’onboard</h2>
     <div class="fieldrow"><label>Pista<select id="dnTrack"></select></label><label>Video<select id="dnVideo"></select></label></div>
+    <label>Modalità di lettura<select id="dnFrameMode"><option value="native">Ogni fotogramma originale · MP4/MOV</option><option value="sampled">Compatibilità · campionamento a 30 Hz</option></select></label>
     <div class="toolbar"><button id="dnGenerate" class="primary">Genera dati</button><button id="dnCancel" class="light" disabled>Interrompi analisi</button>
     <label style="margin:0;display:flex;gap:8px;align-items:center"><input id="dnAutomatic" type="checkbox" checked style="width:auto">Analizza automaticamente i video esistenti e i nuovi caricamenti</label></div>
     <p id="dnOCRProgress" role="status" aria-live="polite">Preparazione dell’archivio…</p><progress id="dnOCRBar" max="1" value="0" style="width:100%"></progress>
     <p class="muted">I set automatici usano il nome dell’onboard. I canali non leggibili vengono segnalati, senza inventare valori.
-    Il campionamento è a 30 Hz. I valori numerici sono letture OCR; i pedali a barre sono percentuali visive della pista completa. L’analisi continua finché il sito resta aperto.</p>
+    La modalità originale legge tutti i fotogrammi e i loro timestamp; la modalità compatibile campiona a 30 Hz. I valori numerici sono letture OCR; i pedali a barre sono percentuali visive della pista completa. L’analisi continua finché il sito resta aperto.</p>
     <details id="dnCalibration"><summary>Regola lettura · se un valore visibile non viene riconosciuto</summary>
       <p class="muted">Apri l’anteprima e scegli un canale. Per i numeri seleziona solo le cifre; per una barra seleziona tutta la pista, compresa la parte vuota, e scegli Barra percentuale. La stessa area viene seguita per tutto il video.</p>
       <div class="toolbar"><button id="dnPreview" class="light">Apri anteprima del video</button><label>Canale<select id="dnROIChannel"><option value="speed">Velocità</option><option value="rpm">Giri motore</option><option value="gear">Marcia</option><option value="throttle">Acceleratore %</option><option value="brake">Freno %</option></select></label><label>Tipo lettura<select id="dnROIType"><option value="numeric">Numero</option><option value="bar">Barra percentuale · pedali</option></select></label><label>Verso riempimento<select id="dnBarDirection"><option value="auto">Automatico</option><option value="left">Da sinistra</option><option value="right">Da destra</option><option value="bottom">Dal basso</option><option value="top">Dall’alto</option></select></label><label>Tono riempimento<select id="dnBarTone"><option value="bright">Chiaro / colorato</option><option value="dark">Scuro su fondo chiaro</option></select></label><button id="dnClearROI" class="light">Azzera aree</button></div>
@@ -188,6 +189,7 @@
         .sort((a, b) => b.updated - a.updated);
       jobs = analyses;
       renderSlots();
+      window.DriverInspection?.setSets(sets);
       const root = el("dnLibraryItems");
       root.replaceChildren();
       if (!sets.length && !jobs.length)
@@ -200,7 +202,7 @@
         title.textContent = item.data.lap.name;
         const info = document.createElement("p");
         info.className = "muted";
-        info.textContent = `${item.trackName || "Pista non indicata"} · ${item.data.lap.rows.length.toLocaleString("it-IT")} campioni · ${item.data.lap.sampleRate || "?"} Hz${item.missing?.length ? " · Non letti: " + item.missing.join(", ") : ""}`;
+        info.textContent = `${item.trackName || "Pista non indicata"} · ${item.data.lap.rows.length.toLocaleString("it-IT")} campioni · ${item.data.lap.frameMode === "native" ? item.data.lap.rows.length + " fotogrammi originali" : Number(item.data.lap.sampleRate || 0).toFixed(1) + " Hz campionati"}${item.missing?.length ? " · Non letti: " + item.missing.join(", ") : ""}`;
         const barChannels = DriverOCR.fields
           .filter(
             (f) =>
@@ -279,7 +281,16 @@
           (item.data.lap.extraction?.engineVersion || 0) < DriverOCR.version
             ? "Lettura precedente: usa Rigenera dal video per applicare le correzioni."
             : "Le percentuali indicano i campioni accettati dall’OCR, non l’accuratezza rispetto al video.";
-        actions.append(regenerate, rename, exportButton, remove);
+        const inspect = document.createElement("button");
+        inspect.className = "light";
+        inspect.textContent = "Verifica letture";
+        inspect.onclick = () => {
+          window.DriverInspection?.open(item.id);
+          document
+            .getElementById("dnReadCheck")
+            ?.scrollIntoView({ block: "start", behavior: "smooth" });
+        };
+        actions.append(inspect, regenerate, rename, exportButton, remove);
         if (item.previousData) {
           const previous = document.createElement("button");
           previous.className = "light";
@@ -339,6 +350,7 @@
       id: entry.id,
       manual,
       targetSet,
+      frameMode: el("dnFrameMode").value,
       regions:
         regionVideo === entry.id && Object.keys(regions).length
           ? structuredClone(regions)
@@ -414,6 +426,7 @@
         if (!file) throw Error("File non disponibile in questo browser.");
         const result = await DriverOCR.analyze(file, {
           signal: controller.signal,
+          frameMode: task.frameMode,
           regions: calibration,
           onProgress: (p) => {
             status(
@@ -523,6 +536,21 @@
     busy = false;
     DriverOCR.release();
   }
+  try {
+    const mode = localStorage.getItem("driver-notes-frame-mode-v1");
+    if (mode === "native" || mode === "sampled") el("dnFrameMode").value = mode;
+  } catch {}
+  el("dnFrameMode").onchange = () => {
+    try {
+      localStorage.setItem(
+        "driver-notes-frame-mode-v1",
+        el("dnFrameMode").value,
+      );
+    } catch {}
+    status(
+      "La modalità scelta sarà usata dalle prossime analisi e rigenerazioni.",
+    );
+  };
   el("dnTrack").onchange = () => {
     el("dnVideo").value = "";
     refreshVideos();

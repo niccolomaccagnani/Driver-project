@@ -32,10 +32,21 @@ async def check():
   await wait_db("async()=>{const j=await driverTelemetry.store('analyses','get','existing');return j?.status==='done';}")
   sets=await page.evaluate("driverTelemetry.store('sets','getAll')");assert len(sets)==1,sets
   data=sets[0]['data'];assert data['lap']['name']=='Onboard esistente.mp4' and data['video']['siteVideoId']=='existing'
-  readings=data['lap']['rows'];assert len(readings)==36
-  assert [r[3:] for r in readings]==[[120+(i//3),6000+(i//3)*20,4,80,0] for i in range(36)],readings
+  readings=data['lap']['rows'];assert len(readings)==12
+  assert [r[3:] for r in readings]==[[120+i,6000+i*20,4,80,0] for i in range(12)],readings
   assert sets[0]['missing']==[]
   assert abs(data['lap']['sourceFPS']-10)<.1,data['lap']['sourceFPS']
+  # The inspector displays the actual source frame alongside its saved row and crops.
+  await page.evaluate('DriverInspection.open("auto:existing")')
+  await page.wait_for_function('document.getElementById("dnInspectStatus").textContent.startsWith("Fotogramma originale decodificato")')
+  assert '120 km/h' in await page.locator('#dnInspectValues').inner_text()
+  await page.click('#dnInspectNext');await page.wait_for_function('document.getElementById("dnInspectStatus").textContent.startsWith("Fotogramma originale decodificato")')
+  assert '121 km/h' in await page.locator('#dnInspectValues').inner_text()
+  assert '0.100000' in await page.locator('#dnInspectTime').inner_text()
+  assert await page.evaluate('document.getElementById("dnInspectCrop-speed").width')>20
+  async with page.expect_download() as csv_download:await page.click('#dnInspectCSV')
+  csv=pathlib.Path(await (await csv_download.value).path()).read_text().splitlines();assert len(csv)==13 and csv[2].split(',')[3]=='121'
+  await page.locator('#dnReadCheck summary').click()
   print('PASS: real offline OCR reads all known HUD values; existing onboard auto-saved by video name.',flush=True)
   # New uploads are automatically analyzed; unreadable HUD never creates fabricated data.
   await page.evaluate("trackId=state.tracks.find(t=>t.name==='Monza').id;carId=state.defaultCarIds[0];navigate('track')")
@@ -102,7 +113,7 @@ async def check():
   await wait_db("async()=>{const s=await driverTelemetry.store('sets','getAll');return s.some(x=>x.data.lap.name==='Set rinominato'&&x.data.lap.rows[0][3]===120&&x.previousData);}")
   after=await page.evaluate("driverTelemetry.store('sets','getAll')");assert len(after)==len(saved)
   updated=next(s for s in after if s['id']==named['id']);assert updated['previousData']['lap']['rows'][0][3]==10
-  assert updated['data']['video']['siteVideoId']=='existing' and updated['data']['lap']['extraction']['engineVersion']==3
+  assert updated['data']['video']['siteVideoId']=='existing' and updated['data']['lap']['extraction']['engineVersion']==4
   await page.locator('#dnLibrary summary').click()
   print('PASS: four colored datasets; editable colors; selected-only Alt+S shift; auto-open videos at cursor; frame following; persistence; manual naming.',flush=True)
   # UI shows an empty plot rather than test data on a fresh load; mobile has no horizontal overflow.

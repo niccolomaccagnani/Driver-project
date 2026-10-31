@@ -49,6 +49,16 @@
             <h2>Canali</h2>
             <span class="help">Dataset selezionato</span>
           </div>
+          <div class="row" style="margin: 10px 0; gap: 5px">
+            <button id="saveScales" class="small">Salva e blocca scale</button>
+            <button id="toggleScales" class="small" aria-pressed="false">
+              Blocca scale
+            </button>
+            <button id="restoreScales" class="small" disabled>
+              Ripristina formato salvato
+            </button>
+          </div>
+          <p id="scaleStatus" class="help" role="status">Scale modificabili.</p>
           <div id="channelList" class="channel-list"></div>
           <div class="channel-settings">
             <div class="panel-heading">

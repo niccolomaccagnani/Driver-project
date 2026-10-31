@@ -573,7 +573,13 @@
   }
   async function analyze(
     file,
-    { onProgress = () => {}, signal, sampleRate = 30, regions = null } = {},
+    {
+      onProgress = () => {},
+      signal,
+      sampleRate = 30,
+      regions = null,
+      frameMode = "native",
+    } = {},
   ) {
     const video = document.createElement("video"),
       url = URL.createObjectURL(file);
@@ -599,8 +605,16 @@
       );
       if (!Number.isFinite(video.duration) || video.duration <= 0)
         throw Error("Durata video non valida.");
+      if (frameMode !== "native" && frameMode !== "sampled")
+        throw Error("Modalità di lettura non valida.");
+      const nativeSource =
+        frameMode === "native"
+          ? await DriverFrames.open(file, { signal })
+          : null;
       const engine = await getWorker();
-      const sourceFPS = await estimateFPS(video, signal);
+      const sourceFPS = nativeSource
+        ? nativeSource.fps
+        : await estimateFPS(video, signal);
       video._driverFrameRate = sourceFPS;
       onProgress({ phase: "Ricerca dei valori HUD", progress: 0 });
       let rois = regions ? structuredClone(regions) : {},
@@ -787,19 +801,22 @@
         tessedit_char_whitelist: "",
         tessedit_pageseg_mode: "6",
       });
+      let currentImage = video,
+        currentWidth = video.videoWidth,
+        currentHeight = video.videoHeight;
       function drawCrop(region) {
         const r = clipRegion(region),
-          sw = r.w * video.videoWidth,
-          sh = r.h * video.videoHeight,
+          sw = r.w * currentWidth,
+          sh = r.h * currentHeight,
           scale = Math.min(400 / sw, 65 / sh),
           targetWidth = Math.max(1, Math.floor(sw * scale)),
           targetHeight = Math.max(1, Math.floor(sh * scale));
         cx.fillStyle = "white";
         cx.fillRect(0, 0, 420, 80);
         cx.drawImage(
-          video,
-          r.x * video.videoWidth,
-          r.y * video.videoHeight,
+          currentImage,
+          r.x * currentWidth,
+          r.y * currentHeight,
           sw,
           sh,
           10,
@@ -809,15 +826,14 @@
         );
         preprocess(cx, 420, 80, targetWidth, targetHeight);
       }
-      const total = Math.max(2, Math.ceil(video.duration * sampleRate));
-      for (let frame = 0; frame < total; frame++) {
+      const total = nativeSource
+          ? nativeSource.count
+          : Math.max(2, Math.ceil(video.duration * sampleRate)),
+        frameDurations = [];
+      async function readFrame(frame, t, duration) {
         if (signal?.aborted)
           throw new DOMException("Analisi interrotta", "AbortError");
-        const t = Math.min(
-          frame / sampleRate,
-          Math.max(0, video.duration - 0.001),
-        );
-        await seek(video, t, signal);
+        frameDurations.push(duration);
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         active.forEach((field, index) => {
@@ -895,6 +911,54 @@
               tessedit_char_whitelist: "",
             });
           }
+          if (n === null) {
+            drawCrop(rois[field.id]);
+            const pixels = cx.getImageData(0, 0, crop.width, crop.height),
+              hist = new Uint32Array(256),
+              total = pixels.data.length / 4;
+            let sum = 0;
+            for (let i = 0; i < pixels.data.length; i += 4) {
+              const v = pixels.data[i];
+              hist[v]++;
+              sum += v;
+            }
+            let weight = 0,
+              partial = 0,
+              best = -1,
+              threshold = 128;
+            for (let v = 0; v < 255; v++) {
+              weight += hist[v];
+              partial += v * hist[v];
+              if (!weight || weight === total) continue;
+              const delta =
+                  partial / weight - (sum - partial) / (total - weight),
+                variance = weight * (total - weight) * delta * delta;
+              if (variance > best) {
+                best = variance;
+                threshold = v;
+              }
+            }
+            threshold = Math.max(64, Math.min(220, threshold));
+            for (let i = 0; i < pixels.data.length; i += 4)
+              pixels.data[i] =
+                pixels.data[i + 1] =
+                pixels.data[i + 2] =
+                  pixels.data[i] <= threshold ? 0 : 255;
+            cx.putImageData(pixels, 0, 0);
+            await engine.setParameters({ tessedit_pageseg_mode: "7" });
+            const retry = await engine.recognize(
+              crop,
+              {},
+              { text: true, blocks: true },
+            );
+            n = readWords(
+              lines(retry.data).flatMap((l) => l.words || []),
+              field,
+              rois[field.id].inferred ? 70 : 65,
+              scale,
+            );
+            await engine.setParameters({ tessedit_pageseg_mode: "6" });
+          }
           if (n !== null && n <= field.max) {
             values[field.id] = n;
             counts[field.id]++;
@@ -903,14 +967,14 @@
 
         for (const field of barFields) {
           const model = rois[field.id],
-            sw = model.w * video.videoWidth,
-            sh = model.h * video.videoHeight;
+            sw = model.w * currentWidth,
+            sh = model.h * currentHeight;
           barCanvas.width = Math.max(2, Math.round(sw));
           barCanvas.height = Math.max(2, Math.round(sh));
           barContext.drawImage(
-            video,
-            model.x * video.videoWidth,
-            model.y * video.videoHeight,
+            currentImage,
+            model.x * currentWidth,
+            model.y * currentHeight,
             sw,
             sh,
             0,
@@ -930,20 +994,55 @@
 
         rows.push([frame, t, t, ...fields.map((f) => values[f.id])]);
         onProgress({
-          phase: "Lettura dei fotogrammi",
+          phase: nativeSource
+            ? `Fotogramma originale ${frame + 1} / ${total}`
+            : "Campionamento compatibile",
           progress: (frame + 1) / total,
           time: t,
-          total: video.duration,
+          total: nativeSource ? nativeSource.duration : video.duration,
           counts: { ...counts },
         });
         if (frame % 10 === 0)
           await new Promise((resolve) => setTimeout(resolve, 0));
       }
+      if (nativeSource) {
+        const surface = document.createElement("canvas");
+        for await (const item of nativeSource.frames({ signal })) {
+          try {
+            nativeSource.draw(surface, item.frame);
+            currentImage = surface;
+            currentWidth = surface.width;
+            currentHeight = surface.height;
+            await readFrame(item.index, item.time, item.duration);
+          } finally {
+            item.frame.close();
+          }
+        }
+      } else {
+        for (let frame = 0; frame < total; frame++) {
+          const t = Math.min(
+            frame / sampleRate,
+            Math.max(0, video.duration - 0.001),
+          );
+          await seek(video, t, signal);
+          currentImage = video;
+          currentWidth = video.videoWidth;
+          currentHeight = video.videoHeight;
+          await readFrame(frame, t, 1 / sampleRate);
+        }
+      }
       const missing = fields
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 3,
+        engineVersion: 4,
+        frames: {
+          mode: frameMode,
+          sourceCount: nativeSource?.count ?? null,
+          decodedCount: rows.length,
+          variable: nativeSource?.variable ?? null,
+          codec: nativeSource?.codec ?? null,
+        },
         calibrationTimes: [...new Set(roiSamples.map((s) => s.time))],
         regions: structuredClone(rois),
         channels: Object.fromEntries(
@@ -969,11 +1068,18 @@
           counts && Object.values(counts).some(Boolean)
             ? {
                 name: file.name || "Onboard",
-                duration: video.duration,
+                duration: nativeSource ? nativeSource.duration : video.duration,
                 sourceStart: 0,
-                sampleRate,
+                sampleRate: nativeSource ? nativeSource.fps : sampleRate,
+                frameMode,
+                frameDurations,
+                maxFrameInterval: rows.reduce(
+                  (max, r, i) =>
+                    i ? Math.max(max, r[1] - rows[i - 1][1]) : max,
+                  0,
+                ),
                 sourceFPS,
-                fpsEstimated: true,
+                fpsEstimated: !nativeSource,
                 extraction: quality,
                 rows,
               }
@@ -1004,7 +1110,7 @@
     fields,
     getWorker,
     release,
-    version: 3,
+    version: 4,
     readWords,
     mergeRegions,
   };

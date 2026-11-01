@@ -844,7 +844,9 @@
       const lastSpeed = { time: -Infinity, value: null },
         digitInfo = {},
         images = {},
-        cache = {};
+        cache = {},
+        speedBank = DriverDigits.createBank(),
+        recovery = { attempted: 0, recovered: [], rejected: [] };
       function pixels() {
         const p = cx.getImageData(0, 0, crop.width, crop.height).data;
         return Uint8Array.from({ length: p.length / 4 }, (_, i) =>
@@ -933,6 +935,13 @@
             scale,
           );
           n = checked(n, field, t);
+          if (
+            field.id === "speed" &&
+            n !== null &&
+            rois.speed.digitsOnly &&
+            readWords(words, field, 85, scale) === n
+          )
+            speedBank.learn(DriverDigits.describe(images.speed), String(n));
           if (n === null) {
             retries[field.id]++;
             const votes = [];
@@ -1132,11 +1141,96 @@
           await readFrame(frame, t, 1 / sampleRate);
         }
       }
+      if (rois.speed?.digitsOnly && rows.some((r) => r[3] === null)) {
+        const targets = new Set(
+          rows.filter((r) => r[3] === null).map((r) => r[0]),
+        );
+        const rowByIndex = new Map(rows.map((r) => [r[0], r])),
+          positionByIndex = new Map(rows.map((r, i) => [r[0], i]));
+        async function recoverSpeed(row) {
+          recovery.attempted++;
+          drawCrop(rois.speed, fields[0]);
+          const candidate = speedBank.read(DriverDigits.describe(pixels()));
+          const neighbours = [];
+          for (const direction of [-1, 1]) {
+            for (
+              let j = positionByIndex.get(row[0]) + direction;
+              j >= 0 && j < rows.length;
+              j += direction
+            ) {
+              const other = rows[j],
+                dt = Math.abs(other[1] - row[1]);
+              if (dt > 0.3) break;
+              if (other[3] !== null) {
+                neighbours.push({ value: other[3], dt });
+                break;
+              }
+            }
+          }
+          if (
+            candidate &&
+            candidate.value <= fields[0].max &&
+            neighbours.length &&
+            neighbours.some(
+              (n) => Math.abs(n.value - candidate.value) <= 4 + 200 * n.dt,
+            )
+          ) {
+            row[3] = candidate.value;
+            counts.speed++;
+            recovery.recovered.push({
+              frame: row[0],
+              time: row[1],
+              value: candidate.value,
+              distance: candidate.distance,
+              margin: candidate.margin,
+            });
+          } else
+            recovery.rejected.push({
+              frame: row[0],
+              time: row[1],
+              candidate: candidate?.value ?? null,
+              reason: candidate
+                ? "implausible-speed-change"
+                : "ambiguous-digit-shape",
+            });
+        }
+        onProgress({ phase: "Verifica delle cifre non lette", progress: 0 });
+        if (nativeSource) {
+          const surface = document.createElement("canvas");
+          for await (const item of nativeSource.frames({ signal })) {
+            try {
+              if (!targets.has(item.index) || !item.frame) continue;
+              nativeSource.draw(surface, item.frame);
+              currentImage = surface;
+              currentWidth = surface.width;
+              currentHeight = surface.height;
+              await recoverSpeed(rowByIndex.get(item.index));
+              onProgress({
+                phase: "Verifica delle cifre non lette",
+                progress: recovery.attempted / targets.size,
+                time: item.time,
+                total: nativeSource.duration,
+              });
+            } finally {
+              item.frame?.close();
+            }
+          }
+        } else {
+          for (const row of rows.filter((r) => targets.has(r[0]))) {
+            await seek(video, row[1], signal);
+            currentImage = video;
+            currentWidth = video.videoWidth;
+            currentHeight = video.videoHeight;
+            await recoverSpeed(row);
+          }
+        }
+      }
       const missing = fields
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 5,
+        engineVersion: 6,
+        speedRecovery: { ...recovery, digitSupport: speedBank.support() },
         frames: {
           mode: frameMode,
           sourceCount: nativeSource?.count ?? null,
@@ -1222,7 +1316,7 @@
     fields,
     getWorker,
     release,
-    version: 5,
+    version: 6,
     readWords,
     mergeRegions,
   };

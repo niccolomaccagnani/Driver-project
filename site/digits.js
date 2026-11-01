@@ -119,5 +119,107 @@
     }
     return { count: groups.length, decimal: small.length > 0 };
   }
-  window.DriverDigits = { prepare };
+  function describe(mask, width = 420, height = 80) {
+    if (!mask) return [];
+    const runs = [];
+    let start = -1;
+    for (let x = 0; x <= width; x++) {
+      let ink = 0;
+      for (let y = 0; y < height && x < width; y++) ink += mask[y * width + x];
+      if (ink && start < 0) start = x;
+      if (!ink && start >= 0) {
+        if (x - start >= 2) runs.push([start, x]);
+        start = -1;
+      }
+    }
+    return runs.flatMap(([x0, x1]) => {
+      let y0 = height,
+        y1 = -1;
+      for (let y = 0; y < height; y++)
+        for (let x = x0; x < x1; x++)
+          if (mask[y * width + x]) {
+            y0 = Math.min(y0, y);
+            y1 = Math.max(y1, y);
+          }
+      if (y1 - y0 < 12) return [];
+      const c = document.createElement("canvas");
+      c.width = x1 - x0;
+      c.height = y1 - y0 + 1;
+      const ctx = c.getContext("2d"),
+        im = ctx.createImageData(c.width, c.height);
+      for (let y = 0; y < c.height; y++)
+        for (let x = 0; x < c.width; x++) {
+          const i = (y * c.width + x) * 4,
+            v = mask[(y + y0) * width + x + x0] ? 0 : 255;
+          im.data[i] = im.data[i + 1] = im.data[i + 2] = v;
+          im.data[i + 3] = 255;
+        }
+      ctx.putImageData(im, 0, 0);
+      const small = document.createElement("canvas");
+      small.width = 24;
+      small.height = 32;
+      small.getContext("2d").drawImage(c, 0, 0, 24, 32);
+      const rgba = small.getContext("2d").getImageData(0, 0, 24, 32).data;
+      return [
+        {
+          aspect: c.width / c.height,
+          pixels: Float32Array.from(
+            { length: 24 * 32 },
+            (_, i) => 1 - rgba[i * 4] / 255,
+          ),
+        },
+      ];
+    });
+  }
+  function createBank() {
+    const examples = Array.from({ length: 10 }, () => []),
+      support = new Uint32Array(10);
+    function distance(a, b) {
+      let total = 0;
+      for (let i = 0; i < a.pixels.length; i++)
+        total += Math.abs(a.pixels[i] - b.pixels[i]);
+      return total / a.pixels.length + Math.abs(a.aspect - b.aspect) * 0.1;
+    }
+    return {
+      learn(glyphs, text) {
+        if (!/^\d+$/.test(text) || glyphs.length !== text.length) return;
+        glyphs.forEach((g, i) => {
+          const digit = Number(text[i]),
+            bank = examples[digit];
+          support[digit]++;
+          if (bank.length < 12 && !bank.some((b) => distance(g, b) < 0.006))
+            bank.push(g);
+        });
+      },
+      read(glyphs) {
+        if (!glyphs.length) return null;
+        let text = "",
+          worst = 0,
+          margin = 1;
+        for (const g of glyphs) {
+          const ranked = examples
+            .map((bank, digit) => ({
+              digit,
+              score:
+                support[digit] >= 2 && bank.length
+                  ? Math.min(...bank.map((b) => distance(g, b)))
+                  : Infinity,
+            }))
+            .sort((a, b) => a.score - b.score);
+          if (
+            !Number.isFinite(ranked[1].score) ||
+            ranked[0].score > 0.1 ||
+            ranked[1].score - ranked[0].score < 0.035
+          )
+            return null;
+          text += ranked[0].digit;
+          worst = Math.max(worst, ranked[0].score);
+          margin = Math.min(margin, ranked[1].score - ranked[0].score);
+        }
+        return { value: Number(text), distance: worst, margin };
+      },
+      support: () => Array.from(support),
+    };
+  }
+  window.DriverDigits = { prepare, describe, createBank };
 })();

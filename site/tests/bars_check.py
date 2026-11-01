@@ -37,7 +37,7 @@ async def check():
      await asyncio.sleep(.2)
     assert stored and all(abs(r[6]-60)<=2 for r in stored['data']['lap']['rows'])
     persisted=await page.evaluate("driverTelemetry.store('analyses','get','custom-bar')")
-    assert persisted['manualRegions']['throttle']['kind']=='bar' and persisted['version']==5
+    assert persisted['manualRegions']['throttle']['kind']=='bar' and persisted['version']==6
     continue
    expected=list(zip(VALUES if style!='reverse' else [10,15,20,30,45,60,55,40,35,25,15,10],BRAKES))
    print(style,json.dumps({'observed':observed,'missing':result['missing']}),flush=True)

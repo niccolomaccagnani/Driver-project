@@ -2522,7 +2522,109 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     }
     return { count: groups.length, decimal: small.length > 0 };
   }
-  window.DriverDigits = { prepare };
+  function describe(mask, width = 420, height = 80) {
+    if (!mask) return [];
+    const runs = [];
+    let start = -1;
+    for (let x = 0; x <= width; x++) {
+      let ink = 0;
+      for (let y = 0; y < height && x < width; y++) ink += mask[y * width + x];
+      if (ink && start < 0) start = x;
+      if (!ink && start >= 0) {
+        if (x - start >= 2) runs.push([start, x]);
+        start = -1;
+      }
+    }
+    return runs.flatMap(([x0, x1]) => {
+      let y0 = height,
+        y1 = -1;
+      for (let y = 0; y < height; y++)
+        for (let x = x0; x < x1; x++)
+          if (mask[y * width + x]) {
+            y0 = Math.min(y0, y);
+            y1 = Math.max(y1, y);
+          }
+      if (y1 - y0 < 12) return [];
+      const c = document.createElement("canvas");
+      c.width = x1 - x0;
+      c.height = y1 - y0 + 1;
+      const ctx = c.getContext("2d"),
+        im = ctx.createImageData(c.width, c.height);
+      for (let y = 0; y < c.height; y++)
+        for (let x = 0; x < c.width; x++) {
+          const i = (y * c.width + x) * 4,
+            v = mask[(y + y0) * width + x + x0] ? 0 : 255;
+          im.data[i] = im.data[i + 1] = im.data[i + 2] = v;
+          im.data[i + 3] = 255;
+        }
+      ctx.putImageData(im, 0, 0);
+      const small = document.createElement("canvas");
+      small.width = 24;
+      small.height = 32;
+      small.getContext("2d").drawImage(c, 0, 0, 24, 32);
+      const rgba = small.getContext("2d").getImageData(0, 0, 24, 32).data;
+      return [
+        {
+          aspect: c.width / c.height,
+          pixels: Float32Array.from(
+            { length: 24 * 32 },
+            (_, i) => 1 - rgba[i * 4] / 255,
+          ),
+        },
+      ];
+    });
+  }
+  function createBank() {
+    const examples = Array.from({ length: 10 }, () => []),
+      support = new Uint32Array(10);
+    function distance(a, b) {
+      let total = 0;
+      for (let i = 0; i < a.pixels.length; i++)
+        total += Math.abs(a.pixels[i] - b.pixels[i]);
+      return total / a.pixels.length + Math.abs(a.aspect - b.aspect) * 0.1;
+    }
+    return {
+      learn(glyphs, text) {
+        if (!/^\d+$/.test(text) || glyphs.length !== text.length) return;
+        glyphs.forEach((g, i) => {
+          const digit = Number(text[i]),
+            bank = examples[digit];
+          support[digit]++;
+          if (bank.length < 12 && !bank.some((b) => distance(g, b) < 0.006))
+            bank.push(g);
+        });
+      },
+      read(glyphs) {
+        if (!glyphs.length) return null;
+        let text = "",
+          worst = 0,
+          margin = 1;
+        for (const g of glyphs) {
+          const ranked = examples
+            .map((bank, digit) => ({
+              digit,
+              score:
+                support[digit] >= 2 && bank.length
+                  ? Math.min(...bank.map((b) => distance(g, b)))
+                  : Infinity,
+            }))
+            .sort((a, b) => a.score - b.score);
+          if (
+            !Number.isFinite(ranked[1].score) ||
+            ranked[0].score > 0.1 ||
+            ranked[1].score - ranked[0].score < 0.035
+          )
+            return null;
+          text += ranked[0].digit;
+          worst = Math.max(worst, ranked[0].score);
+          margin = Math.min(margin, ranked[1].score - ranked[0].score);
+        }
+        return { value: Number(text), distance: worst, margin };
+      },
+      support: () => Array.from(support),
+    };
+  }
+  window.DriverDigits = { prepare, describe, createBank };
 })();
 
 </script>
@@ -3373,7 +3475,9 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       const lastSpeed = { time: -Infinity, value: null },
         digitInfo = {},
         images = {},
-        cache = {};
+        cache = {},
+        speedBank = DriverDigits.createBank(),
+        recovery = { attempted: 0, recovered: [], rejected: [] };
       function pixels() {
         const p = cx.getImageData(0, 0, crop.width, crop.height).data;
         return Uint8Array.from({ length: p.length / 4 }, (_, i) =>
@@ -3462,6 +3566,13 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             scale,
           );
           n = checked(n, field, t);
+          if (
+            field.id === "speed" &&
+            n !== null &&
+            rois.speed.digitsOnly &&
+            readWords(words, field, 85, scale) === n
+          )
+            speedBank.learn(DriverDigits.describe(images.speed), String(n));
           if (n === null) {
             retries[field.id]++;
             const votes = [];
@@ -3661,11 +3772,96 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           await readFrame(frame, t, 1 / sampleRate);
         }
       }
+      if (rois.speed?.digitsOnly && rows.some((r) => r[3] === null)) {
+        const targets = new Set(
+          rows.filter((r) => r[3] === null).map((r) => r[0]),
+        );
+        const rowByIndex = new Map(rows.map((r) => [r[0], r])),
+          positionByIndex = new Map(rows.map((r, i) => [r[0], i]));
+        async function recoverSpeed(row) {
+          recovery.attempted++;
+          drawCrop(rois.speed, fields[0]);
+          const candidate = speedBank.read(DriverDigits.describe(pixels()));
+          const neighbours = [];
+          for (const direction of [-1, 1]) {
+            for (
+              let j = positionByIndex.get(row[0]) + direction;
+              j >= 0 && j < rows.length;
+              j += direction
+            ) {
+              const other = rows[j],
+                dt = Math.abs(other[1] - row[1]);
+              if (dt > 0.3) break;
+              if (other[3] !== null) {
+                neighbours.push({ value: other[3], dt });
+                break;
+              }
+            }
+          }
+          if (
+            candidate &&
+            candidate.value <= fields[0].max &&
+            neighbours.length &&
+            neighbours.some(
+              (n) => Math.abs(n.value - candidate.value) <= 4 + 200 * n.dt,
+            )
+          ) {
+            row[3] = candidate.value;
+            counts.speed++;
+            recovery.recovered.push({
+              frame: row[0],
+              time: row[1],
+              value: candidate.value,
+              distance: candidate.distance,
+              margin: candidate.margin,
+            });
+          } else
+            recovery.rejected.push({
+              frame: row[0],
+              time: row[1],
+              candidate: candidate?.value ?? null,
+              reason: candidate
+                ? "implausible-speed-change"
+                : "ambiguous-digit-shape",
+            });
+        }
+        onProgress({ phase: "Verifica delle cifre non lette", progress: 0 });
+        if (nativeSource) {
+          const surface = document.createElement("canvas");
+          for await (const item of nativeSource.frames({ signal })) {
+            try {
+              if (!targets.has(item.index) || !item.frame) continue;
+              nativeSource.draw(surface, item.frame);
+              currentImage = surface;
+              currentWidth = surface.width;
+              currentHeight = surface.height;
+              await recoverSpeed(rowByIndex.get(item.index));
+              onProgress({
+                phase: "Verifica delle cifre non lette",
+                progress: recovery.attempted / targets.size,
+                time: item.time,
+                total: nativeSource.duration,
+              });
+            } finally {
+              item.frame?.close();
+            }
+          }
+        } else {
+          for (const row of rows.filter((r) => targets.has(r[0]))) {
+            await seek(video, row[1], signal);
+            currentImage = video;
+            currentWidth = video.videoWidth;
+            currentHeight = video.videoHeight;
+            await recoverSpeed(row);
+          }
+        }
+      }
       const missing = fields
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 5,
+        engineVersion: 6,
+        speedRecovery: { ...recovery, digitSupport: speedBank.support() },
         frames: {
           mode: frameMode,
           sourceCount: nativeSource?.count ?? null,
@@ -3751,7 +3947,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     fields,
     getWorker,
     release,
-    version: 5,
+    version: 6,
     readWords,
     mergeRegions,
   };
@@ -4046,6 +4242,11 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           item.data.lap.extraction?.frames?.unavailableFrames?.length || 0;
         if (unavailable)
           quality.textContent += ` ${unavailable} fotogrammi non decodificabili: valori vuoti al timestamp originale.`;
+        const recovery = item.data.lap.extraction?.speedRecovery;
+        if (recovery?.recovered?.length)
+          quality.textContent += ` ${recovery.recovered.length} letture della velocità recuperate.`;
+        if (recovery?.rejected?.length)
+          quality.textContent += ` ${recovery.rejected.length} letture ancora non confermate.`;
         const inspect = document.createElement("button");
         inspect.className = "light";
         inspect.textContent = "Verifica letture";
@@ -4635,6 +4836,17 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           : row[col] === null
             ? "Nessun valore salvato"
             : "Valore riconosciuto nel display";
+      if (id === "speed" && row[col] === null) {
+        const rejection =
+          item.data.lap.extraction?.speedRecovery?.rejected?.find(
+            (r) => r.frame === row[0],
+          );
+        if (rejection)
+          note.textContent =
+            rejection.reason === "implausible-speed-change"
+              ? `Il display mostra ${rejection.candidate} km/h: valore incoerente con i fotogrammi vicini.`
+              : "Le cifre non sono state confermate con sufficiente affidabilità.";
+      }
       card.append(title, value, crop, note);
       root.append(card);
     }

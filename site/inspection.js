@@ -62,6 +62,17 @@
           : row[col] === null
             ? "Nessun valore salvato"
             : "Valore riconosciuto nel display";
+      if (id === "speed" && row[col] === null) {
+        const rejection =
+          item.data.lap.extraction?.speedRecovery?.rejected?.find(
+            (r) => r.frame === row[0],
+          );
+        if (rejection)
+          note.textContent =
+            rejection.reason === "implausible-speed-change"
+              ? `Il display mostra ${rejection.candidate} km/h: valore incoerente con i fotogrammi vicini.`
+              : "Le cifre non sono state confermate con sufficiente affidabilità.";
+      }
       card.append(title, value, crop, note);
       root.append(card);
     }

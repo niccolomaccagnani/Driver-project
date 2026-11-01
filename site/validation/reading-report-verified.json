@@ -6,9 +6,9 @@
   "errors": [],
   "channels": {
     "speed": {
-      "accepted": 2841,
+      "accepted": 2964,
       "method": "ocr",
-      "missing": 125,
+      "missing": 2,
       "retried": 265
     },
     "rpm": {

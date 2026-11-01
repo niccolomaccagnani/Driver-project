@@ -285,6 +285,11 @@
           item.data.lap.extraction?.frames?.unavailableFrames?.length || 0;
         if (unavailable)
           quality.textContent += ` ${unavailable} fotogrammi non decodificabili: valori vuoti al timestamp originale.`;
+        const recovery = item.data.lap.extraction?.speedRecovery;
+        if (recovery?.recovered?.length)
+          quality.textContent += ` ${recovery.recovered.length} letture della velocità recuperate.`;
+        if (recovery?.rejected?.length)
+          quality.textContent += ` ${recovery.rejected.length} letture ancora non confermate.`;
         const inspect = document.createElement("button");
         inspect.className = "light";
         inspect.textContent = "Verifica letture";

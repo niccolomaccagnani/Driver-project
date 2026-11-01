@@ -110,3 +110,24 @@ I set automatici delle versioni precedenti vengono ricalcolati. Per il set nomin
 Validazione: `site/tests/real_video_check.py --video /percorso/onboard.mov --output /tmp/verifica.json` esegue il lettore sui 33 frame trascritti a mano del filmato condiviso, senza incorporarlo nel repository. `--result /tmp/risultato.json` confronta anche tutti i timestamp di un’estrazione completa con ffprobe. Il test controlla l’impronta del video per non usare questa tabella su un altro onboard.
 
 `site/validation/reading-report.json` documenta la lettura completa: 2.966 righe, un frame non restituito da Chromium (riga vuota), 99 valori numerici verificati esatti e 66 percentuali confrontate con la barra visibile (tolleranza di quattro punti). Le coperture misurano campioni accettati: circa 95,8% velocità, 99,3% RPM, 99,4% marcia/gas e 99,6% freno. Sono rimossi i 22 crolli isolati superiori a 80 km/h del CSV originale; questo controllo non certifica ogni lettura del giro. Le righe incerte restano vuote. Il confronto esportabile è `site/validation/confronto-letture.png`; `dati-ricalcolati.zip` contiene JSON e CSV separati dal sito, senza preinstallare giri dimostrativi e senza il video personale.
+
+
+## Audit dei 125 vuoti · motore 6
+
+L’audit successivo ha controllato tutti i 125 campioni della velocità rimasti vuoti nel motore 5, usando immagini estratte da FFmpeg ai frame originali. Le cifre sono trascritte in `site/tests/holes-reference.json`. I gruppi ricorrenti (221, 222, 224, 226, 227, 267, 97) erano visibili e integri: il riconoscimento OCR del carattere produceva risultati incompleti o poco affidabili, poi scartati dai controlli. Il filmato non era privo di velocità in quei punti.
+
+Il motore 6 aggiunge una seconda lettura per le cifre non confermate. Per ogni video impara esempi delle singole cifre esclusivamente dalle letture OCR iniziali con confidenza almeno 85 e segmentazione compatibile con il numero riconosciuto. Non conserva esempi fra video diversi. Dopo la prima lettura confronta i singoli caratteri nei frame scartati con questi esempi, richiedendo sia somiglianza sia separazione dal secondo candidato. Le cifre vengono ricavate dai pixel dello stesso frame; il confronto con i campioni vicini può rifiutare un risultato, senza calcolare valori interpolati o copiare il numero del frame precedente.
+
+`speedRecovery` nel JSON registra supporto degli esempi, frame recuperati, distanza delle forme e motivi degli scarti. La libreria mostra il conteggio dei recuperi; nella verifica del frame un salto impossibile del display ha una spiegazione specifica. Le letture precedentemente accettate non vengono riscritte da questa seconda lettura.
+
+`site/tests/holes_check.py --result /tmp/risultato-motore6.json --previous /tmp/risultato-motore5.json` controlla ogni campione dell’audit e confronta tutti i timestamp e tutte le velocità già accettate. `site/tests/digits_check.py` verifica combinazioni numeriche non usate nell’apprendimento e il rifiuto di esempi ambigui o mancanti. La sorgente personale resta fuori dal repository.
+
+
+L’audit distingue 122 errori di OCR, una lettura corretta bloccata dal limite di variazione e due casi rimasti separati: il frame a 0,010 s esiste nel file (206 km/h), ma Chromium non lo restituisce; a 81,475 s la grafica del video mostra per un frame 0 km/h fra 117 e 116 km/h. Il primo è un limite del decoder del browser; il secondo è un valore incoerente già presente nell’overlay. Non vengono riempiti con valori inventati.
+
+Nel recupero per forma delle cifre, basta che almeno uno dei due campioni vicini confermi la plausibilità del risultato riconosciuto. Questo evita di rifiutare 271 km/h dopo il salto del display da 283 km/h, quando il frame successivo mostra ancora 271. La regola non ricostruisce la velocità dal tempo e continua a respingere lo zero isolato, incompatibile con entrambi i vicini.
+
+
+Risultato sul filmato condiviso: **123 dei 125 vuoti recuperati**, tutti verificati contro la trascrizione dei frame; nessun campione della velocità già accettato modificato. La velocità è disponibile in 2.964 delle 2.966 righe (99,93%). Restano soltanto il frame non restituito dal decoder a 0,010 s e lo zero incoerente dell’overlay a 81,475 s. Il controllo riguarda tutti i vuoti precedenti e i 33 frame del confronto precedente; non certifica a mano ogni altro valore del giro.
+
+Il report completo è `site/validation/rejected-speed-audit.json`, con una riga per ciascun campione esaminato. `audit-vuoti.png` mostra quattro confronti ingranditi tra motore 5 e 6; `fotogrammi-audit.png` affianca cifre reali e risultati, comprese le due eccezioni. Il pacchetto `dati-ricalcolati.zip` è aggiornato al motore 6.

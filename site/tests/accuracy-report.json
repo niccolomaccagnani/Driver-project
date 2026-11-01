@@ -1,6 +1,6 @@
 {
   "fixture": "changing digit widths, labelled HUD, 10 fps, 1.2 s",
-  "engineVersion": 4,
+  "engineVersion": 5,
   "expected": [
     [
       98,
@@ -175,5 +175,5 @@
   ],
   "incorrect": 0,
   "missing": 0,
-  "scope": "Controlled regression clip; the user\u2019s Abu Dhabi dataset and onboard were not available."
+  "scope": "Controlled regression clip only; the real onboard is checked separately."
 }

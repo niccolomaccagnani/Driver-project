@@ -74,6 +74,8 @@
     const signal = controller.signal;
     if (!item) return;
     showValues();
+    const display = $("dnInspectFrame");
+    display.getContext("2d").clearRect(0, 0, display.width, display.height);
     if (!source) return;
     const row = item.data.lap.rows[index];
     let nativeIndex;

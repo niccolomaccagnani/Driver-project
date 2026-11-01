@@ -326,7 +326,7 @@
       values = [],
       presence = [];
     for (let i = 0; i < length; i++) {
-      const samples = [0.08, 0.14, 0.86, 0.92].map((f) =>
+      const samples = [0.15, 0.22, 0.3, 0.38, 0.62, 0.7, 0.78, 0.85].map((f) =>
         pixel(
           image,
           horizontal ? left + ((i + 0.5) * w) / length : left + f * w,
@@ -348,7 +348,7 @@
       presence.push(
         samples.filter((rgb) =>
           r.track === "colored" ? trackColor(rgb, r.family) : chromatic(rgb),
-        ).length / 4,
+        ).length / samples.length,
       );
     }
     // White/black label strokes are excluded from colour measurements, then bridged only across small spatial gaps.
@@ -371,7 +371,10 @@
       ) {
         for (let j = start; j < end; j++)
           values[j] = left + ((right - left) * (j - start + 1)) / (length + 1);
-      } else if (length <= 2 && (left !== undefined || right !== undefined)) {
+      } else if (
+        length <= Math.max(2, values.length * 0.025) &&
+        (Number.isFinite(left) || Number.isFinite(right))
+      ) {
         for (let j = start; j < end; j++) values[j] = left ?? right;
       }
     }
@@ -393,10 +396,105 @@
       profile: profile(image, box),
     };
   }
+  // Look for repeated full-width colour runs above/below an overprinted caption.
+  // Unlike a connected colour fragment, stable parallel edges establish the whole track.
+  function striped(image, label) {
+    const found = [];
+    for (const vertical of [false, true]) {
+      const aSize = vertical ? image.height : image.width,
+        bSize = vertical ? image.width : image.height,
+        a0 = vertical ? label.y0 : label.x0,
+        a1 = vertical ? label.y1 : label.x1,
+        b0 = vertical ? label.x0 : label.y0,
+        b1 = vertical ? label.x1 : label.y1,
+        lh = Math.max(8, b1 - b0),
+        low = Math.max(0, Math.floor(a0 - lh * 2)),
+        high = Math.min(aSize, Math.ceil(a1 + aSize * 0.3)),
+        groups = [];
+      for (
+        let b = Math.max(0, Math.floor(b0 - lh));
+        b < Math.min(bSize, b1 + lh);
+        b++
+      ) {
+        let start = -1,
+          family = null;
+        for (let a = low; a <= high; a++) {
+          const rgb =
+            a < high
+              ? pixel(image, vertical ? b : a, vertical ? a : b)
+              : [0, 0, 0];
+          const yes = trackColor(rgb, family);
+          if (yes && start < 0) {
+            start = a;
+            const hi = Math.max(...rgb),
+              delta = hi - Math.min(...rgb);
+            let hue =
+              hi === rgb[0]
+                ? (rgb[1] - rgb[2]) / delta
+                : hi === rgb[1]
+                  ? 2 + (rgb[2] - rgb[0]) / delta
+                  : 4 + (rgb[0] - rgb[1]) / delta;
+            family = 1 + (Math.round(((hue * 60 + 360) % 360) / 20) % 18);
+          }
+          if ((!yes || a === high) && start >= 0) {
+            const end = a;
+            if (
+              end - start >= Math.max(35, (a1 - a0) * 1.15) &&
+              start <= a0 + lh &&
+              end >= a1 &&
+              start > low &&
+              end < high
+            ) {
+              let group = groups.find(
+                (g) =>
+                  Math.abs(g.start - start) <= 3 && Math.abs(g.end - end) <= 3,
+              );
+              if (!group) {
+                group = { start, end, family, rows: [] };
+                groups.push(group);
+              }
+              group.rows.push(b);
+            }
+            start = -1;
+            family = null;
+          }
+        }
+      }
+      for (const g of groups) {
+        const top = Math.min(...g.rows),
+          bottom = Math.max(...g.rows),
+          thickness = bottom - top + 1,
+          length = g.end - g.start;
+        if (
+          g.rows.length < Math.max(3, lh * 0.2) ||
+          thickness < lh * 0.5 ||
+          thickness > lh * 2.5 ||
+          length / thickness < 3.5 ||
+          Math.abs((top + bottom - b0 - b1) / 2) > lh * 0.65
+        )
+          continue;
+        const box = vertical
+          ? { x: top, y: g.start, w: thickness, h: length }
+          : { x: g.start, y: top, w: length, h: thickness };
+        found.push({
+          ...box,
+          family: g.family,
+          labelAtStart: !vertical && a0 < g.start + length * 0.5,
+          kind: "bar",
+          axis: vertical ? "vertical" : "horizontal",
+          track: "colored",
+          inset: { left: 0, right: 0, top: 0, bottom: 0 },
+          score: 1.5 + (g.rows.length / thickness) * 0.2,
+        });
+      }
+    }
+    return found;
+  }
   function detect(image, labels) {
     const found = {};
     for (const { id, bbox } of labels) {
       const candidates = [
+        ...striped(image, bbox),
         ...outlined(image, bbox),
         ...colored(image, bbox),
       ].sort((a, b) => b.score - a.score);
@@ -484,8 +582,52 @@
       }
       return valid();
     });
+    // A caption can have a permanently tinted block at its start. It is not pedal fill.
+    const length = base.profile.values.length;
+    const variation = Array.from({ length }, (_, i) => {
+      const values = same
+        .map(
+          (r) =>
+            r.profile.values[
+              Math.min(
+                r.profile.values.length - 1,
+                Math.round(
+                  (i * (r.profile.values.length - 1)) / Math.max(1, length - 1),
+                ),
+              )
+            ],
+        )
+        .filter(Number.isFinite);
+      return values.length >= 2
+        ? Math.max(...values) - Math.min(...values)
+        : Infinity;
+    });
+    let fixedPrefix = 0;
+    while (fixedPrefix < length && variation[fixedPrefix] < 22) fixedPrefix++;
+    if (
+      !base.labelAtStart ||
+      fixedPrefix > length * 0.25 ||
+      variation.filter((v) => v >= 40).length < length * 0.2
+    )
+      fixedPrefix = 0;
+    const empties = same
+      .map((r) => r.profile.values)
+      .filter((values) => {
+        const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+        return (
+          sorted.length > values.length * 0.8 &&
+          sorted[Math.floor(sorted.length * 0.99)] <= 85
+        );
+      })
+      .sort(
+        (a, b) =>
+          a.reduce((s, v) => s + (v || 0), 0) / a.length -
+          b.reduce((s, v) => s + (v || 0), 0) / b.length,
+      );
     const model = {
       ...base,
+      emptyProfiles: empties.slice(0, 1),
+      fixedPrefix: fixedPrefix / length,
       threshold,
       boundsProven: !!base.manual || base.track === "outlined" || darkTrack,
       manual: !!base.manual,
@@ -535,6 +677,23 @@
     )
       return null;
     if (model.tone !== "dark") {
+      for (const empty of model.emptyProfiles || []) {
+        const delta = values.map((v, i) =>
+          Math.abs(
+            v -
+              (empty[
+                Math.round(
+                  (i * (empty.length - 1)) / Math.max(1, values.length - 1),
+                )
+              ] ?? v),
+          ),
+        );
+        if (
+          delta.filter((v) => v > 25).length / values.length < 0.03 &&
+          delta.reduce((a, b) => a + b, 0) / values.length < 8
+        )
+          return 0;
+      }
       const quantile = (values, f) => {
         const sorted = [...values].sort((a, b) => a - b);
         return sorted[
@@ -583,7 +742,14 @@
       }
       let strongest = 0,
         boundary = -1;
-      for (let i = 3; i < values.length - 3; i++) {
+      for (
+        let i = Math.max(
+          3,
+          Math.ceil((model.fixedPrefix || 0) * values.length) + 3,
+        );
+        i < values.length - 3;
+        i++
+      ) {
         const a = (values[i - 3] + values[i - 2] + values[i - 1]) / 3,
           b = (values[i] + values[i + 1] + values[i + 2]) / 3;
         if (Math.abs(a - b) > strongest) {

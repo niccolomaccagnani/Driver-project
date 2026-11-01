@@ -245,6 +245,7 @@
           alternatives.push(clipRegion(r));
       result[field.id] = clipRegion({
         ...regions[0],
+        digitsOnly: regions.every((r) => r.digitsOnly),
         x,
         y,
         w: Math.max(...regions.map((r) => r.x + r.w)) - x,
@@ -264,9 +265,9 @@
         pad = 4,
         tight = clipRegion({
           x: (b.x0 - pad) / width,
-          y: (b.y0 - 5) / height,
+          y: (b.y0 - 1) / height,
           w: (b.x1 - b.x0 + 2 * pad) / width,
-          h: (b.y1 - b.y0 + 10) / height,
+          h: (b.y1 - b.y0 + 2) / height,
         });
       const numeric = word.text.match(/\d+(?:[.,]\d+)?/)?.[0] || "",
         digits = numeric.replace(/[.,]/g, "").length;
@@ -299,6 +300,7 @@
         x: tight.x - left / width,
         w: tight.w + extra / width,
         tight,
+        digitsOnly: /^\d+$/.test(word.text.trim()),
         scale: field.id === "rpm" && /K$/i.test(word.text) ? 1000 : 1,
       });
       // Keep a neighbouring unit complete; cutting a percent sign can look like an extra digit.
@@ -319,11 +321,13 @@
           Math.min(w.bbox.y1, b.y1) - Math.max(w.bbox.y0, b.y0) >
             (b.y1 - b.y0) * 0.4,
       );
-      if (suffix)
+      if (suffix) {
+        region.digitsOnly = false;
         region.w = Math.min(
           1 - region.x,
           Math.max(region.w, (suffix.bbox.x1 + pad + extra) / width - region.x),
         );
+      }
       return region;
     };
     for (const field of fields) {
@@ -733,6 +737,10 @@
             0,
             Math.min(video.duration * 0.15, 2),
             Math.min(video.duration * 0.5, 8),
+            ...Array.from({ length: 11 }, (_, i) =>
+              Math.min(i, Math.max(0, video.duration - 0.001)),
+            ),
+            ...[0.25, 0.5, 0.75].map((f) => video.duration * f),
           ]),
         ]) {
           await seek(video, t, signal);
@@ -804,7 +812,7 @@
       let currentImage = video,
         currentWidth = video.videoWidth,
         currentHeight = video.videoHeight;
-      function drawCrop(region) {
+      function drawCrop(region, field) {
         const r = clipRegion(region),
           sw = r.w * currentWidth,
           sh = r.h * currentHeight,
@@ -825,11 +833,54 @@
           targetHeight,
         );
         preprocess(cx, 420, 80, targetWidth, targetHeight);
+        crop._digits = /^(speed|rpm|gear)$/.test(field.id)
+          ? DriverDigits.prepare(crop)
+          : { count: null };
       }
       const total = nativeSource
           ? nativeSource.count
           : Math.max(2, Math.ceil(video.duration * sampleRate)),
         frameDurations = [];
+      const lastSpeed = { time: -Infinity, value: null },
+        digitInfo = {},
+        images = {},
+        cache = {};
+      function pixels() {
+        const p = cx.getImageData(0, 0, crop.width, crop.height).data;
+        return Uint8Array.from({ length: p.length / 4 }, (_, i) =>
+          p[i * 4] < 145 ? 1 : 0,
+        );
+      }
+      function unchanged(a, b) {
+        if (!a || !b || a.length !== b.length) return false;
+        let different = 0,
+          ink = 0;
+        for (let i = 0; i < a.length; i++) {
+          different += a[i] !== b[i] ? 1 : 0;
+          ink += a[i] || b[i] ? 1 : 0;
+        }
+        return ink > 20 && different / ink < 0.005;
+      }
+      function checked(n, field, t) {
+        if (n === null) return null;
+        const info = digitInfo[field.id];
+        if (
+          (field.id === "speed" || field.id === "rpm") &&
+          rois[field.id].digitsOnly &&
+          info?.count &&
+          !info.decimal &&
+          (rois[field.id].scale || 1) === 1 &&
+          String(n).length + 1 < info.count
+        )
+          return null;
+        if (
+          field.id === "speed" &&
+          t - lastSpeed.time < 0.3 &&
+          Math.abs(n - lastSpeed.value) > 4 + 200 * (t - lastSpeed.time)
+        )
+          return null;
+        return n;
+      }
       async function readFrame(frame, t, duration) {
         if (signal?.aborted)
           throw new DOMException("Analisi interrotta", "AbortError");
@@ -837,7 +888,11 @@
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         active.forEach((field, index) => {
-          drawCrop(rois[field.id]);
+          drawCrop(rois[field.id], field);
+          digitInfo[field.id] = crop._digits;
+          images[field.id] = /^(speed|rpm|gear)$/.test(field.id)
+            ? pixels()
+            : null;
           ctx.drawImage(crop, 20, index * 100 + 10);
         });
         const { data } = active.length
@@ -845,6 +900,23 @@
           : { data: { blocks: [] } };
         const values = Object.fromEntries(fields.map((f) => [f.id, null]));
         for (const field of active) {
+          const remembered = cache[field.id];
+          if (
+            remembered &&
+            t - remembered.time < 0.5 &&
+            unchanged(images[field.id], remembered.image)
+          ) {
+            const n = checked(remembered.value, field, t);
+            if (n !== null) {
+              values[field.id] = n;
+              counts[field.id]++;
+              if (field.id === "speed") {
+                lastSpeed.time = t;
+                lastSpeed.value = n;
+              }
+              continue;
+            }
+          }
           const index = active.indexOf(field),
             words = lines(data)
               .flatMap((l) => l.words || [])
@@ -860,18 +932,21 @@
             rois[field.id].inferred ? 70 : 60,
             scale,
           );
+          n = checked(n, field, t);
           if (n === null) {
             retries[field.id]++;
             const votes = [];
             const initial = readWords(words, field, 45, scale);
             if (initial !== null) votes.push(initial);
             // Isolated line reads retain the full field width: a narrow retry must not truncate a digit.
-            drawCrop(rois[field.id]);
-            for (const mode of ["7", "13"]) {
+            drawCrop(rois[field.id], field);
+            for (const mode of field.id === "gear"
+              ? ["10", "7", "13"]
+              : ["7", "13"]) {
               await engine.setParameters({
                 tessedit_pageseg_mode: mode,
                 tessedit_char_whitelist:
-                  mode === "13"
+                  mode === "13" || mode === "10"
                     ? "0123456789.," +
                       (field.id === "speed"
                         ? "KMHkmh/Pp"
@@ -896,8 +971,13 @@
                 rois[field.id].inferred ? 70 : 65,
                 scale,
               );
+              n = checked(n, field, t);
               if (n !== null) break;
-              const candidate = readWords(retryWords, field, 45, scale);
+              const candidate = checked(
+                readWords(retryWords, field, 45, scale),
+                field,
+                t,
+              );
               if (candidate !== null) {
                 if (votes.includes(candidate)) {
                   n = candidate;
@@ -912,7 +992,7 @@
             });
           }
           if (n === null) {
-            drawCrop(rois[field.id]);
+            drawCrop(rois[field.id], field);
             const pixels = cx.getImageData(0, 0, crop.width, crop.height),
               hist = new Uint32Array(256),
               total = pixels.data.length / 4;
@@ -959,8 +1039,15 @@
             );
             await engine.setParameters({ tessedit_pageseg_mode: "6" });
           }
+          n = checked(n, field, t);
           if (n !== null && n <= field.max) {
             values[field.id] = n;
+            if (images[field.id])
+              cache[field.id] = { time: t, value: n, image: images[field.id] };
+            if (field.id === "speed") {
+              lastSpeed.time = t;
+              lastSpeed.value = n;
+            }
             counts[field.id]++;
           }
         }
@@ -1009,13 +1096,27 @@
         const surface = document.createElement("canvas");
         for await (const item of nativeSource.frames({ signal })) {
           try {
+            if (!item.frame) {
+              rows.push([
+                item.index,
+                item.time,
+                item.time,
+                null,
+                null,
+                null,
+                null,
+                null,
+              ]);
+              frameDurations.push(item.duration);
+              continue;
+            }
             nativeSource.draw(surface, item.frame);
             currentImage = surface;
             currentWidth = surface.width;
             currentHeight = surface.height;
             await readFrame(item.index, item.time, item.duration);
           } finally {
-            item.frame.close();
+            item.frame?.close();
           }
         }
       } else {
@@ -1035,11 +1136,15 @@
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 4,
+        engineVersion: 5,
         frames: {
           mode: frameMode,
           sourceCount: nativeSource?.count ?? null,
-          decodedCount: rows.length,
+          decodedCount: rows.length - (nativeSource?.missingFrames.size || 0),
+          timelineCount: rows.length,
+          unavailableFrames: nativeSource
+            ? [...nativeSource.missingFrames]
+            : [],
           variable: nativeSource?.variable ?? null,
           codec: nativeSource?.codec ?? null,
         },
@@ -1089,7 +1194,14 @@
           fields.map((f) => [f.id, counts[f.id] / rows.length]),
         ),
         regions: rois,
-        reason: missing.length ? "Canali non letti: " + missing.join(", ") : "",
+        reason: [
+          missing.length ? "Canali non letti: " + missing.join(", ") : "",
+          nativeSource?.missingFrames.size
+            ? `${nativeSource.missingFrames.size} fotogrammi non decodificabili: valori lasciati vuoti al timestamp originale.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       };
     } finally {
       video.pause();
@@ -1110,7 +1222,7 @@
     fields,
     getWorker,
     release,
-    version: 4,
+    version: 5,
     readWords,
     mergeRegions,
   };

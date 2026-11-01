@@ -38,6 +38,12 @@ async def check():
    report[name]={'timestamps_ffprobe':expected[name],'timestamps_decoded':[f['time'] for f in result['frames']],'count':result['count']}
   compatibility=await page.evaluate("""async()=>{const b=await(await fetch('/fixtures/fast.mp4')).blob(),original=window.VideoDecoder;window.VideoDecoder=undefined;try{const result=await DriverOCR.analyze(new File([b],'fast.mp4',{type:'video/mp4'}),{frameMode:'sampled',sampleRate:30});return {count:result.lap.rows.length,mode:result.quality.frames.mode};}finally{window.VideoDecoder=original;}}""")
   assert compatibility=={'count':6,'mode':'sampled'},compatibility
+  dropped=await page.evaluate("""async()=>{const blob=await(await fetch('/fixtures/fast.mp4')).blob(),file=new File([blob],'dropped.mp4',{type:'video/mp4'}),source=await DriverFrames.open(file),sample=await source.frameAt(2),skip=sample.stamp,Original=window.VideoDecoder;sample.frame.close();window.VideoDecoder=class {constructor(options){return new Original({...options,output:frame=>{if(frame.timestamp===skip)frame.close();else options.output(frame)}})}static isConfigSupported(c){return Original.isConfigSupported(c)}};try{const r=await DriverOCR.analyze(file);return {rows:r.lap.rows,frames:r.quality.frames,reason:r.reason};}finally{window.VideoDecoder=Original}}""")
+  assert len(dropped['rows'])==12 and dropped['rows'][2][3:]==[None]*5,dropped
+  assert dropped['frames']['unavailableFrames']==[2] and dropped['frames']['decodedCount']==11 and dropped['frames']['timelineCount']==12,dropped
+  assert all(abs(r[1]-t)<.000002 for r,t in zip(dropped['rows'],expected['fast']))
+  assert 'fotogrammi non decodificabili' in dropped['reason']
+
   assert not errors,errors
   (ROOT/'tests/native-frames-report.json').write_text(json.dumps(report,indent=2)+'\n');await browser.close()
  server.shutdown();print('PASS: every frame and original timestamp matches ffprobe for 60 fps and variable-rate MP4 with B frames; pixels confirm order; random access returns the correct source frame.')

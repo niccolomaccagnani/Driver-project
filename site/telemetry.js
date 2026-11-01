@@ -281,6 +281,10 @@
           (item.data.lap.extraction?.engineVersion || 0) < DriverOCR.version
             ? "Lettura precedente: usa Rigenera dal video per applicare le correzioni."
             : "Le percentuali indicano i campioni accettati dall’OCR, non l’accuratezza rispetto al video.";
+        const unavailable =
+          item.data.lap.extraction?.frames?.unavailableFrames?.length || 0;
+        if (unavailable)
+          quality.textContent += ` ${unavailable} fotogrammi non decodificabili: valori vuoti al timestamp originale.`;
         const inspect = document.createElement("button");
         inspect.className = "light";
         inspect.textContent = "Verifica letture";

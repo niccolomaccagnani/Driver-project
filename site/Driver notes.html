@@ -1286,6 +1286,10 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     ordered.forEach((s, i) => {
       s.index = i;
       s.time = Math.max(0, s.time);
+      s.duration = Math.max(
+        0.000001,
+        (ordered[i + 1]?.time ?? Math.min(end, s.time + s.duration)) - s.time,
+      );
     });
     const entry = mp4.getTrackById(track.id).mdia.minf.stbl.stsd.entries[0],
       box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
@@ -1354,6 +1358,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         throw Error("Dati del fotogramma incompleti.");
       return new Uint8Array(cache, sample.offset - cacheStart, sample.size);
     }
+    const missingFrames = new Set();
     async function* frames({
       signal,
       start = 0,
@@ -1455,7 +1460,12 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           notify();
         }
       })();
-      let emitted = 0;
+      let emitted = 0,
+        nextIndex = start;
+      function unavailable(index) {
+        missingFrames.add(index);
+        return { ...ordered[index], frame: null, unavailable: true };
+      }
       try {
         while (!done || queue.length) {
           aborted(signal);
@@ -1465,10 +1475,30 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             continue;
           }
           const item = queue.shift();
-          emitted++;
-          yield item;
+          let delivered = false;
+          try {
+            while (nextIndex < item.index) {
+              aborted(signal);
+              const missing = unavailable(nextIndex++);
+              emitted++;
+              yield missing;
+            }
+            if (item.index !== nextIndex)
+              throw Error("Ordine dei fotogrammi incoerente.");
+            nextIndex++;
+            emitted++;
+            delivered = true;
+            yield item;
+          } finally {
+            if (!delivered) item.frame.close();
+          }
         }
         if (decoderError) throw decoderError;
+        while (nextIndex <= Math.min(finish, ordered.length - 1)) {
+          const missing = unavailable(nextIndex++);
+          emitted++;
+          yield missing;
+        }
         if (emitted !== Math.min(finish, ordered.length - 1) - start + 1)
           throw Error(
             `Decodifica incompleta: ${emitted} fotogrammi letti. Il set non è stato salvato.`,
@@ -1494,6 +1524,10 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     }
     async function frameAt(index, { signal } = {}) {
       for await (const item of frames({ signal, start: index, end: index })) {
+        if (!item.frame)
+          throw Error(
+            "Il decoder non restituisce questo fotogramma: i valori sono stati lasciati vuoti al suo timestamp originale.",
+          );
         return item;
       }
       throw Error("Fotogramma non decodificato.");
@@ -1508,6 +1542,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       codec,
       times: ordered.map((s) => s.time),
       fps: ordered.length / duration,
+      missingFrames,
       variable: ordered.some(
         (s, i) =>
           i > 1 &&
@@ -1850,7 +1885,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       values = [],
       presence = [];
     for (let i = 0; i < length; i++) {
-      const samples = [0.08, 0.14, 0.86, 0.92].map((f) =>
+      const samples = [0.15, 0.22, 0.3, 0.38, 0.62, 0.7, 0.78, 0.85].map((f) =>
         pixel(
           image,
           horizontal ? left + ((i + 0.5) * w) / length : left + f * w,
@@ -1872,7 +1907,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       presence.push(
         samples.filter((rgb) =>
           r.track === "colored" ? trackColor(rgb, r.family) : chromatic(rgb),
-        ).length / 4,
+        ).length / samples.length,
       );
     }
     // White/black label strokes are excluded from colour measurements, then bridged only across small spatial gaps.
@@ -1895,7 +1930,10 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       ) {
         for (let j = start; j < end; j++)
           values[j] = left + ((right - left) * (j - start + 1)) / (length + 1);
-      } else if (length <= 2 && (left !== undefined || right !== undefined)) {
+      } else if (
+        length <= Math.max(2, values.length * 0.025) &&
+        (Number.isFinite(left) || Number.isFinite(right))
+      ) {
         for (let j = start; j < end; j++) values[j] = left ?? right;
       }
     }
@@ -1917,10 +1955,105 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       profile: profile(image, box),
     };
   }
+  // Look for repeated full-width colour runs above/below an overprinted caption.
+  // Unlike a connected colour fragment, stable parallel edges establish the whole track.
+  function striped(image, label) {
+    const found = [];
+    for (const vertical of [false, true]) {
+      const aSize = vertical ? image.height : image.width,
+        bSize = vertical ? image.width : image.height,
+        a0 = vertical ? label.y0 : label.x0,
+        a1 = vertical ? label.y1 : label.x1,
+        b0 = vertical ? label.x0 : label.y0,
+        b1 = vertical ? label.x1 : label.y1,
+        lh = Math.max(8, b1 - b0),
+        low = Math.max(0, Math.floor(a0 - lh * 2)),
+        high = Math.min(aSize, Math.ceil(a1 + aSize * 0.3)),
+        groups = [];
+      for (
+        let b = Math.max(0, Math.floor(b0 - lh));
+        b < Math.min(bSize, b1 + lh);
+        b++
+      ) {
+        let start = -1,
+          family = null;
+        for (let a = low; a <= high; a++) {
+          const rgb =
+            a < high
+              ? pixel(image, vertical ? b : a, vertical ? a : b)
+              : [0, 0, 0];
+          const yes = trackColor(rgb, family);
+          if (yes && start < 0) {
+            start = a;
+            const hi = Math.max(...rgb),
+              delta = hi - Math.min(...rgb);
+            let hue =
+              hi === rgb[0]
+                ? (rgb[1] - rgb[2]) / delta
+                : hi === rgb[1]
+                  ? 2 + (rgb[2] - rgb[0]) / delta
+                  : 4 + (rgb[0] - rgb[1]) / delta;
+            family = 1 + (Math.round(((hue * 60 + 360) % 360) / 20) % 18);
+          }
+          if ((!yes || a === high) && start >= 0) {
+            const end = a;
+            if (
+              end - start >= Math.max(35, (a1 - a0) * 1.15) &&
+              start <= a0 + lh &&
+              end >= a1 &&
+              start > low &&
+              end < high
+            ) {
+              let group = groups.find(
+                (g) =>
+                  Math.abs(g.start - start) <= 3 && Math.abs(g.end - end) <= 3,
+              );
+              if (!group) {
+                group = { start, end, family, rows: [] };
+                groups.push(group);
+              }
+              group.rows.push(b);
+            }
+            start = -1;
+            family = null;
+          }
+        }
+      }
+      for (const g of groups) {
+        const top = Math.min(...g.rows),
+          bottom = Math.max(...g.rows),
+          thickness = bottom - top + 1,
+          length = g.end - g.start;
+        if (
+          g.rows.length < Math.max(3, lh * 0.2) ||
+          thickness < lh * 0.5 ||
+          thickness > lh * 2.5 ||
+          length / thickness < 3.5 ||
+          Math.abs((top + bottom - b0 - b1) / 2) > lh * 0.65
+        )
+          continue;
+        const box = vertical
+          ? { x: top, y: g.start, w: thickness, h: length }
+          : { x: g.start, y: top, w: length, h: thickness };
+        found.push({
+          ...box,
+          family: g.family,
+          labelAtStart: !vertical && a0 < g.start + length * 0.5,
+          kind: "bar",
+          axis: vertical ? "vertical" : "horizontal",
+          track: "colored",
+          inset: { left: 0, right: 0, top: 0, bottom: 0 },
+          score: 1.5 + (g.rows.length / thickness) * 0.2,
+        });
+      }
+    }
+    return found;
+  }
   function detect(image, labels) {
     const found = {};
     for (const { id, bbox } of labels) {
       const candidates = [
+        ...striped(image, bbox),
         ...outlined(image, bbox),
         ...colored(image, bbox),
       ].sort((a, b) => b.score - a.score);
@@ -2008,8 +2141,52 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       }
       return valid();
     });
+    // A caption can have a permanently tinted block at its start. It is not pedal fill.
+    const length = base.profile.values.length;
+    const variation = Array.from({ length }, (_, i) => {
+      const values = same
+        .map(
+          (r) =>
+            r.profile.values[
+              Math.min(
+                r.profile.values.length - 1,
+                Math.round(
+                  (i * (r.profile.values.length - 1)) / Math.max(1, length - 1),
+                ),
+              )
+            ],
+        )
+        .filter(Number.isFinite);
+      return values.length >= 2
+        ? Math.max(...values) - Math.min(...values)
+        : Infinity;
+    });
+    let fixedPrefix = 0;
+    while (fixedPrefix < length && variation[fixedPrefix] < 22) fixedPrefix++;
+    if (
+      !base.labelAtStart ||
+      fixedPrefix > length * 0.25 ||
+      variation.filter((v) => v >= 40).length < length * 0.2
+    )
+      fixedPrefix = 0;
+    const empties = same
+      .map((r) => r.profile.values)
+      .filter((values) => {
+        const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+        return (
+          sorted.length > values.length * 0.8 &&
+          sorted[Math.floor(sorted.length * 0.99)] <= 85
+        );
+      })
+      .sort(
+        (a, b) =>
+          a.reduce((s, v) => s + (v || 0), 0) / a.length -
+          b.reduce((s, v) => s + (v || 0), 0) / b.length,
+      );
     const model = {
       ...base,
+      emptyProfiles: empties.slice(0, 1),
+      fixedPrefix: fixedPrefix / length,
       threshold,
       boundsProven: !!base.manual || base.track === "outlined" || darkTrack,
       manual: !!base.manual,
@@ -2059,6 +2236,23 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     )
       return null;
     if (model.tone !== "dark") {
+      for (const empty of model.emptyProfiles || []) {
+        const delta = values.map((v, i) =>
+          Math.abs(
+            v -
+              (empty[
+                Math.round(
+                  (i * (empty.length - 1)) / Math.max(1, values.length - 1),
+                )
+              ] ?? v),
+          ),
+        );
+        if (
+          delta.filter((v) => v > 25).length / values.length < 0.03 &&
+          delta.reduce((a, b) => a + b, 0) / values.length < 8
+        )
+          return 0;
+      }
       const quantile = (values, f) => {
         const sorted = [...values].sort((a, b) => a - b);
         return sorted[
@@ -2107,7 +2301,14 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       }
       let strongest = 0,
         boundary = -1;
-      for (let i = 3; i < values.length - 3; i++) {
+      for (
+        let i = Math.max(
+          3,
+          Math.ceil((model.fixedPrefix || 0) * values.length) + 3,
+        );
+        i < values.length - 3;
+        i++
+      ) {
         const a = (values[i - 3] + values[i - 2] + values[i - 1]) / 3,
           b = (values[i] + values[i + 1] + values[i + 2]) / 3;
         if (Math.abs(a - b) > strongest) {
@@ -2196,6 +2397,132 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     };
   }
   window.DriverBars = { detect, calibrate, read, sample };
+})();
+
+</script>
+<script>
+/* Isolate a numerical line from dial edges, separators and fragments of nearby labels. */
+(() => {
+  function prepare(canvas) {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true }),
+      w = canvas.width,
+      h = canvas.height,
+      image = ctx.getImageData(0, 0, w, h),
+      p = image.data,
+      mask = new Uint8Array(w * h),
+      components = [];
+    for (let i = 0; i < mask.length; i++) mask[i] = p[i * 4] < 145 ? 1 : 0;
+    const stack = new Int32Array(w * h);
+    for (let k = 0; k < mask.length; k++) {
+      if (!mask[k]) continue;
+      let n = 0;
+      stack[n++] = k;
+      mask[k] = 0;
+      const points = [];
+      let x0 = w,
+        y0 = h,
+        x1 = 0,
+        y1 = 0;
+      while (n) {
+        const pos = stack[--n],
+          x = pos % w,
+          y = (pos / w) | 0;
+        points.push(pos);
+        x0 = Math.min(x0, x);
+        x1 = Math.max(x1, x);
+        y0 = Math.min(y0, y);
+        y1 = Math.max(y1, y);
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const a = x + dx,
+              b = y + dy,
+              j = b * w + a;
+            if (a >= 0 && a < w && b >= 0 && b < h && mask[j]) {
+              mask[j] = 0;
+              stack[n++] = j;
+            }
+          }
+      }
+      components.push({
+        x0,
+        y0,
+        x1,
+        y1,
+        w: x1 - x0 + 1,
+        h: y1 - y0 + 1,
+        points,
+      });
+    }
+    const central = components.filter(
+      (c) =>
+        c.h >= 12 && c.w > 2 && c.w < c.h * 2.5 && c.x0 > 5 && c.x1 < w - 5,
+    );
+    if (!central.length) return { count: null };
+    // The digit height dominates; very wide horizontal separators never define the line.
+    const main = central.sort((a, b) => b.h - a.h)[0],
+      kept = components.filter(
+        (c) =>
+          c.h >= main.h * 0.55 &&
+          c.h <= main.h * 1.3 &&
+          c.w < c.h * 2.5 &&
+          Math.abs((c.y0 + c.y1 - main.y0 - main.y1) / 2) < main.h * 0.3,
+      );
+    if (!kept.length) return { count: null };
+    const x0 = Math.min(...kept.map((c) => c.x0)),
+      x1 = Math.max(...kept.map((c) => c.x1)),
+      y0 = Math.min(...kept.map((c) => c.y0)),
+      y1 = Math.max(...kept.map((c) => c.y1));
+    // Keep decimal punctuation on the digit baseline, but discard fragments below it.
+    const small = components.filter(
+      (c) =>
+        !kept.includes(c) &&
+        c.w <= main.h * 0.22 &&
+        c.h <= main.h * 0.25 &&
+        c.x0 > x0 &&
+        c.x1 < x1 &&
+        c.y1 <= y1 + 2 &&
+        c.y0 > y1 - main.h * 0.3,
+    );
+    const selected = [...kept, ...small],
+      clean = document.createElement("canvas");
+    clean.width = x1 - x0 + 1;
+    clean.height = y1 - y0 + 1;
+    const out = clean
+      .getContext("2d")
+      .createImageData(clean.width, clean.height);
+    out.data.fill(255);
+    for (const c of selected)
+      for (const pos of c.points) {
+        const x = (pos % w) - x0,
+          y = ((pos / w) | 0) - y0;
+        if (x < 0 || y < 0 || x >= clean.width || y >= clean.height) continue;
+        const j = (y * clean.width + x) * 4;
+        out.data[j] = p[pos * 4];
+        out.data[j + 1] = p[pos * 4 + 1];
+        out.data[j + 2] = p[pos * 4 + 2];
+      }
+    clean.getContext("2d").putImageData(out, 0, 0);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, w, h);
+    const scale = Math.min((w - 40) / clean.width, 52 / clean.height);
+    ctx.drawImage(
+      clean,
+      20,
+      12,
+      Math.round(clean.width * scale),
+      Math.round(clean.height * scale),
+    );
+    const intervals = kept.sort((a, b) => a.x0 - b.x0),
+      groups = [];
+    for (const c of intervals) {
+      const last = groups.at(-1);
+      if (last && c.x0 <= last + 1)
+        groups[groups.length - 1] = Math.max(last, c.x1);
+      else groups.push(c.x1);
+    }
+    return { count: groups.length, decimal: small.length > 0 };
+  }
+  window.DriverDigits = { prepare };
 })();
 
 </script>
@@ -2447,6 +2774,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           alternatives.push(clipRegion(r));
       result[field.id] = clipRegion({
         ...regions[0],
+        digitsOnly: regions.every((r) => r.digitsOnly),
         x,
         y,
         w: Math.max(...regions.map((r) => r.x + r.w)) - x,
@@ -2466,9 +2794,9 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         pad = 4,
         tight = clipRegion({
           x: (b.x0 - pad) / width,
-          y: (b.y0 - 5) / height,
+          y: (b.y0 - 1) / height,
           w: (b.x1 - b.x0 + 2 * pad) / width,
-          h: (b.y1 - b.y0 + 10) / height,
+          h: (b.y1 - b.y0 + 2) / height,
         });
       const numeric = word.text.match(/\d+(?:[.,]\d+)?/)?.[0] || "",
         digits = numeric.replace(/[.,]/g, "").length;
@@ -2501,6 +2829,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         x: tight.x - left / width,
         w: tight.w + extra / width,
         tight,
+        digitsOnly: /^\d+$/.test(word.text.trim()),
         scale: field.id === "rpm" && /K$/i.test(word.text) ? 1000 : 1,
       });
       // Keep a neighbouring unit complete; cutting a percent sign can look like an extra digit.
@@ -2521,11 +2850,13 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           Math.min(w.bbox.y1, b.y1) - Math.max(w.bbox.y0, b.y0) >
             (b.y1 - b.y0) * 0.4,
       );
-      if (suffix)
+      if (suffix) {
+        region.digitsOnly = false;
         region.w = Math.min(
           1 - region.x,
           Math.max(region.w, (suffix.bbox.x1 + pad + extra) / width - region.x),
         );
+      }
       return region;
     };
     for (const field of fields) {
@@ -2935,6 +3266,10 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             0,
             Math.min(video.duration * 0.15, 2),
             Math.min(video.duration * 0.5, 8),
+            ...Array.from({ length: 11 }, (_, i) =>
+              Math.min(i, Math.max(0, video.duration - 0.001)),
+            ),
+            ...[0.25, 0.5, 0.75].map((f) => video.duration * f),
           ]),
         ]) {
           await seek(video, t, signal);
@@ -3006,7 +3341,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
       let currentImage = video,
         currentWidth = video.videoWidth,
         currentHeight = video.videoHeight;
-      function drawCrop(region) {
+      function drawCrop(region, field) {
         const r = clipRegion(region),
           sw = r.w * currentWidth,
           sh = r.h * currentHeight,
@@ -3027,11 +3362,54 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           targetHeight,
         );
         preprocess(cx, 420, 80, targetWidth, targetHeight);
+        crop._digits = /^(speed|rpm|gear)$/.test(field.id)
+          ? DriverDigits.prepare(crop)
+          : { count: null };
       }
       const total = nativeSource
           ? nativeSource.count
           : Math.max(2, Math.ceil(video.duration * sampleRate)),
         frameDurations = [];
+      const lastSpeed = { time: -Infinity, value: null },
+        digitInfo = {},
+        images = {},
+        cache = {};
+      function pixels() {
+        const p = cx.getImageData(0, 0, crop.width, crop.height).data;
+        return Uint8Array.from({ length: p.length / 4 }, (_, i) =>
+          p[i * 4] < 145 ? 1 : 0,
+        );
+      }
+      function unchanged(a, b) {
+        if (!a || !b || a.length !== b.length) return false;
+        let different = 0,
+          ink = 0;
+        for (let i = 0; i < a.length; i++) {
+          different += a[i] !== b[i] ? 1 : 0;
+          ink += a[i] || b[i] ? 1 : 0;
+        }
+        return ink > 20 && different / ink < 0.005;
+      }
+      function checked(n, field, t) {
+        if (n === null) return null;
+        const info = digitInfo[field.id];
+        if (
+          (field.id === "speed" || field.id === "rpm") &&
+          rois[field.id].digitsOnly &&
+          info?.count &&
+          !info.decimal &&
+          (rois[field.id].scale || 1) === 1 &&
+          String(n).length + 1 < info.count
+        )
+          return null;
+        if (
+          field.id === "speed" &&
+          t - lastSpeed.time < 0.3 &&
+          Math.abs(n - lastSpeed.value) > 4 + 200 * (t - lastSpeed.time)
+        )
+          return null;
+        return n;
+      }
       async function readFrame(frame, t, duration) {
         if (signal?.aborted)
           throw new DOMException("Analisi interrotta", "AbortError");
@@ -3039,7 +3417,11 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         active.forEach((field, index) => {
-          drawCrop(rois[field.id]);
+          drawCrop(rois[field.id], field);
+          digitInfo[field.id] = crop._digits;
+          images[field.id] = /^(speed|rpm|gear)$/.test(field.id)
+            ? pixels()
+            : null;
           ctx.drawImage(crop, 20, index * 100 + 10);
         });
         const { data } = active.length
@@ -3047,6 +3429,23 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           : { data: { blocks: [] } };
         const values = Object.fromEntries(fields.map((f) => [f.id, null]));
         for (const field of active) {
+          const remembered = cache[field.id];
+          if (
+            remembered &&
+            t - remembered.time < 0.5 &&
+            unchanged(images[field.id], remembered.image)
+          ) {
+            const n = checked(remembered.value, field, t);
+            if (n !== null) {
+              values[field.id] = n;
+              counts[field.id]++;
+              if (field.id === "speed") {
+                lastSpeed.time = t;
+                lastSpeed.value = n;
+              }
+              continue;
+            }
+          }
           const index = active.indexOf(field),
             words = lines(data)
               .flatMap((l) => l.words || [])
@@ -3062,18 +3461,21 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             rois[field.id].inferred ? 70 : 60,
             scale,
           );
+          n = checked(n, field, t);
           if (n === null) {
             retries[field.id]++;
             const votes = [];
             const initial = readWords(words, field, 45, scale);
             if (initial !== null) votes.push(initial);
             // Isolated line reads retain the full field width: a narrow retry must not truncate a digit.
-            drawCrop(rois[field.id]);
-            for (const mode of ["7", "13"]) {
+            drawCrop(rois[field.id], field);
+            for (const mode of field.id === "gear"
+              ? ["10", "7", "13"]
+              : ["7", "13"]) {
               await engine.setParameters({
                 tessedit_pageseg_mode: mode,
                 tessedit_char_whitelist:
-                  mode === "13"
+                  mode === "13" || mode === "10"
                     ? "0123456789.," +
                       (field.id === "speed"
                         ? "KMHkmh/Pp"
@@ -3098,8 +3500,13 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
                 rois[field.id].inferred ? 70 : 65,
                 scale,
               );
+              n = checked(n, field, t);
               if (n !== null) break;
-              const candidate = readWords(retryWords, field, 45, scale);
+              const candidate = checked(
+                readWords(retryWords, field, 45, scale),
+                field,
+                t,
+              );
               if (candidate !== null) {
                 if (votes.includes(candidate)) {
                   n = candidate;
@@ -3114,7 +3521,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             });
           }
           if (n === null) {
-            drawCrop(rois[field.id]);
+            drawCrop(rois[field.id], field);
             const pixels = cx.getImageData(0, 0, crop.width, crop.height),
               hist = new Uint32Array(256),
               total = pixels.data.length / 4;
@@ -3161,8 +3568,15 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
             );
             await engine.setParameters({ tessedit_pageseg_mode: "6" });
           }
+          n = checked(n, field, t);
           if (n !== null && n <= field.max) {
             values[field.id] = n;
+            if (images[field.id])
+              cache[field.id] = { time: t, value: n, image: images[field.id] };
+            if (field.id === "speed") {
+              lastSpeed.time = t;
+              lastSpeed.value = n;
+            }
             counts[field.id]++;
           }
         }
@@ -3211,13 +3625,27 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         const surface = document.createElement("canvas");
         for await (const item of nativeSource.frames({ signal })) {
           try {
+            if (!item.frame) {
+              rows.push([
+                item.index,
+                item.time,
+                item.time,
+                null,
+                null,
+                null,
+                null,
+                null,
+              ]);
+              frameDurations.push(item.duration);
+              continue;
+            }
             nativeSource.draw(surface, item.frame);
             currentImage = surface;
             currentWidth = surface.width;
             currentHeight = surface.height;
             await readFrame(item.index, item.time, item.duration);
           } finally {
-            item.frame.close();
+            item.frame?.close();
           }
         }
       } else {
@@ -3237,11 +3665,15 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
         .filter((f) => counts[f.id] === 0)
         .map((f) => f.name);
       const quality = {
-        engineVersion: 4,
+        engineVersion: 5,
         frames: {
           mode: frameMode,
           sourceCount: nativeSource?.count ?? null,
-          decodedCount: rows.length,
+          decodedCount: rows.length - (nativeSource?.missingFrames.size || 0),
+          timelineCount: rows.length,
+          unavailableFrames: nativeSource
+            ? [...nativeSource.missingFrames]
+            : [],
           variable: nativeSource?.variable ?? null,
           codec: nativeSource?.codec ?? null,
         },
@@ -3291,7 +3723,14 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           fields.map((f) => [f.id, counts[f.id] / rows.length]),
         ),
         regions: rois,
-        reason: missing.length ? "Canali non letti: " + missing.join(", ") : "",
+        reason: [
+          missing.length ? "Canali non letti: " + missing.join(", ") : "",
+          nativeSource?.missingFrames.size
+            ? `${nativeSource.missingFrames.size} fotogrammi non decodificabili: valori lasciati vuoti al timestamp originale.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       };
     } finally {
       video.pause();
@@ -3312,7 +3751,7 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     fields,
     getWorker,
     release,
-    version: 4,
+    version: 5,
     readWords,
     mergeRegions,
   };
@@ -3603,6 +4042,10 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
           (item.data.lap.extraction?.engineVersion || 0) < DriverOCR.version
             ? "Lettura precedente: usa Rigenera dal video per applicare le correzioni."
             : "Le percentuali indicano i campioni accettati dall’OCR, non l’accuratezza rispetto al video.";
+        const unavailable =
+          item.data.lap.extraction?.frames?.unavailableFrames?.length || 0;
+        if (unavailable)
+          quality.textContent += ` ${unavailable} fotogrammi non decodificabili: valori vuoti al timestamp originale.`;
         const inspect = document.createElement("button");
         inspect.className = "light";
         inspect.textContent = "Verifica letture";
@@ -4204,6 +4647,8 @@ var Log=function(){var i=new Date,r=4;return{setLogLevel:function(t){r=t==this.d
     const signal = controller.signal;
     if (!item) return;
     showValues();
+    const display = $("dnInspectFrame");
+    display.getContext("2d").clearRect(0, 0, display.width, display.height);
     if (!source) return;
     const row = item.data.lap.rows[index];
     let nativeIndex;

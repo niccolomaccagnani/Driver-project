@@ -81,6 +81,10 @@
     ordered.forEach((s, i) => {
       s.index = i;
       s.time = Math.max(0, s.time);
+      s.duration = Math.max(
+        0.000001,
+        (ordered[i + 1]?.time ?? Math.min(end, s.time + s.duration)) - s.time,
+      );
     });
     const entry = mp4.getTrackById(track.id).mdia.minf.stbl.stsd.entries[0],
       box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
@@ -149,6 +153,7 @@
         throw Error("Dati del fotogramma incompleti.");
       return new Uint8Array(cache, sample.offset - cacheStart, sample.size);
     }
+    const missingFrames = new Set();
     async function* frames({
       signal,
       start = 0,
@@ -250,7 +255,12 @@
           notify();
         }
       })();
-      let emitted = 0;
+      let emitted = 0,
+        nextIndex = start;
+      function unavailable(index) {
+        missingFrames.add(index);
+        return { ...ordered[index], frame: null, unavailable: true };
+      }
       try {
         while (!done || queue.length) {
           aborted(signal);
@@ -260,10 +270,30 @@
             continue;
           }
           const item = queue.shift();
-          emitted++;
-          yield item;
+          let delivered = false;
+          try {
+            while (nextIndex < item.index) {
+              aborted(signal);
+              const missing = unavailable(nextIndex++);
+              emitted++;
+              yield missing;
+            }
+            if (item.index !== nextIndex)
+              throw Error("Ordine dei fotogrammi incoerente.");
+            nextIndex++;
+            emitted++;
+            delivered = true;
+            yield item;
+          } finally {
+            if (!delivered) item.frame.close();
+          }
         }
         if (decoderError) throw decoderError;
+        while (nextIndex <= Math.min(finish, ordered.length - 1)) {
+          const missing = unavailable(nextIndex++);
+          emitted++;
+          yield missing;
+        }
         if (emitted !== Math.min(finish, ordered.length - 1) - start + 1)
           throw Error(
             `Decodifica incompleta: ${emitted} fotogrammi letti. Il set non è stato salvato.`,
@@ -289,6 +319,10 @@
     }
     async function frameAt(index, { signal } = {}) {
       for await (const item of frames({ signal, start: index, end: index })) {
+        if (!item.frame)
+          throw Error(
+            "Il decoder non restituisce questo fotogramma: i valori sono stati lasciati vuoti al suo timestamp originale.",
+          );
         return item;
       }
       throw Error("Fotogramma non decodificato.");
@@ -303,6 +337,7 @@
       codec,
       times: ordered.map((s) => s.time),
       fps: ordered.length / duration,
+      missingFrames,
       variable: ordered.some(
         (s, i) =>
           i > 1 &&

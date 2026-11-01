@@ -8,7 +8,7 @@ source=(root/'source.html').read_text()
 injection='<script id="dnTelemetryDocument" type="application/json">'+json.dumps(viewer,ensure_ascii=False).replace('<','\\u003c')+'</script>\n'
 for key,name in [('dnOCRCore','tesseract-core-lstm.wasm.js'),('dnOCRWorker','worker.min.js'),('dnOCRLanguage','eng.traineddata.gz')]:
  injection+='<script id="'+key+'" type="application/octet-stream">'+base64.b64encode((root/'vendor'/name).read_bytes()).decode()+'</script>\n'
-for name in ['vendor/tesseract.min.js','vendor/mp4box.all.min.js','frames.js','bars.js','extractor.js','telemetry.js','inspection.js']:
+for name in ['vendor/tesseract.min.js','vendor/mp4box.all.min.js','frames.js','bars.js','digits.js','extractor.js','telemetry.js','inspection.js']:
  injection+='<script>\n'+(root/name).read_text()+'\n</script>\n'
 page=source.replace('</body>',injection+'</body>')
 (root/'Driver notes.html').write_text(page)

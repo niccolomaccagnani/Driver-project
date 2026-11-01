@@ -1,0 +1,51 @@
+{
+  "scope": "33 visually transcribed source frames; numeric references exact, pedal references estimated from full visible track (tolerance 4 percentage points). Remaining frames have not all been annotated by hand.",
+  "references": 165,
+  "read": 165,
+  "missing": [],
+  "errors": [],
+  "channels": {
+    "speed": {
+      "accepted": 2841,
+      "method": "ocr",
+      "missing": 125,
+      "retried": 265
+    },
+    "rpm": {
+      "accepted": 2946,
+      "method": "ocr",
+      "missing": 20,
+      "retried": 158
+    },
+    "gear": {
+      "accepted": 2949,
+      "method": "ocr",
+      "missing": 17,
+      "retried": 105
+    },
+    "throttle": {
+      "accepted": 2949,
+      "method": "bar-percentage",
+      "missing": 17,
+      "retried": 0
+    },
+    "brake": {
+      "accepted": 2954,
+      "method": "bar-percentage",
+      "missing": 12,
+      "retried": 0
+    }
+  },
+  "frames": {
+    "mode": "native",
+    "sourceCount": 2966,
+    "decodedCount": 2965,
+    "timelineCount": 2966,
+    "unavailableFrames": [
+      1
+    ],
+    "variable": true,
+    "codec": "avc1.640032"
+  },
+  "sourceSha256": "1fcececb97c73ea242cd021231fa9f9e90e97c3c655b79d96bcbb83a5be72443"
+}
